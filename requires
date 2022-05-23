@@ -1,0 +1,9 @@
+certifi==2022.5.18.1
+charset-normalizer==2.0.12
+html5lib==1.1
+idna==3.3
+mechanize==0.4.8
+requests==2.27.1
+six==1.16.0
+urllib3==1.26.9
+webencodings==0.5.1
