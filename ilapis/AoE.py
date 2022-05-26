@@ -16,6 +16,7 @@ import requests
 from os import system
 from re import findall
 from time import sleep
+from random import choice
 from getpass import getpass
 from datetime import datetime
 from requests import Session
@@ -31,8 +32,19 @@ URLCreateConfigure = URL.format( "create/configure" )
 URLConfigureToStory = URL.format( "create/configure_to_story" )
 URLPost = URL.format( "p/{}" )
 
-# User agent browser to create session.
-UserAgent = "Mozilla/5.0 (Linux; Android 9; CPH1923) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.136 Mobile Safari/537.36"
+try:
+    
+    with open( "ilapis/browser.txt" ) as browser:
+        browsers = browser.readlines()
+        browser.close()
+    
+    # Random User Agent browser to create session.
+    UserAgent = choice( browsers ).replace( "\n", "" )
+    
+except IOError:
+    
+    # Default User Agent browser to create session.
+    UserAgent = "Mozilla/5.0 (Linux; Android 9; CPH1923) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.136 Mobile Safari/537.36"
 
 # A place to store active user data.
 FSessionIn = "session.in"
@@ -50,17 +62,13 @@ def color( string: str ) -> str:
 
 class AoE:
     
-    def __init__( self ):
-        self.onsaved = None
-        self.session = None
-        pass
-    
     def cout( self, object: str, message: str ) -> None:
         sys.stdout.write( color( f"e[1;33mSystemOutpute[1;34m:\n\x20\x20e[1;32m{object}e[1;34m:\n\x20\x20\x20\x20e[1;37m{message}\n" ) )
         sys.stdout.flush()
     
     def exit( self, object: str, message: str ) -> None:
-        system( "clear" ); sys.exit( color( f"e[1;33mSystemEjectede[1;34m:\n\x20\x20e[1;32m{object}e[1;34m:\n\x20\x20\x20\x20e[1;37m{message}\n" ) )
+        #system( "clear" );
+        sys.exit( color( f"e[1;33mSystemEjectede[1;34m:\n\x20\x20e[1;32m{object}e[1;34m:\n\x20\x20\x20\x20e[1;37m{message}\n" ) )
     
     def point( self, string=None, re=False ) -> None:
         points = [ ".", ".", ".", "." ]
@@ -132,6 +140,13 @@ class AoE:
         if value == "":
             value = self.input( pholder, password, IgnoreKeyboard )
         return( value )
+
+class Main( AoE ):
+    
+    def __init__( self ):
+        self.onsaved = None
+        self.session = None
+        pass
     
     def onsave( self, cookie, username ):
         try:
@@ -212,35 +227,33 @@ class AoE:
         
         responseJSON = response.json()
         responseKuki = response.cookies.get_dict()
+        print( responseJSON )
+        print( responseKuki )
         
         try:
+            if "two_factor_required" in responseJSON and responseJSON['two_factor_required']:
+                next = self.input( "Do\x20you\x20want\x20to\x20verify\x20your\x20account\x20[Y/n]\x20", False, True )
+                if next == "Y":
+                    return( self.facode( session, responseJSON, username ) )
+                elif next == "n":
+                    self.exit( "SigninError", "Login\x20canceled\x20by\x20user." )
+                else:
+                    self.exit( "SigninError", "Operation\x20aborted,\x20system\x20stopped." )
+            if "spam" in responseJSON:
+                if responseJSON['spam']:
+                    self.exit( "SigninError", "Oops!\x20Looks\x20like\x20you\x20are\x20considered\x20SPAM!" )
             if "user" in responseJSON:
                 if responseJSON['user']:
-                    if "two_factor_required" in responseJSON and responseJSON['two_factor_required']:
-                        next = self.input( "Do\x20you\x20want\x20to\x20verify\x20your\x20account\x20[Y/n]\x20", False, True )
-                        if next == "Y":
-                            return( self.facode( session, responseJSON, username ) )
-                        elif next == "n":
-                            self.exit( "SigninError", "Login\x20canceled\x20by\x20user." )
-                        else:
-                            self.exit( "SigninError", "Operation\x20aborted,\x20system\x20stopped." )
+                    if "authenticated" in responseJSON and responseJSON['authenticated']:
+                        return( self.onsave( responseKuki, username ) )
                     else:
-                        if "authenticated" in responseJSON and responseJSON['authenticated']:
-                            return( self.onsave( responseKuki, username ) )
-                        else:
-                            self.exit( "SigninError", "Incorrect\x20password,\x20or\x20may\x20have\x20been\x20changed." )
+                        self.exit( "SigninError", "Incorrect\x20password,\x20or\x20may\x20have\x20been\x20changed." )
                 else:
                     self.exit( "SigninError", "User\x20not\x20found,\x20or\x20may\x20be\x20missing." )
-            else:
-                if "spam" in responseJSON:
-                    if responseJSON['spam']:
-                        self.exit( "SigninError", "Oops!\x20Looks\x20like\x20you\x20are\x20considered\x20SPAM!" )
-                self.exit( "SigninError", "An\x20error\x20occurred\x20while\x20signing\x20in." )
         except KeyError as e:
             self.exit( "KeyError", e )
-
-
-class Main( AoE ):
+        
+        self.exit( "SigninError", "An\x20error\x20occurred\x20while\x20signing\x20in." )
     
     def main( self ) -> None:
         self.queue( "e[1;37mPlease\x20wait...", self.ping )
@@ -293,6 +306,9 @@ class Main( AoE ):
         except KeyboardInterrupt:
             self.exit( "KeyboardInterrupt", "Operation\x20aborted,\x20system\x20stopped." )
         
+        # z93cvfv
+        # pantesterr
+        # /pantesterr/g
     
 if __name__ == "__main__":
     main = Main()
