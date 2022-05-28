@@ -6,10 +6,10 @@ ILAPIs is an open source project that can be used to login to real Instagram acc
 
 ## Example
 ```py
-from ilapis import Main
+from ilapis import ILAPIs
 
-main = Main()
-main.main()
+ilapis = ILAPIs()
+ilapis.main()
 ```
 
 ## Licence
