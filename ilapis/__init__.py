@@ -7,7 +7,7 @@
 # @github https://github.com/hxAri/{ILAPIs}
 # 
 
-from .cc import *
+from .CC import *
 
 class ILAPis( CC ):
     
