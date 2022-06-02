@@ -46,6 +46,10 @@ class AoE:
     def clear( self ) -> None:
         system( "clear" )
         
+        
+    def ascii( self, fname: string, width: int = 0, height: int = 0 ) -> str:
+        pass
+        
     
     def point( self, string: str = None, space: int = 0, re: bool = False ) -> None:
         points = [ ".", ".", ".", "." ]
