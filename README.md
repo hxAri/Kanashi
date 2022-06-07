@@ -3,6 +3,9 @@ Kanashi is an open source project that can be used to login to real Instagram ac
 
 ## Install
 *Not available for PIP at this time.*
+```sh
+git clone https://github.com/hxAri/Kanashi && cd Kanashi && python setup* install
+```
 
 ## Example
 ```py
