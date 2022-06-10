@@ -18,5 +18,13 @@ object = Kanashi()
 object.main()
 ```
 
+## Contribution
+
+Thank you to all the people who already contributed to Kanashi.
+
+<a href="https://github.com/hxAri/Kanashi/graphs/contributors/">
+    <img src="https://contrib.rocks/image/?repo=hxAri/Kanashi">
+</a>
+
 ## Licence
 All Kanashi source code is licensed under the GNU General Public License v3. Please see the original document for more details.
