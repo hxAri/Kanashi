@@ -1,0 +1,16 @@
+name: Greetings
+
+on: [pull_request_target, issues]
+
+jobs:
+  greeting:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+    - uses: actions/first-interaction@v1
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        issue-message: "Hi, thank you for reporting the issue you found, we will as soon as possible to fix the problem you reported."
+        pr-message: "Hi, thanks for contributing to this repository, let's co-develop the code with open source so that many people can use it freely."
