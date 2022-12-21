@@ -100,7 +100,7 @@ object.z[0].z # Output Z
 
 # You can also share Dictionary values ​​to other classes
 parent = Something()
-objcet = Object( dict, parent )
+object = Object( dict, parent )
 
 parent.x # Output X
 parent.y.y # Output Y
