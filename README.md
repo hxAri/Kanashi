@@ -117,7 +117,8 @@ object.dict()
 ```
 
 ## Donate
-Give spirit to the developer, no matter how many donations given will still be accepted
+Give spirit to the developer, no matter how many donations given will still be accepted<br/>
+[paypal.me/hxAri](https://paypal.me/hxAri)
 
 ## Licence
 All Kanashi source code is licensed under the GNU General Public License v3. Please [see](https://www.gnu.org/licenses) the original document for more details.
