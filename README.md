@@ -54,8 +54,8 @@ from kanashi import *
 class Main( Kanashi ):
     def __init__( self ):
         
-        # Also be aware that class Can doesn't
-        # use Thread at all (Should)
+        # Also be aware that class Base
+        # doesn't use Thread at all (Should)
         self.config = BaseConfig( self )
         self.request = BaseRequest( self )
         self.signin = BaseSignIn( self )
@@ -67,6 +67,53 @@ class Main( Kanashi ):
         # Todo code here!
         # Main method name can be changed to anything here
         pass
+```
+
+## Others
+## kanashi.Object
+kanashi.Object is a class that supports Stringable and is able to convert Dictionary values ​​to Object, when the class is represented as a String it will become JSON Strings, To use it, simply create a new instance with the Dictionary parameter
+```py
+from kanashi import JSON, Object
+
+# Dictionary data
+dict = {
+    "x": "X",
+    "y": {
+        "y": "Y"
+    },
+    "z": [{
+        "x": "X",
+        "y": "Y",
+        "z": "Z"
+    }]
+}
+
+# Json Strings
+json = JSON.encode( dict )
+
+# Just create new Instance
+# JSON Strings is supported
+object = Object( dict or json )
+object.x # Output X
+object.y.y # Output Y
+object.z[0].z # Output Z
+
+# You can also share Dictionary values ​​to other classes
+parent = Something()
+objcet = Object( dict, parent )
+
+parent.x # Output X
+parent.y.y # Output Y
+parent.z[0].z # Output Z
+
+# Update or Set new Data
+object.set( Dict{ ... } )
+
+# Update or Set new Data with JSON Strings
+object.set( Json'{ ... }' )
+
+# Get Dictionary Values
+object.dict()
 ```
 
 ## Donate
