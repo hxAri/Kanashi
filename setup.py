@@ -2,19 +2,14 @@
 from setuptools import find_packages, setup
 
 requirements = [
-    "certifi==2022.5.18.1",
-    "charset-normalizer==2.0.12",
-    "httpagentparser==1.9.2",
-    "idna==3.3",
-    "requests==2.27.1",
-    "urllib3==1.26.9"
+    "requests>=2.28.1"
 ]
 
 setup(
     name = "kanashi",
     author = "Ari Setiawan",
     author_email = "ari160824@gmail.com",
-    version = "1.1.2",
+    version = "1.1.3",
     license = "GNU General Public License v3",
     url = "https://github.com/hxAri/Kanashi",
     install_requires = requirements,
