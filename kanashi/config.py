@@ -82,6 +82,7 @@ class BaseConfig( Context ):
 	
 	#[BaseConfig( Object app )]
 	def __init__( self, app ):
+		
 		self.fname = "settings.json"
 		self.fattr = Object( {}, self )
 		self.fdict = None

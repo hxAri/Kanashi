@@ -29,14 +29,17 @@ import os
 class Path():
 	
 	#[Path.is( String dir )]
+	@staticmethod
 	def dir( dir ):
 		return( os.path.isdir( dir ) )
 		
 	#[Path.exists( String dir )]
+	@staticmethod
 	def exists( dir ):
 		return( os.path.exists( dir ) )
 		
 	#[Path.mkdir( String dir )]
+	@staticmethod
 	def mkdir( dir ):
 		name = "."
 		path = dir.split( "/" )

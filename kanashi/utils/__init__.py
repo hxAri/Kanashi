@@ -26,5 +26,8 @@
 from kanashi.utils.file import File
 from kanashi.utils.json import JSON, JSONError
 from kanashi.utils.path import Path
+from kanashi.utils.string import String
 from kanashi.utils.thread import Thread
 from kanashi.utils.util import Util
+
+activity = "\x61\x63\x74\x69\x76\x69\x74\x79"

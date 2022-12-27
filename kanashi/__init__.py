@@ -23,10 +23,6 @@
 # not for SPAM.
 #
 
-# Application Banner
-# Please don't change or override this
-banner = "\x1b[1;38;5;32m\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x20\x3b\x3b\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x20\x3b\x3b\x3b\x20\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x20\x20\x3b\x20\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x1b[1;38;5;111m\x3b\x3b\x3b\x20\x20\x20\x3b\x3b\x20\x20\x1b[1;38;5;32m\x3b\x3b\x3b\x20\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x1b[1;38;5;111m\x3b\x3b\x3b\x3b\x20\x20\x3b\x3b\x20\x20\x20\x20\x1b[1;38;5;32m\x3b\x3b\x20\x20\x20\x20\x3b\x20\x3b\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x1b[1;38;5;111m\x3b\x3b\x20\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x1b[1;38;5;32m\x3b\x3b\x20\x20\x20\x20\x3b\x3b\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x1b[1;38;5;111m\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x1b[1;38;5;32m\x3b\x20\x3b\x3b\x20\x3b\x3b\x3b\x3b\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x20\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x1b[1;38;5;111m\x3b\x3b\x3b\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x1b[1;38;5;32m\x3b\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x1b[1;38;5;111m\x3b\x3b\x3b\x3b\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x1b[1;38;5;32m\x3b\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x1b[1;38;5;111m\x3b\x20\x3b\x3b\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x1b[1;38;5;32m\x3b\x3b\x3b\x3b\x20\x20\x20\x3b\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x20\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x20\x3b\x3b\x3b\x3b\x3b\x20\x20\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x20\x20\x20\x20\x20\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x1b[0m"
-
 from os import system
 
 from kanashi.config import BaseConfig, Config
@@ -85,14 +81,15 @@ class Main( Kanashi, Util ):
 		]
 		authors = []
 		for author in self.config.authors:
-			authors.append( "Name {1}\n{0}Email {2}\n{0}Github {3}\n{0}".format(*[
+			authors.append( "Name {1} ({2})\n{0}Email {3}\n{0}Github {4}\n{0}".format(*[
 				"\x20" *8,
 				author.name,
+				author.nick,
 				author.email,
 				author.github
 			]))
 		info[info.index( "Replace" )] = authors
-		self.output( "activity", info, line=False )
+		self.output( activity, info, line=False )
 		self.input( "Return to the main page", default="" )
 		self.main()
 		
@@ -100,7 +97,70 @@ class Main( Kanashi, Util ):
 	def main( self ):
 		try:
 			if self.active:
-				print( self.active )
+				self.output( activity, [
+					"",
+					"Kanashi v{}".format( self.config.setting.version ),
+					"Logged in as {}".format( self.active.signin.username ),
+					"",
+					"Author {}".format( self.config.authors[0].name ),
+					"Github {}".format( self.config.setting.source ),
+					"Issues {}".format( self.config.setting.issues ),
+					"",
+					lists := [
+						"Get User Info", [
+							"e.g Fullname, Username, Bio, etc\n"
+						],
+						"Get User Post", [
+							"e.g Captions, Tags, Images/ Videos, etc\n"
+						],
+						"Get Post Image/ Video",
+						"Get Post Info", [
+							"e.g Author, Captions, Tags, Images, etc\n"
+						],
+						"Get Story Image/ Video",
+						"Get Story Info", [
+							"e.g Author, Images or Videos\n"
+						],
+						"Get Reels Video",
+						"Get Reels Info", [
+							"e.g Author, Captions, Tags, Images, etc\n"
+						],
+						"Fetch Timesline Posts\n",
+						"Fetch Suggested Users\n",
+						"Follow Account", [
+							"Follow accounts based on target accounts",
+							"Or just follow one account only\n"
+						],
+						"Unfollow Account", [
+							"Unfollow all accounts",
+							"Or just unfollow one account only\n",
+						],
+						"Logout", [
+							"Remove your account from the device",
+							"This requires you to login again when",
+							"you want to use this tool again\n",
+						],
+						"Support Project", [
+							"Give spirit to the developer, no matter",
+							"how many donations given will still",
+							"be accepted\n"
+						],
+						"Update Tool", [
+							"Update the current version to the",
+							"latest version, from real source\n"
+						],
+						"Clear Response", [
+							"Delete the entire request record\n"
+						],
+						"Info", [
+							"e.g Authors, Version, License, etc\n"
+						],
+						"Exit", [
+							"Close the program"
+						]
+					]
+				])
+				self.input( None, number=True, default=[ 1+ idx for idx in range( len( lists ) ) ] )
 			else:
 				self.welcome()
 		except AttributeError:
@@ -117,7 +177,7 @@ class Main( Kanashi, Util ):
 		
 	#[Main.welcome()]
 	def welcome( self ):
-		self.output( "activity", [
+		self.output( activity, [
 			"",
 			"Welcome to Kanashi v{}".format( self.config.setting.version ),
 			"",
@@ -125,62 +185,50 @@ class Main( Kanashi, Util ):
 			"Github {}".format( self.config.setting.source ),
 			"Issues {}".format( self.config.setting.issues ),
 			"",
-			[
-				"SignIn Password",
-				[
-					"SignIn with username and password"
+			lists := [
+				"SignIn Password", [
+					"SignIn with username and password\n"
 				],
-				"SignIn Csrftoken",
-				[
-					"Use login cookies from your browser"
+				"SignIn Csrftoken", [
+					"Use login cookies from your browser\n"
 				],
-				"Switch Account",
-				[
-					"If you save the previous login info"
+				"Switch Account", [
+					"If you save the previous login info\n"
 				],
-				"Support Project",
-				[
+				"Support Project", [
 					"Give spirit to the developer, no matter",
 					"how many donations given will still",
-					"be accepted"
+					"be accepted\n"
 				],
-				"Update Tool",
-				[
+				"Update Tool", [
 					"Update the current version to the",
-					"latest version, from source"
+					"latest version, from real source\n"
 				],
-				"Clear Response",
-				[
-					"Delete the entire request record"
+				"Clear Response", [
+					"Delete the entire request record\n"
 				],
-				"Info",
-				[
-					"e.g Authors, Version, License, etc"
+				"Info", [
+					"e.g Authors, Version, License, etc\n"
 				],
-				"Exit",
-				[
+				"Exit", [
 					"Close the program"
 				]
 			]
 		])
+		opts = {
+			1: self.signin.password,
+			2: self.signin.remember,
+			3: self.signin.switch,
+			4: self.support,
+			5: self.update,
+			6: self.request.reset,
+			7: self.info
+		}
 		try:
-			opts = {
-				1: self.signin.password,
-				2: self.signin.cookie,
-				3: self.signin.switch,
-				4: self.support,
-				5: self.update,
-				6: self.request.clear,
-				7: self.info
-			}
-			try:
-				next = opts[self.input( None, number=True, default=[ 1+ i for i in range( 8 ) ] )]
-				next()
-			except KeyError as e:
-				self.close( "activity", "Finish" )
-		except BaseException as e:
-			if not isinstance( e, SystemExit ):
-				self.emit( e )
+			next = opts[self.input( None, number=True, default=[ 1+ idx for idx in range( len( lists ) ) ] )]
+			next()
+		except KeyError as e:
+			self.close( activity, "Finish" )
 		pass
 	
 

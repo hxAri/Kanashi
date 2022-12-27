@@ -26,9 +26,10 @@
 from requests import Session
 from requests.exceptions import *
 
+from kanashi.config import BaseConfig
 from kanashi.context import Context
 from kanashi.error import Error
-from kanashi.utils import File, JSONError, Util
+from kanashi.utils import activity, File, JSONError, Util
 
 #[kanashi.RequestError]
 class RequestError( Error ):
@@ -56,12 +57,23 @@ class BaseRequest( Context ):
 				self.emit( Error( f"Failed create file {self.historyF}", e ) )
 				exit()
 		
+		try:
+			if app.config:
+				pass
+		except AttributeError:
+			app.config = BaseConfig( app )
+		
 		# Create new Session.
 		self.session = Session()
 		self.session.headers.update({
 			"Origin": "https://www.instagram.com",
 			"Referer": "https://www.instagram.com/",
-			"User-Agent": app.config.browser.default
+			"User-Agent": app.config.browser.default,
+			"X-Asbd-Id": "198387",
+			"X-IG-App-Id": "1217981644879628",
+			"X-IG-WWW-Claim": "hmac.AR3Xr1WRl38gOuiPX1W-7xi7poRHnUgeLV6zVOzTivxj2QzA",
+			"X-Instagram-Ajax": "1006758126",
+			"X-Requested-With": "XMLHttpRequest"
 		})
 		
 		# Allow other program for access request session.
@@ -70,13 +82,17 @@ class BaseRequest( Context ):
 		# Call parent constructor.
 		super().__init__( app )
 		
-	#[BaseRequest.clear()]
-	def clear( self ):
+	#[BaseRequest.reset()]
+	def reset( self ):
+		
 		self.history = []
 		self.response = None
 		
 		# Rewrite response logs.
-		File.write( self.historyF, self.history )
+		File.write(
+			self.historyF,
+			self.history
+		)
 		
 	#[Request.erro( List error )]
 	def error( self, error ):
@@ -208,10 +224,10 @@ class BaseRequest( Context ):
 #[kanashi.Request]
 class Request( BaseRequest, Util ):
 	
-	#[Request.clear()]
-	def clear( self ):
-		self.thread( "Clear request records", BaseRequest.clear( self ) )
-		self.output( "clear", "The request log has been cleaned up" )
+	#[Request.reset()]
+	def reset( self ):
+		self.thread( "Clear request records", BaseRequest.reset, self )
+		self.output( activity, "The request log has been cleaned up" )
 		self.input( "Return to the main page", default="" )
 		self.app.main()
 		

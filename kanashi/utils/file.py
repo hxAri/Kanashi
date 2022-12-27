@@ -30,10 +30,12 @@ from kanashi.utils.path import Path
 class File():
 	
 	#[File.json( String fname )]
+	@staticmethod
 	def json( fname ):
 		return( JSON.decode( File.read( fname ) ) )
 		
 	#[File.read( String fname )]
+	@staticmethod
 	def read( fname ):
 		with open( fname, "r" ) as fopen:
 			fread = fopen.read()
@@ -41,6 +43,7 @@ class File():
 		return( fread )
 		
 	#[File.write( String fname, String fdata, String fmode )]
+	@staticmethod
 	def write( fname, fdata ):
 		fpath = fname.split( "/" )
 		fpath.pop()
@@ -54,3 +57,4 @@ class File():
 		with open( fname, "w" ) as fopen:
 			fopen.write( fdata )
 			fopen.close()
+	

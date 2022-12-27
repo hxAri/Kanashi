@@ -31,10 +31,12 @@ from json import JSONDecodeError as JSONError
 class JSON:
 	
 	#[Json.decode( String string )]
+	@staticmethod
 	def decode( string ):
 		return( loads( string ) )
 		
 	#[Json.encode( Mixed values )]
+	@staticmethod
 	def encode( values ):
 		return( dumps( values, indent=4 ) )
 	
