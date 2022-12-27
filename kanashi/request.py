@@ -41,6 +41,9 @@ class BaseRequest( Context ):
 	#[BaseRequest( Object app )]
 	def __init__( self, app ):
 		
+		# Request response.
+		self.response = False
+		
 		# Request history.
 		self.history = []
 		self.historyF = "response.json"
@@ -165,17 +168,18 @@ class BaseRequest( Context ):
 		self.response = False
 		try:
 			self.response = self.session.request( method, url=url, **kwargs )
+			self.responseSave()
 		except BaseException as e:
 			self.err = Error(**{
 				"message": "There was an error sending the request",
 				"prev": self.error( e )
 			})
 			return( False )
-		return( self.responseSave() ).response
+		return( self.response )
 		
 	#[Request.responseSave()]
 	def responseSave( self ):
-		if self.response:
+		if self.response != False:
 			try:
 				try:
 					content = self.response.json()
@@ -183,20 +187,21 @@ class BaseRequest( Context ):
 					content = None
 				self.history.append({
 					"target": self.response.url,
+					"browser": self.session.headers['User-Agent'],
+					"content": content,
 					"cookies": {
-						"request": {},
+						"request": dict( self.session.cookies ),
 						"response": dict( self.response.cookies )
 					},
 					"headers": {
 						"request": dict( self.session.headers ),
 						"response": dict( self.response.headers )
 					},
-					"content": content
+					"status": "{}".format( self.response )
 				})
 				File.write( self.historyF, self.history )
 			except BaseException as e:
-				print( e )
-				exit()
+				self.err = Error( "Unable to log request sent", prev=e )
 		return( self )
 	
 

@@ -71,4 +71,11 @@ class Context:
 		except ValueError:
 			self.__dict__[key] = val
 		return( self )
+		
+	#[Kanashi.main()]
+	def main( self ):
+		try:
+			self.app.main()
+		except AttributeError:
+			pass
 	

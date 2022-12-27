@@ -84,6 +84,10 @@ class Object:
 	def get( self, key ):
 		return( self.__dict__[key] )
 		
+	#[Object.len()]
+	def len( self ):
+		return( len( self.__data__ ) )
+		
 	#[Object.__set( Dictionary data )]
 	def set( self, data ):
 		match type( data ).__name__:

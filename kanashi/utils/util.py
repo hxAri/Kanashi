@@ -44,7 +44,7 @@ class Util:
 	#[Util.close()]
 	def close( self, *args, **kwargs ):
 		self.output( *args, **kwargs )
-		exit()
+		sys.exit()
 		
 	#[Util.exit()]
 	def exit( self, *args, **kwargs ):
@@ -52,7 +52,7 @@ class Util:
 		
 	#[Util.emit( BaseException|Error|List error )]
 	def emit( self, error ):
-		#self.clear()
+		self.clear()
 		name = type( self ).__name__
 		strings = f"{name}.error\n"
 		if isinstance( error, Error ):
@@ -163,7 +163,7 @@ class Util:
 		
 	#[Util.output( Object refer, Dict|List|String message, Bool line )]
 	def output( self, refer, message, line=False ):
-		#self.clear()
+		self.clear()
 		base = refer
 		try:
 			refer = refer.__name__
@@ -252,7 +252,7 @@ class Util:
 		
 	#[Util.thread( String strings, Function Object, *args, **kwargs )]
 	def thread( self, strings, target, *args, **kwargs ):
-		#self.clear()
+		self.clear()
 		print( "\x0a\x7b\x7d\x0a\x0a\x0a".format( banner ) )
 		try:
 			task = Thread( target=target, args=args, kwargs=kwargs )
@@ -269,7 +269,7 @@ class Util:
 					print( "\r{}\x20{}".format( strings, i ), end="" )
 					sleep( 00000.1 )
 			print( "\r\x0a" )
-			#self.clear()
+			self.clear()
 		except EOFError as e:
 			self.close( e, "Foce close." )
 		except KeyboardInterrupt:

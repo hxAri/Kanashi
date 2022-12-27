@@ -86,6 +86,9 @@ class BaseConfig( Context ):
 		self.fattr = Object( {}, self )
 		self.fdict = None
 		
+		# Allow other contexts to access.
+		app.setting = self.fattr
+		
 		# Reading file configuration.
 		self.read()
 		

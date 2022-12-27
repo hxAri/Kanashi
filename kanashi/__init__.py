@@ -38,6 +38,11 @@ from kanashi.request import BaseRequest, Request, RequestError
 from kanashi.signin import BaseSignIn, SignIn, SignInError, SignInCheckpoint, SignIn2FARequired, SignIn2FAInvalidCode
 from kanashi.utils import *
 
+# Classes that start with the word Base,
+# for example BaseSignIn are not used with the Main class,
+# but classes like SignIn or without the Base prefix are
+# used because it supports interaction with the User.
+
 #[kanashi.Main]
 class Main( Kanashi, Util ):
 	
@@ -168,10 +173,15 @@ class Main( Kanashi, Util ):
 				6: self.request.clear,
 				7: self.info
 			}
-			next = opts[self.input( None, number=True, default=[ 1+ i for i in range( 8 ) ] )]
-			next()
-		except KeyError:
-			self.close( "activity", "Finish" )
+			try:
+				next = opts[self.input( None, number=True, default=[ 1+ i for i in range( 8 ) ] )]
+				next()
+			except KeyError as e:
+				self.close( "activity", "Finish" )
+		except BaseException as e:
+			if not isinstance( e, SystemExit ):
+				self.emit( e )
+		pass
 	
 
 if __name__ == "__main__":
