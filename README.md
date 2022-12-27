@@ -36,7 +36,7 @@ I did not expect this ^_*
 * Unfollow Account
 * Login with Password
 * Login with Sessionid
-* Login T2Fa Verification
+* Login 2FA Verification
 * Login Checkpoint Handle (Incoming)
 * Login Multiple Account
 * Login Save Info
