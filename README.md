@@ -18,8 +18,29 @@ git clone https://github.com/hxAri/Kanashi && cd Kanashi && python setup* instal
 ```
 
 ## Requires
-* Python **3xx**
-* Python **requests**
+* Python **>=3.10.4**
+* [Requests](https://github.com/psf/requests) **>=2.28.1**
+
+## Features
+I did not expect this ^_*
+* Get User Info
+* Get User Posts
+* Get User Story
+* Get User Reels
+* Get User Followers
+* Get User Following
+* Fetch Timeline Posts
+* Fetch Suggested Users
+* Downloader
+* Follow Account
+* Unfollow Account
+* Login with Password
+* Login with Sessionid
+* Login T2Fa Verification
+* Login Checkpoint Handle (Incoming)
+* Login Multiple Account
+* Login Save Info
+* Logout
 
 ## Examples
 ## Simple Usage
