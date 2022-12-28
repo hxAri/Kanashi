@@ -36,6 +36,20 @@ class RequestError( Error ):
 	pass
 	
 
+#[kanashi.RequestRequired]
+class RequestRequired( Context ):
+	
+	#[RequestRequired( Object app )]
+	def __init__( self, app ):
+		
+		# Copy Request and Session instance.
+		self.request = app.request
+		self.session = app.session
+		
+		# Call parent constructor.
+		super().__init__( app )
+	
+
 #[kanashi.BaseRequest]
 class BaseRequest( Context ):
 	

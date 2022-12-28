@@ -23,6 +23,7 @@
 # not for SPAM.
 #
 
+from kanashi.utils.cookie import Cookie
 from kanashi.utils.file import File
 from kanashi.utils.json import JSON, JSONError
 from kanashi.utils.path import Path

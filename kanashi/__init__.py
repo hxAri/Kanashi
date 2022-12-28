@@ -25,12 +25,14 @@
 
 from os import system
 
+from kanashi.cli import *
 from kanashi.config import BaseConfig, Config
 from kanashi.context import Context
+from kanashi.enpoint import *
 from kanashi.error import Alert, Error
 from kanashi.kanashi import Kanashi
 from kanashi.object import Object
-from kanashi.request import BaseRequest, Request, RequestError
+from kanashi.request import BaseRequest, Request, RequestError, RequestRequired
 from kanashi.signin import BaseSignIn, SignIn, SignInError, SignInCheckpoint, SignIn2FARequired, SignIn2FAInvalidCode
 from kanashi.utils import *
 
@@ -45,9 +47,15 @@ class Main( Kanashi, Util ):
 	#[Main()]
 	def __init__( self ):
 		
+		self.active = None
 		self.config = Config( self )
 		self.request = Request( self )
 		self.signin = SignIn( self )
+		self.user = User( self )
+		
+		self.active = self.setting.signin.switch.get( self.setting.signin.active )
+		self.session.headers.update( self.active.headers.request.dict() )
+		self.session.headers.update( self.active.headers.response.dict() )
 		
 		# Call parent constructor.
 		super().__init__( self )
@@ -95,75 +103,76 @@ class Main( Kanashi, Util ):
 		
 	#[Main.main()]
 	def main( self ):
-		try:
-			if self.active:
-				self.output( activity, [
-					"",
-					"Kanashi v{}".format( self.config.setting.version ),
-					"Logged in as {}".format( self.active.signin.username ),
-					"",
-					"Author {}".format( self.config.authors[0].name ),
-					"Github {}".format( self.config.setting.source ),
-					"Issues {}".format( self.config.setting.issues ),
-					"",
-					lists := [
-						"Get User Info", [
-							"e.g Fullname, Username, Bio, etc\n"
-						],
-						"Get User Post", [
-							"e.g Captions, Tags, Images/ Videos, etc\n"
-						],
-						"Get Post Image/ Video",
-						"Get Post Info", [
-							"e.g Author, Captions, Tags, Images, etc\n"
-						],
-						"Get Story Image/ Video",
-						"Get Story Info", [
-							"e.g Author, Images or Videos\n"
-						],
-						"Get Reels Video",
-						"Get Reels Info", [
-							"e.g Author, Captions, Tags, Images, etc\n"
-						],
-						"Fetch Timesline Posts\n",
-						"Fetch Suggested Users\n",
-						"Follow Account", [
-							"Follow accounts based on target accounts",
-							"Or just follow one account only\n"
-						],
-						"Unfollow Account", [
-							"Unfollow all accounts",
-							"Or just unfollow one account only\n",
-						],
-						"Logout", [
-							"Remove your account from the device",
-							"This requires you to login again when",
-							"you want to use this tool again\n",
-						],
-						"Support Project", [
-							"Give spirit to the developer, no matter",
-							"how many donations given will still",
-							"be accepted\n"
-						],
-						"Update Tool", [
-							"Update the current version to the",
-							"latest version, from real source\n"
-						],
-						"Clear Response", [
-							"Delete the entire request record\n"
-						],
-						"Info", [
-							"e.g Authors, Version, License, etc\n"
-						],
-						"Exit", [
-							"Close the program"
-						]
+		if self.active:
+			self.output( activity, [
+				"",
+				"Kanashi v{}".format( self.config.setting.version ),
+				"Logged in as {}".format( self.active.signin.username ),
+				"",
+				"Author {}".format( self.config.authors[0].name ),
+				"Github {}".format( self.config.setting.source ),
+				"Issues {}".format( self.config.setting.issues ),
+				"",
+				lists := [
+					"Get User Info", [
+						"e.g Fullname, Username, Bio, etc\n"
+					],
+					"Get User Post", [
+						"e.g Captions, Tags, Images/ Videos, etc\n"
+					],
+					"Get Post Image/ Video",
+					"Get Post Info", [
+						"e.g Author, Captions, Tags, Images, etc\n"
+					],
+					"Get Story Image/ Video",
+					"Get Story Info", [
+						"e.g Author, Images or Videos\n"
+					],
+					"Get Reels Video",
+					"Get Reels Info", [
+						"e.g Author, Captions, Tags, Images, etc\n"
+					],
+					"Fetch Timesline Posts\n",
+					"Fetch Suggested Users\n",
+					"Follow Account", [
+						"Follow accounts based on target accounts",
+						"Or just follow one account only\n"
+					],
+					"Unfollow Account", [
+						"Unfollow all accounts",
+						"Or just unfollow one account only\n",
+					],
+					"Logout", [
+						"Remove your account from the device",
+						"This requires you to login again when",
+						"you want to use this tool again\n",
+					],
+					"Support Project", [
+						"Give spirit to the developer, no matter",
+						"how many donations given will still",
+						"be accepted\n"
+					],
+					"Update Tool", [
+						"Update the current version to the",
+						"latest version, from real source\n"
+					],
+					"Clear Response", [
+						"Delete the entire request record\n"
+					],
+					"Info", [
+						"e.g Authors, Version, License, etc\n"
+					],
+					"Exit", [
+						"Close the program"
 					]
-				])
-				self.input( None, number=True, default=[ 1+ idx for idx in range( len( lists ) ) ] )
-			else:
-				self.welcome()
-		except AttributeError:
+				]
+			])
+			match self.input( None, number=True, default=[ 1+ idx for idx in range( len( lists ) ) ] ):
+				case 1:
+					self.user.tools()
+				case _:
+					self.close( activity, "Finish without logout" )
+		else:
 			self.welcome()
 		
 	#[Main.support()]
@@ -189,7 +198,7 @@ class Main( Kanashi, Util ):
 				"SignIn Password", [
 					"SignIn with username and password\n"
 				],
-				"SignIn Csrftoken", [
+				"SignIn Session", [
 					"Use login cookies from your browser\n"
 				],
 				"Switch Account", [

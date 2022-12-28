@@ -28,10 +28,10 @@ from random import randint
 from re import findall, match
 from time import sleep
 
-from kanashi.context import Context
 from kanashi.error import Alert, Error
 from kanashi.object import Object
-from kanashi.utils import activity, JSON, JSONError, String, Util
+from kanashi.request import RequestRequired
+from kanashi.utils import activity, Cookie, JSON, JSONError, String, Util
 
 #[kanashi.SignInError]
 class SignInError( Error ):
@@ -68,17 +68,7 @@ class SignInSuccess( Object ):
 	REMEMBER = 29158
 	
 #[kanashi.BaseSignIn]
-class BaseSignIn( Context ):
-	
-	#[BaseSignIn( Object app )]
-	def __init__( self, app ):
-		
-		# Copy Request and Session instance.
-		self.request = app.request
-		self.session = app.session
-		
-		# Call parent constructor.
-		super().__init__( app )
+class BaseSignIn( RequestRequired ):
 		
 	#[BaseSignIn.csrftoken()]
 	def csrftoken( self ):
@@ -367,6 +357,7 @@ class SignIn( BaseSignIn, Util ):
 			"or keep using current login info [N]"
 		])
 		self.session.headers.update( user.headers.request.dict() )
+		self.session.headers.update( user.headers.response.dict() )
 		if self.input( "Next [Y/n]", default=[ "Y", "y", "N", "n" ] ).upper() == "Y":
 			match user.method:
 				case SignInSuccess.PASSWORD:
