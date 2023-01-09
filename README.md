@@ -24,120 +24,92 @@ git clone https://github.com/hxAri/Kanashi && cd Kanashi && python setup* instal
 ## Features
 I did not expect this ^_*
 * Get User Info
-* Get User Posts
-* Get User Story
-* Get User Reels
-* Get User Followers
-* Get User Following
-* Fetch Timeline Posts
-* Fetch Suggested Users
+* Get User Posts (Incoming)
+* Get User Story (Incoming)
+* Get User Reels (Incoming)
+* Get User Followers (Incoming)
+* Get User Following (Incoming)
+* Fetch Timeline Posts (Incoming)
+* Fetch Suggested Users (Incoming)
 * Downloader
-* Follow Account
-* Unfollow Account
+* Follow Account (Incoming)
+* Unfollow Account (Incoming)
 * Login with Password
-* Login with Sessionid
-* Login 2FA Verification
+* Login with Sessionid (Incoming)
+* Login 2FA Verification (Bug)
 * Login Checkpoint Handle (Incoming)
 * Login Multiple Account
 * Login Save Info
-* Logout
+* Logout (Incoming)
 
 ## Examples
+
 ## Simple Usage
 ```sh
 cd Kanashi && chmod +x main && ./main
 ```
-## Extends Class 1x
-If you create your own class and want to use Modules like Request, SignIn, etc you should at least have a class description like the following
-```py
-from kanashi import *
 
-# You can use Kanashi for Extends
-class Main( Kanashi ):
-    def __init__( self ):
-        self.config = Config( self )
-        self.request = Request( self )
-        self.signin = SignIn( self )
-        # Etc...
-        
-        super().__init__( self )
+## Simple Usage as Module
+```py
+# This is a simple class usage,
+# you can extend Kanashi class or not
+
+# Import the required modules
+from kanashi import Kanashi, Object
+
+# You can expand or not
+class Example( Kanashi ):
     
-    def main( self ):
-        # Todo code here!
-        # The main method must be in the main class
-        # Because classes that don't start with Base
-        # are closely related to the Main class
-        pass
-```
-## Extends Class 2x
-This is an example of extending a class yourself freely, This is almost the same as the first example, but here you are not required to use a class that does not start with Base, but you must still provide an instance of the first class as the application context to each new instance
-```py
-from kanashi import *
-
-class Main( Kanashi ):
-    def __init__( self ):
+    @property
+    def getUserActive( self ) -> Object | None:
+        """ Get current user active """
+        return( self.active )
         
-        # Also be aware that class Base
-        # doesn't use Thread at all (Should)
-        self.config = BaseConfig( self )
-        self.request = BaseRequest( self )
-        self.signin = BaseSignIn( self )
-        # Etc...
-        
-        super().__init__( self )
+    @property
+    def getUserActiveFromConfig( self ) -> str | False:
+        """ Get current user default login """
+        return( self.settings.signin.active )
     
-    def run( self ):
-        # Todo code here!
-        # Main method name can be changed to anything here
-        pass
+
+# Create new Instance
+example = Example()
+example.getUserActive
+example.getUserActiveFromConfig
 ```
 
-## Others
-## kanashi.Object
-kanashi.Object is a class that supports Stringable and is able to convert Dictionary values ​​to Object, when the class is represented as a String it will become JSON Strings, To use it, simply create a new instance with the Dictionary parameter
-```py
-from kanashi import JSON, Object
+## Classes
 
-# Dictionary data
-dict = {
-    "x": "X",
-    "y": {
-        "y": "Y"
-    },
-    "z": [{
-        "x": "X",
-        "y": "Y",
-        "z": "Z"
-    }]
-}
-
-# Json Strings
-json = JSON.encode( dict )
-
-# Just create new Instance
-# JSON Strings is supported
-object = Object( dict or json )
-object.x # Output X
-object.y.y # Output Y
-object.z[0].z # Output Z
-
-# You can also share Dictionary values ​​to other classes
-parent = Something()
-object = Object( dict, parent )
-
-parent.x # Output X
-parent.y.y # Output Y
-parent.z[0].z # Output Z
-
-# Update or Set new Data
-object.set( Dict{ ... } )
-
-# Update or Set new Data with JSON Strings
-object.set( Json'{ ... }' )
-
-# Get Dictionary Values
-object.dict()
-```
+## kanashi.Config
+| From | Class | Context | Extends |
+| ------------- |:-------------|:-------------|:-------------|
+| kanashi | Main | True | kanashi.cli.Cli |
+| kanashi.cli | Cli | True | kanashi.kanashi.Kanashi, kanashi.utils.util.Util |
+| kanashi.config | Config | True | kanashi.context.Context |
+| kanashi.context | Context | False | None |
+| kanashi.endpoint.auth | AuthError | False | kanashi.error.Error |
+| kanashi.endpoint.block | Block | True | kanashi.request.RequestRequired |
+| kanashi.endpoint.favorite | Favorite | True | kanashi.request.RequestRequired |
+| kanashi.endpoint.follow | Follow | True | kanashi.request.RequestRequired |
+| kanashi.endpoint.profile | Profile | True | kanashi.context.Context |
+| kanashi.endpoint.restrict | Restrict | True | kanashi.request.RequestRequired |
+| kanashi.endpoint.signin | SignIn | True | kanashi.request.RequestRequired |
+| kanashi.endpoint.user | User | True | kanashi.request.RequestRequired |
+| kanashi.error | Alert | False | kanashi.error.Throwable, Warning |
+| kanashi.error | Error | False | kanashi.error.Throwable, TypeError |
+| kanashi.error | Throwable | False | Exception |
+| kanashi.kanashi | Kanashi | True|False | kanashi.context.Context |
+| kanashi.object | Object | False | None |
+| kanashi.request | Request | True | kanashi.context.Context |
+| kanashi.update | Update | True | kanashi.request.RequestRequired |
+| kanashi.utils.cookie | Cookie | False | None |
+| kanashi.utils.file | File | False | kanashi.utils.path.Path |
+| kanashi.utils.json | JSON | False | None |
+| kanashi.utils.json | JSONError | False | json.JSONDecodeError |
+| kanashi.utils.path | Path | False | None |
+| kanashi.utils.string | Binary | False | None |
+| kanashi.utils.string | String | False | kanashi.utils.string.Binary |
+| kanashi.utils.thread | Thread | False | threading.Thread |
+| kanashi.utils.util | Util | False | None |
 
 ## Donate
 Give spirit to the developer, no matter how many donations given will still be accepted<br/>
