@@ -23,6 +23,8 @@
 # not for SPAM.
 #
 
+from re import findall
+
 from kanashi.utils.json import JSON
 from kanashi.utils.json import JSONError
 
@@ -49,19 +51,27 @@ class Object:
 	#[Object.dict()]
 	def dict( self ):
 		data = {}
-		copy = self.__data__
+		copy = self.__dict__
 		for key in copy.keys():
-			if isinstance( copy[key], Object ):
-				data[key] = copy[key].dict()
-			elif isinstance( copy[key], list ):
-				data[key] = []
-				for item in copy[key]:
-					if isinstance( item, Object ):
-						data[key].append( item.dict() )
+			match key:
+				case "__data__":
+					pass
+				case "__method__":
+					pass
+				case "__parent__":
+					pass
+				case _:
+					if isinstance( copy[key], Object ):
+						data[key] = copy[key].dict()
+					elif isinstance( copy[key], list ):
+						data[key] = []
+						for item in copy[key]:
+							if isinstance( item, Object ):
+								data[key].append( item.dict() )
+							else:
+								data[key].append( item )
 					else:
-						data[key].append( item )
-			else:
-				data[key] = copy[key]
+						data[key] = copy[key]
 		return( data )
 		
 	#[Object.dump()]
@@ -70,7 +80,51 @@ class Object:
 		
 	#[Object.json()]
 	def json( self ):
-		return( JSON.encode( self.dict() ) )
+		return( JSON.encode( self.__json( self.dict() ) ) )
+		
+	#[Object.isset( String key )]
+	def isset( self, key ):
+		try:
+			if self.__dict__[key]:
+				pass
+			return( True )
+		except KeyError:
+			return( False )
+		
+	#[Object.unset( String key )]
+	def unset( self, key ):
+		del self.__data__[key]
+		del self.__dict__[key]
+		
+	#[Object.__json( Dict | List data )]
+	def __json( self, data=None ):
+		if data == None:
+			data = self.dict()
+		match type( data ):
+			case "dict":
+				for key in data:
+					match type( data[key] ).__name__:
+						case "dict" | "list":
+							data[key] = self.__json( data[key] )
+						case _:
+							if not JSON.isSerializable( data[key] ):
+								data[key] = self.__str( data[key] )
+			case "list":
+				for idx in range( len( data ) ):
+					match type( data[idx] ).__name__:
+						case "dict" | "list":
+							data[idx] = self.__json( data[idx] )
+						case _:
+							if not JSON.isSerializable( data[idx] ):
+								data[idx] = self.__str( data[idx] )
+		return( data )
+		
+	#[Object.__str( Mixed data )]
+	def __str( self, data ):
+		text = f"{data}"
+		text = text.replace( "'", "" )
+		text = text.replace( ">", "/>" )
+		return( text )
 		
 	#[Object.idxs()]
 	def idxs( self ):

@@ -32,11 +32,19 @@ class Thread( BaseThread ):
 	def __init__( self, group=None, target=None, name=None, args=(), kwargs={}, Verbose=None ):
 		BaseThread.__init__( self, group, target, name, args, kwargs )
 		self._return = None
+		self._except = None
 		
 	#[Thread.run()]
 	def run(self):
 		if self._target is not None:
-			self._return = self._target( *self._args, **self._kwargs)
+			try:
+				self._return = self._target( *self._args, **self._kwargs )
+			except BaseException as e:
+				self._except = e
+		
+	#[Thread.getExcept()]
+	def getExcept( self ):
+		return( self._except )
 		
 	#[Thread.getReturn()]
 	def getReturn( self ):

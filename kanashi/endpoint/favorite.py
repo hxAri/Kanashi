@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #
 # @author Ari Setiawan
 # @create 23.05-2022
@@ -23,5 +21,21 @@
 # not for SPAM.
 #
 
-from kanashi.enpoint.profile import BaseProfile, Profile
-from kanashi.enpoint.user import BaseUser, User
+from kanashi.error import Error
+from kanashi.object import Object
+from kanashi.request import RequestRequired
+
+#[kanashi.endpoint.Favorite]
+class Favorite( RequestRequired ):
+	pass
+	
+
+#[kanashi.endpoint.FavoriteError]
+class FavoriteError( Error ):
+	pass
+	
+
+#[kanashi.endpoint.FavoriteSuccess]
+class FavoriteSuccess( Object ):
+	pass
+	

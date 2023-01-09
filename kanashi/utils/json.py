@@ -39,4 +39,15 @@ class JSON:
 	@staticmethod
 	def encode( values ):
 		return( dumps( values, indent=4 ) )
+		
+	#[Json.isSerializable( Mixed values )]
+	@staticmethod
+	def isSerializable( values ):
+		try:
+			JSON.encode( values )
+			return( True )
+		except OverflowError:
+			return( False )
+		except TypeError:
+			return( False )
 	

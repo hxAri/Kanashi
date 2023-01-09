@@ -26,7 +26,9 @@
 from base64 import b64encode
 from base64 import b64decode
 from binascii import hexlify
+from random import choice
 from re import finditer
+from string import ascii_lowercase, ascii_uppercase
 
 #[kanashi.Binary]
 class Binary:
@@ -60,5 +62,15 @@ class String( Binary ):
 	@staticmethod
 	def decode( enc ):
 		return( str( b64decode( bytes( String.hex2bin( enc ), "utf-8" ) ), "utf-8" ) )
-	
 		
+	#[String.random( Int length )]
+	def random( length=32 ):
+		"""
+		For the record, this does not generate a
+		random string for security only file names
+		"""
+		letter = ascii_lowercase
+		letter += ascii_uppercase
+		letter += ""
+		return( "".join( choice( letter ) for i in range( length ) ) )
+	

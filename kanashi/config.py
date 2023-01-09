@@ -28,59 +28,72 @@ from kanashi.error import Error
 from kanashi.object import Object
 from kanashi.utils import File, JSONError, Util
 
-#[kanashi.BaseConfig]
-class BaseConfig( Context ):
+#[kanashi.Config]
+class Config( Context ):
 	
-	#[BaseConfig.default]
+	#[Config.default]
 	default = {
-		"authors": [
-			{
-				"name": "Ari Setiawan",
-				"nick": "hxAri",
-				"email": "ari160824@gmail.com",
-				"github": "https://github.com/hxAri"
-			},
-			{
-				"name": "Aisyah Diesliana",
-				"nick": "Lianary",
-				"email": None,
-				"github": "https://github.com/AisyahDiesliana"
-			},
-			{
-				"name": "Falsa Fadilah Nugraha",
-				"nick": "Valxxa",
-				"email": None,
-				"github": None
-			},
-			{
-				"name": "Okutairi",
-				"nick": "Okutairi",
-				"email": "okutairi0701@gmail.com",
-				"github": "https://github.com/okutairi"
-			},
-		],
-		"browser": {
-			"default": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Mobile Safari/537.36",
-			"private": "Instagram 64.0.0.14.96"
-		},
-		"license": {
-			"name": "GNU General Public License v3",
-			"link": "https://www.gnu.org/licenses"
-		},
-		"setting": {
-			"donate": "https://paypal.me/hxAri",
-			"source": "https://github.com/hxAri/Kanashi",
-			"issues": "https://github.com/hxAri/Kanashi/issues",
-			"update": "https://github.com/hxAri/Kanashi/archive/refs/tags/v{version}.zip",
-			"version": "1.1.3"
-		},
-		"signin": {
-			"active": None,
-			"switch": {}
-		}
+	    "authors": [
+	        {
+	            "name": "Ari Setiawan",
+	            "nick": "hxAri",
+	            "email": "ari160824@gmail.com",
+	            "github": "https://github.com/hxAri"
+	        },
+	        {
+	            "name": "Aisyah Diesliana",
+	            "nick": "Lianary",
+	            "email": None,
+	            "github": "https://github.com/AisyahDiesliana"
+	        },
+	        {
+	            "name": "Falsa Fadilah Nugraha",
+	            "nick": "Valxxa",
+	            "email": None,
+	            "github": None
+	        },
+	        {
+	            "name": "Okutairi",
+	            "nick": "Okutairi",
+	            "email": "okutairi0701@gmail.com",
+	            "github": "https://github.com/okutairi"
+	        }
+	    ],
+	    "browser": {
+	        "default": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Mobile Safari/537.36",
+	        "private": "Instagram 64.0.0.14.96"
+	    },
+	    "license": {
+	        "name": "GNU General Public License v3",
+	        "link": "https://www.gnu.org/licenses"
+	    },
+	    "path": {
+	        "collection": "onsaved/collections",
+	        "comment": "onsaved/comments",
+	        "follower": "onsaved/followers",
+	        "following": "onsaved/following",
+	        "image": "onsaved/images",
+	        "like": "onsaved/likes",
+	        "post": "onsaved/posts",
+	        "profile": "onsaved/profiles",
+	        "reel": "onsaved/reels",
+	        "saved": "onsaved/saveds",
+	        "story": "onsaved/story",
+	        "video": "onsaved/videos",
+	        "views": "onsaved/views"
+	    },
+	    "donate": "https://paypal.me/hxAri",
+	    "source": "https://github.com/hxAri/Kanashi",
+	    "issues": "https://github.com/hxAri/Kanashi/issues",
+	    "update": "https://github.com/hxAri/Kanashi/archive/refs/tags/v{version}.zip",
+	    "signin": {
+	        "active": False,
+	        "switch": {}
+	    },
+	    "version": "1.1.3"
 	}
 	
-	#[BaseConfig( Object app )]
+	#[Config( Object app )]
 	def __init__( self, app ):
 		
 		self.fname = "settings.json"
@@ -88,59 +101,39 @@ class BaseConfig( Context ):
 		self.fdict = None
 		
 		# Allow other contexts to access.
-		app.setting = self.fattr
-		
-		# Reading file configuration.
-		self.read()
+		app.settings = self.fattr
 		
 		# Call parent constructor.
 		super().__init__( app )
 		
 	#[Config.read()]
 	def read( self ):
-		self.err = None
 		try:
 			self.fdict = File.json( self.fname )
 			self.fattr.set( self.fdict )
+			return( True )
 		except FileNotFoundError as e:
-			self.err = Error( "Configuration file not found", prev=e )
+			raise ConfigError( "Configuration file not found", throw=self, prev=e )
 		except JSONError as e:
-			self.err = Error( "Configuration file has corrupted", prev=e )
-		return( self )
+			raise ConfigError( "Configuration file has corrupted", throw=self, prev=e )
+		return True
 		
 	#[Config.save()]
 	def save( self ):
-		self.err = None
 		try:
-			if self.fdict:
+			if self.fdict != None:
 				data = self.fattr.dict()
 			else:
-				data = BaseConfig.default
+				data = Config.default
 				self.fdict = data
 				self.fattr.set( data )
 			File.write( self.fname, data )
-		except BaseException as e:
-			self.err = Error( "Failed save configuration", prev=e )
-		return( self )
+		except Exception as e:
+			raise ConfigError( "Failed save configuration", throw=self, prev=e )
+		return True
 	
 
-#[kanashi.Config]
-class Config( BaseConfig, Util ):
-	
-	#[Config.read()]
-	def read( self ):
-		self.thread( "Reading file configuration", BaseConfig.read, self )
-		if self.err:
-			self.save()
-		else:
-			return( self )
-		
-	#[Config.save()]
-	def save( self ):
-		self.thread( "Saving file configuration", BaseConfig.save, self )
-		if self.err:
-			self.emit( self.err )
-			if self.input( "Try again [Y/n]", default=[ "Y", "y", "N", "n" ] ).upper() == "Y":
-				self.save()
-		return( self )
+#[kanashi.ConfigError]
+class ConfigError( Error ):
+	pass
 	

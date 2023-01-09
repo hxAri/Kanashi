@@ -33,11 +33,10 @@ class Context:
 		if isinstance( app, Context ):
 			if type( app ).__name__ != "Context":
 				self.app = app
-				self.err = None
 			else:
-				raise Error( "The main context cannot be used as a context" )
+				raise ContextError( "The main context cannot be used as a context" )
 		else:
-			raise Error( "Application context should extend the Context class" )
+			raise ContextError( "Application context should extend the Context class" )
 		
 	#[Context.__getattr__( String key )]
 	def __getattr__( self, key ):
@@ -65,17 +64,32 @@ class Context:
 				pass
 			try:
 				if self.__dict__[key]:
-					raise Error( f"Do not override the attribute {key}" )
+					raise ContextError( f"Do not override the attribute {key}" )
 			except KeyError:
 				self.__dict__[key] = val
 		except ValueError:
 			self.__dict__[key] = val
 		return( self )
 		
-	#[Kanashi.main()]
+	#[Context.get( String key )]
+	def get( self, key ):
+		return( self.__getattr__( key ) )
+		
+	#[Context.set( String key, Mixed val )]
+	def set( self, key, val ):
+		return( self.__setattr__( key, val ) )
+		
+	#[Context.main()]
 	def main( self ):
 		try:
 			self.app.main()
 		except AttributeError:
 			pass
+		except RecursionError:
+			pass
+	
+
+#[kanashi.ContextError]
+class ContextError( Error ):
+	pass
 	

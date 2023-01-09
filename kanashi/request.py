@@ -26,32 +26,13 @@
 from requests import Session
 from requests.exceptions import *
 
-from kanashi.config import BaseConfig
+from kanashi.config import Config
 from kanashi.context import Context
 from kanashi.error import Error
-from kanashi.utils import activity, File, JSONError, Util
+from kanashi.utils import Activity, File, JSONError, Util
 
-#[kanashi.RequestError]
-class RequestError( Error ):
-	pass
-	
-
-#[kanashi.RequestRequired]
-class RequestRequired( Context ):
-	
-	#[RequestRequired( Object app )]
-	def __init__( self, app ):
-		
-		# Copy Request and Session instance.
-		self.request = app.request
-		self.session = app.session
-		
-		# Call parent constructor.
-		super().__init__( app )
-	
-
-#[kanashi.BaseRequest]
-class BaseRequest( Context ):
+#[kanashi.Request]
+class Request( Context ):
 	
 	#[BaseRequest( Object app )]
 	def __init__( self, app ):
@@ -62,6 +43,7 @@ class BaseRequest( Context ):
 		# Request history.
 		self.history = []
 		self.historyF = "response.json"
+		
 		try:
 			self.history = File.json( self.historyF )
 		except BaseException as e:
@@ -91,25 +73,40 @@ class BaseRequest( Context ):
 		})
 		
 		# Allow other program for access request session.
-		app.session = self.session
+		try:
+			app.session = self.session
+		except:
+			pass
 		
 		# Call parent constructor.
 		super().__init__( app )
 		
-	#[BaseRequest.reset()]
+	#[Request.reset()]
 	def reset( self ):
 		
 		self.history = []
 		self.response = None
 		
 		# Rewrite response logs.
-		File.write(
-			self.historyF,
-			self.history
-		)
+		File.write( self.historyF, self.history )
 		
-	#[Request.erro( List error )]
-	def error( self, error ):
+	#[Request.download( String url, String name )]
+	def download( self, url, name ):
+		try:
+			resp = self.get( url )
+		except RequestError as e:
+			raise e
+		if resp.status_code == 200:
+			try:
+				File.write( name, resp.content, "wb" )
+				return( True )
+			except Exception as e:
+				raise RequestDownloadError( f"Failed write file /{name}/", prev=e )
+		else:
+			raise RequestDownloadError( f"Failed get content from url, status [{resp.status_code}]" )
+		
+	#[Request.onerror( List error )]
+	def onerror( self, error ):
 		named = type( error ).__name__
 		match named:
 			case InvalidJSONError.__name__:
@@ -194,15 +191,14 @@ class BaseRequest( Context ):
 		
 	#[Request.request( String method, String url, **kwargs )]
 	def request( self, method, url, **kwargs ):
-		self.err = None
 		self.response = False
 		try:
 			self.response = self.session.request( method, url=url, **kwargs )
 			self.responseSave()
-		except BaseException as e:
-			self.err = Error(**{
+		except Exception as e:
+			raise RequestError(**{
 				"message": "There was an error sending the request",
-				"prev": self.error( e )
+				"prev": self.onerror( e )
 			})
 			return( False )
 		return( self.response )
@@ -231,29 +227,30 @@ class BaseRequest( Context ):
 				})
 				File.write( self.historyF, self.history )
 			except BaseException as e:
-				self.err = Error( "Unable to log request sent", prev=e )
+				raise RequestError( "Unable to log request sent", prev=e )
 		return( self )
 	
 
-#[kanashi.Request]
-class Request( BaseRequest, Util ):
+#[kanashi.RequestError]
+class RequestError( Error ):
+	pass
 	
-	#[Request.reset()]
-	def reset( self ):
-		self.thread( "Clear request records", BaseRequest.reset, self )
-		self.output( activity, "The request log has been cleaned up" )
-		self.input( "Return to the main page", default="" )
-		self.app.main()
+
+#[kanashi.RequestDownloadError]
+class RequestDownloadError( RequestError ):
+	pass
+	
+
+#[kanashi.RequestRequired]
+class RequestRequired( Context ):
+	
+	#[RequestRequired( Object app )]
+	def __init__( self, app ):
 		
-	#[Request.request( String method, String url, **kwargs )]
-	def request( self, method, url, **kwargs ):
-		resp = self.thread( f"Request {method}: {url}", BaseRequest.request, self, method=method, url=url, **kwargs )
-		if self.err:
-			self.emit( self.err )
-			if self.input( "Try again [Y/n]", default=[ "Y", "y", "N", "n" ] ).upper() == "Y":
-				return( self.request( method, url, **kwargs ) )
-			else:
-				return( False )
-		else:
-			return( resp )
+		# Copy Request and Session instance.
+		self.request = app.request
+		self.session = app.session
+		
+		# Call parent constructor.
+		super().__init__( app )
 	

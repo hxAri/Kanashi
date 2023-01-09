@@ -23,43 +23,11 @@
 # not for SPAM.
 #
 
-from kanashi.error import Error
-from kanashi.object import Object
-from kanashi.request import RequestRequired
-from kanashi.utils import activity, Util
-
-#[kanashi.enpoint.BaseProfile]
-class BaseProfile( RequestRequired ):
-	
-	# Fetch Mode by ID
-	FETCH_ID = 75619
-	
-	# Fetch Mode by Username
-	FETCH_USERNAME = 85862
-	
-	#[Profile( Object app, Dict user, Int fetch )]
-	def __init__( self, app, user, fetch ):
-		
-		# Save user info.
-		self.user = Object( user )
-		
-		# Save fetch mode.
-		self.fetch = fetch
-		
-		# Call parent constructor.
-		super().__init__( app )
-	
-
-#[kanashi.enpoint.Profile]
-class Profile( BaseProfile, Util ):
-	
-	#[Profile.getBase()]
-	def getBase( self ):
-		try:
-			if self.base:
-				return( self.base )
-		except AttributeError:
-			self.base = BaseProfile( self.app, self.user.dict(), self.fetch )
-		return( self.base )
-	
-	
+from kanashi.endpoint.auth import AuthError
+from kanashi.endpoint.block import Block, BlockError, BlockSuccess
+from kanashi.endpoint.favorite import Favorite, FavoriteError, FavoriteSuccess
+from kanashi.endpoint.follow import Follow, FollowError, FollowSuccess
+from kanashi.endpoint.restrict import Restrict, RestrictError, RestrictSuccess
+from kanashi.endpoint.profile import Profile, ProfileError
+from kanashi.endpoint.signin import SignIn, SignInCheckpoint, SignInError, SignIn2FAError, SignInCsrftokenError, SignInPasswordError, SignInSpamError, SignInUserNotFoundError, SignInSuccess, SignIn2FARequired, SignIn2FASuccess
+from kanashi.endpoint.user import User, UserError, UserInfoError, UserNotFoundError

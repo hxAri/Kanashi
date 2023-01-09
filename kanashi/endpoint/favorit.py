@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #
 # @author Ari Setiawan
 # @create 23.05-2022
@@ -23,23 +21,21 @@
 # not for SPAM.
 #
 
-from kanashi.cli import Cli
-from kanashi.config import Config, ConfigError
-from kanashi.context import Context, ContextError
-from kanashi.endpoint import *
-from kanashi.error import *
-from kanashi.kanashi import Kanashi
+from kanashi.error import Error
 from kanashi.object import Object
-from kanashi.request import Request, RequestError, RequestDownloadError
-from kanashi.update import Update, UpdateError
-from kanashi.utils import *
+from kanashi.request import RequestRequired
 
-#[kanashi.Main]
-class Main( Cli ):
+#[kanashi.endpoint.Block]
+class Block( RequestRequired ):
 	pass
 	
 
-if __name__ == "__main__":
-	main = Main()
-	main.main()
+#[kanashi.endpoint.BlockError]
+class BlockError( Error ):
+	pass
+	
+
+#[kanashi.endpoint.BlockSuccess]
+class BlockSuccess( Object ):
+	pass
 	

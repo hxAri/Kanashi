@@ -23,30 +23,38 @@
 # not for SPAM.
 #
 
-#[kanashi.Error]
-class Error( BaseException ):
+#[kanashi.Throwable]
+class Throwable( Exception ):
 	
-	#[Error( String message, Int code, BaseException prev )]
-	def __init__( self, message, code=0, prev=None ):
+	#[Throwable( String message, Int code, Context throw, BaseException prev, List group, **data )]
+	def __init__( self, message, code=0, throw=None, prev=None, group=[], **data ):
 		
+		# Set exception message.
 		self.message = message
+		
+		# Set exception code.
 		self.code = code
+		
+		# Set exception throw.
+		self.throw = throw
+		
+		# Set exception previous.
 		self.prev = prev
 		
+		# Set exception groups.
+		self.group = group
+		
+		# Set exception data passed.
+		self.data = data
+		
 		# Call parent constructor.
-		super().__init__( message )
+		Exception.__init__( self, message, code )
 	
-
 #[kanashi.Alert]
-class Alert( BaseException ):
+class Alert( Throwable, Warning ):
+	pass
 	
-	#[Alert( String message, Int code, BaseException prev )]
-	def __init__( self, message, code=0, prev=None ):
-		
-		self.message = message
-		self.code = code
-		self.prev = prev
-		
-		# Call parent constructor.
-		super().__init__( message )
+#[kanashi.Error]
+class Error( Throwable, TypeError ):
+	pass
 	

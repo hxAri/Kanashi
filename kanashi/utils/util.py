@@ -134,10 +134,13 @@ class Util:
 		if label == None or label == "":
 			place = "\x7b\x7d\x2e\x69\x6e\x70\x75\x74\x3a\x20".format( type( self ).__name__ )
 		else:
-			place = "\x7b\x7d\x3a\x20".format( label )
+			if label != "<<<" and label != ">>>":
+				place = "\x7b\x7d\x3a\x20".format( label )
+			else:
+				place = label
 		try:
 			if number:
-				value = int( input( place ) )
+				value = int( float( input( place ) ) )
 			else:
 				value = input( place )
 			if value == "":
@@ -187,6 +190,20 @@ class Util:
 		strings += self.println( message, 4, line )
 		print( "\x0a\x7b\x7d\x0a\x0a\x0a\x7b\x7d".format( banner, strings ) )
 		
+	#[Util.previous( Function | Method back, String label, *args, **kwargs )]
+	def previous( self, back, label=None, *args, **kwargs ):
+		match type( back ).__name__:
+			case "function" | "method":
+				if label == None:
+					try:
+						label = f"Back ({back.__self__.__class__.__name__})"
+					except AttributeError:
+						label = f"Back ({back.__name__})"
+				self.input( label, default="" )
+				return( back( *args, **kwargs ) )
+			case _:
+				raise ValueError( f"Argument back must be type Function|Method, {type( back ).__name__} given" )
+		
 	#[Util.println( Dict|List|String message, Int indent, Bool line )]
 	def println( self, message, indent=4, line=False ):
 		space = "\x20" * indent
@@ -216,12 +233,13 @@ class Util:
 							])
 						case _:
 							if line:
-								stack += "\x7b\x30\x7d\x5b\x7b\x31\x7d\x5d\x20\x7b\x32\x7d\x0a".format( space, i, message[i] )
+								stack += "\x7b\x30\x7d\x7b\x31\x7d\x29\x20\x7b\x32\x7d\x0a".format( space, i, message[i] )
 							else:
 								stack += "\x7b\x30\x7d\x7b\x31\x7d\x0a ".format( space, message[i] )
 			case "list":
 				u = 0
-				for i in range( len( message ) ):
+				l = len( message )
+				for i in range( l ):
 					match type( message[i] ).__name__:
 						case "dict":
 							try:
@@ -246,11 +264,26 @@ class Util:
 							u += 1
 						case _:
 							if line:
-								stack += "\x7b\x30\x7d\x5b\x7b\x31\x7d\x5d\x20\x7b\x32\x7d\x0a".format( space, i +1 -u, message[i] )
+								index = i +1 -u
+								length = len( str( l ) )
+								length = length +1 if length == 1 else length
+								format = f"\x7b\x30\x7d\x7b\x31\x3a\x30\x3e{length}\x7d\x29\x20\x7b\x32\x7d\x0a"
+								stack += format.format( space, index, message[i] )
 							else:
 								stack += "\x7b\x30\x7d\x7b\x31\x7d\x0a".format( space, message[i] )
 			case _:
 				stack = "\x7b\x30\x7d\x7b\x31\x7d\x0a".format( space, message )
+		return( stack )
+		
+	#[Util.rmdoc( Dict lists )]
+	def rmdoc( self, lists ):
+		stack = []
+		for i in lists:
+			match type( lists[i] ).__name__:
+				case "dict" | "list" | "set" | "tuple":
+					pass
+				case _:
+					stack.append( i )
 		return( stack )
 		
 	#[Util.thread( String strings, Function Object, *args, **kwargs )]
@@ -279,5 +312,26 @@ class Util:
 			self.close( e, "\x46\x6f\x72\x63\x65\x20\x63\x6c\x6f\x73\x65" )
 		except KeyboardInterrupt:
 			self.close( e, "\x46\x6f\x72\x63\x65\x20\x63\x6c\x6f\x73\x65" )
-		return( task.getReturn() )
+		error = task.getExcept()
+		if isinstance( error, BaseException ):
+			raise error
+		else:
+			return task.getReturn()
+		
+	#[Util.tryAgain( String label, Function | Method next, Function | Method other, String value, List defaultValue, *args, **kwargs )]
+	def tryAgain( self, label="Try again [Y/n]", next=None, other=None, value="Y", defaultValue=[ "Y", "y", "N", "n" ], *args, **kwargs ):
+		call = {
+			"next": next,
+			"other": other
+		}
+		for back in call:
+			match type( call[back] ).__name__:
+				case "function" | "method":
+					pass
+				case _:
+					raise ValueError( f"Argument {back} must be type Function|Method, {type( call[back] ).__name__} given" )
+		if self.input( label, default=defaultValue ).upper() == value:
+			return( call['next']( *args, **kwargs ) )
+		else:
+			return( call['other']() )
 	

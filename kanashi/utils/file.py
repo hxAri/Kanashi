@@ -44,7 +44,7 @@ class File():
 		
 	#[File.write( String fname, String fdata, String fmode )]
 	@staticmethod
-	def write( fname, fdata ):
+	def write( fname, fdata, fmode="w" ):
 		fpath = fname.split( "/" )
 		fpath.pop()
 		if len( fpath ) > 0:
@@ -54,7 +54,7 @@ class File():
 				fdata = JSON.encode( fdata )
 			case _:
 				pass
-		with open( fname, "w" ) as fopen:
+		with open( fname, fmode ) as fopen:
 			fopen.write( fdata )
 			fopen.close()
 	
