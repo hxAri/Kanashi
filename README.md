@@ -78,8 +78,6 @@ example.getUserActiveFromConfig
 ```
 
 ## Classes
-
-## kanashi.Config
 | From | Class | Context | Extends |
 | ------------- |:-------------|:-------------|:-------------|
 | kanashi | Main | True | kanashi.cli.Cli |
