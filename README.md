@@ -98,6 +98,7 @@ example.getUserActiveFromConfig
 | kanashi.kanashi | Kanashi | True|False | kanashi.context.Context |
 | kanashi.object | Object | False | None |
 | kanashi.request | Request | True | kanashi.context.Context |
+| kanashi.request | RequestRequired | True | kanashi.context.Context |
 | kanashi.update | Update | True | kanashi.request.RequestRequired |
 | kanashi.utils.cookie | Cookie | False | None |
 | kanashi.utils.file | File | False | kanashi.utils.path.Path |
