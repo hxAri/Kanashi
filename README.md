@@ -49,7 +49,7 @@ I did not expect this ^_*
 cd Kanashi && chmod +x main && ./main
 ```
 
-## Simple Usage as Module
+## Usage as Module
 ```py
 # This is a simple class usage,
 # you can extend Kanashi class or not
@@ -75,6 +75,37 @@ class Example( Kanashi ):
 example = Example()
 example.getUserActive
 example.getUserActiveFromConfig
+```
+
+## Trying to Login
+```py
+# Import the required modules
+from kanashi import (
+    Error,
+    Kanashi, 
+    SignInError, 
+    SignInSuccess, 
+    SignInCheckpoint, 
+    SignIn2FARequired
+)
+
+# Create new Instance.
+app = Kanashi()
+username = "USERNAME"
+password = "PASSWORD"
+
+try:
+    login = app.signin.password( username, password )
+    if isinstance( login, SignInSuccess ):
+        print( f"You are logged as {login.username} ({login.id})" )
+    elif isinstance( login, SignInCheckpoint ):
+        print( "Your account has ben Checkpoint" )
+    elif isinstance( login, SignIn2FARequired ):
+        print( "Your account require to verify 2FA" )
+    else:
+        raise SignInError( "Something wrong!" )
+except SignInError as e:
+    print( e )
 ```
 
 ## Classes
