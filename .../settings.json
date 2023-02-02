@@ -1,0 +1,105 @@
+{
+    "authors": [
+        {
+            "name": "Ari Setiawan",
+            "nick": "hxAri",
+            "email": "ari160824@gmail.com",
+            "github": "https://github.com/hxAri"
+        },
+        {
+            "name": "Aisyah Diesliana",
+            "nick": "Lianary",
+            "email": null,
+            "github": "https://github.com/AisyahDiesliana"
+        },
+        {
+            "name": "Falsa Fadilah Nugraha",
+            "nick": "Valxxa",
+            "email": null,
+            "github": null
+        },
+        {
+            "name": "Okutairi",
+            "nick": "Okutairi",
+            "email": "okutairi0701@gmail.com",
+            "github": "https://github.com/okutairi"
+        }
+    ],
+    "browser": {
+        "default": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Mobile Safari/537.36",
+        "private": "Instagram 64.0.0.14.96"
+    },
+    "license": {
+        "name": "GNU General Public License v3",
+        "link": "https://www.gnu.org/licenses"
+    },
+    "path": {
+        "collection": "onsaved/collections",
+        "comment": "onsaved/comments",
+        "follower": "onsaved/followers",
+        "following": "onsaved/following",
+        "image": "onsaved/images",
+        "like": "onsaved/likes",
+        "post": "onsaved/posts",
+        "profile": "onsaved/profiles",
+        "reel": "onsaved/reels",
+        "saved": "onsaved/saveds",
+        "story": "onsaved/story",
+        "video": "onsaved/videos",
+        "view": "onsaved/views"
+    },
+    "donate": "https://paypal.me/hxAri",
+    "github": "https://github.com/hxAri/Kanashi",
+    "issues": "https://github.com/hxAri/Kanashi/issues",
+    "update": "https://github.com/hxAri/Kanashi/archive/refs/tags/v{version}.zip",
+    "signin": {
+        "active": "otokuta",
+        "switch": {
+            "otokuta": {
+                "id": "51489169498",
+                "username": "otokuta",
+                "browser": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Mobile Safari/537.36",
+                "cookies": {
+                    "ig_did": "77EA1008-8D61-4335-AF31-2B3E2BF9D56C",
+                    "ig_nrcb": "1",
+                    "csrftoken": "um7wBgaxugv7vYxBwAhV2bUMZfQxT6DF",
+                    "mid": "Y7avbQABAAHwXzOZSCY76jEew-pA",
+                    "rur": "\"CCO\\05451489169498\\0541704452850:01f7b724d6e91a500b57193ea6be5cf6f16785b204f3fda829899039e5e991e1e386867a\"",
+                    "ds_user_id": "51489169498",
+                    "sessionid": "51489169498%3A11J6gXhPwF1050%3A28%3AAYeTOsMec-3ojwYvWAKxrz7I967-xHa6PiAEvvwJuQ",
+                    "shbid": "\"12214\\05451489169498\\0541704452852:01f7127ef64a1d07da14aa12d835ae93bdc617dbf4d35de0ba1be2af5db69c792affec1b\"",
+                    "shbts": "\"1672916852\\05451489169498\\0541704452852:01f75de23d780399ad7d075b874f35e1b81f03bd6c11c2599bdc9cc374f4e56cb6af1033\""
+                },
+                "csrftoken": "AfT8b0sEPsx0NPOLhQCA2RjjvjLHCJuL",
+                "content": true,
+                "headers": {
+                    "request": {
+                        "User-Agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Mobile Safari/537.36",
+                        "Accept-Encoding": "gzip, deflate",
+                        "Accept": "*/*",
+                        "Connection": "keep-alive",
+                        "Origin": "https://www.instagram.com",
+                        "Referer": "https://www.instagram.com/",
+                        "X-Asbd-Id": "198387",
+                        "X-IG-App-Id": "1217981644879628",
+                        "X-IG-WWW-Claim": "hmac.AR3Xr1WRl38gOuiPX1W-7xi7poRHnUgeLV6zVOzTivxj2QzA",
+                        "X-Instagram-Ajax": "1006758126",
+                        "X-Requested-With": "XMLHttpRequest",
+                        "X-CSRFToken": "um7wBgaxugv7vYxBwAhV2bUMZfQxT6DF",
+                        "Cookie": "csrftoken=um7wBgaxugv7vYxBwAhV2bUMZfQxT6DF; mid=Y7hV5wABAAFcxQO4q99dVHuDhcYN; ig_did=56773155-0A8B-4D26-A673-CFD34345429A; ig_nrcb=1"
+                    },
+                    "response": {
+                    	"Cookie": "csrftoken=um7wBgaxugv7vYxBwAhV2bUMZfQxT6DF; mid=Y7hV5wABAAFcxQO4q99dVHuDhcYN; ig_did=56773155-0A8B-4D26-A673-CFD34345429A; ig_nrcb=1",
+                        "Set-Cookie": "csrftoken=um7wBgaxugv7vYxBwAhV2bUMZfQxT6DF; Domain=.instagram.com; expires=Thu, 04-Jan-2024 11:07:30 GMT; Max-Age=31449600; Path=/; Secure, rur=\"CCO\\05451489169498\\0541704452850:01f7b724d6e91a500b57193ea6be5cf6f16785b204f3fda829899039e5e991e1e386867a\"; Domain=.instagram.com; HttpOnly; Path=/; SameSite=Lax; Secure, ds_user_id=51489169498; Domain=.instagram.com; expires=Wed, 05-Apr-2023 11:07:30 GMT; Max-Age=7776000; Path=/; Secure, sessionid=51489169498%3A11J6gXhPwF1050%3A28%3AAYeTOsMec-3ojwYvWAKxrz7I967-xHa6PiAEvvwJuQ; Domain=.instagram.com; expires=Fri, 05-Jan-2024 11:07:30 GMT; HttpOnly; Max-Age=31536000; Path=/; Secure"
+                    }
+                },
+                "method": 18262,
+                "signin": {
+                    "username": "otokuta",
+                    "password": "hex[b64]\"\\x4c\\x32\\x39\\x30\\x62\\x32\\x74\\x31\\x64\\x47\\x45\\x76\\x61\\x57\\x35\\x7a\\x64\\x47\\x46\\x6e\\x63\\x6d\\x46\\x74\\x4c\\x7a\\x41\\x30\\x4d\\x54\\x41\\x79\\x4d\\x41\\x3d\\x3d\""
+                }
+            }
+        }
+    },
+    "version": "1.1.3"
+}
