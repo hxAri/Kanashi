@@ -90,7 +90,7 @@ class Config( Context ):
 	        "active": False,
 	        "switch": {}
 	    },
-	    "version": "1.1.3"
+	    "version": "1.1.4"
 	}
 	
 	#[Config( Object app )]

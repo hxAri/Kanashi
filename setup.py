@@ -35,7 +35,7 @@ setup(
     name = "kanashi",
     author = "Ari Setiawan",
     author_email = "ari160824@gmail.com",
-    version = "1.1.2",
+    version = "1.1.4",
     license = "GNU General Public License v3",
     url = "https://github.com/hxAri/Kanashi",
     install_requires = requirements,
