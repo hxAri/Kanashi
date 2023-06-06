@@ -37,7 +37,7 @@ class Config( Context ):
 	        {
 	            "name": "Ari Setiawan",
 	            "nick": "hxAri",
-	            "email": "ari160824@gmail.com",
+	            "email": "hxari@proton.me",
 	            "github": "https://github.com/hxAri"
 	        },
 	        {
@@ -55,7 +55,7 @@ class Config( Context ):
 	        {
 	            "name": "Okutairi",
 	            "nick": "Okutairi",
-	            "email": "okutairi0701@gmail.com",
+	            "email": None,
 	            "github": "https://github.com/okutairi"
 	        }
 	    ],
@@ -90,7 +90,7 @@ class Config( Context ):
 	        "active": False,
 	        "switch": {}
 	    },
-	    "version": "1.1.4"
+	    "version": "1.1.5"
 	}
 	
 	#[Config( Object app )]

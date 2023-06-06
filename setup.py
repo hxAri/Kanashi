@@ -23,7 +23,11 @@
 # not for SPAM.
 #
 
+from kanashi import Config
 from setuptools import find_packages, setup
+
+# Get current version from default configuration.
+version = Config.default['version']
 
 # Module Requirements
 requirements = [
@@ -34,8 +38,8 @@ requirements = [
 setup(
     name = "kanashi",
     author = "Ari Setiawan",
-    author_email = "ari160824@gmail.com",
-    version = "1.1.4",
+    author_email = "hxari@proton.me",
+    version = version,
     license = "GNU General Public License v3",
     url = "https://github.com/hxAri/Kanashi",
     install_requires = requirements,
