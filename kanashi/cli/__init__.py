@@ -514,7 +514,7 @@ class Cli( Follow, Kanashi, Request, Profile, Save, SignIn, User, Util ):
 			"Kanashi v{}".format( self.settings.version ),
 			"",
 			"Author {}".format( self.settings.authors[0].name ),
-			"Github {}".format( self.settings.github ),
+			"Github {}".format( self.settings.source ),
 			"Issues {}".format( self.settings.issues ),
 			""
 		]
