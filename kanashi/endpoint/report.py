@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 #
 # @author Ari Setiawan
 # @create 23.05-2022
@@ -23,12 +21,29 @@
 # not for SPAM.
 #
 
-from kanashi.endpoint.auth import AuthError
-from kanashi.endpoint.block import Block, BlockError, BlockSuccess
-from kanashi.endpoint.favorite import Favorite, FavoriteError, FavoriteSuccess
-from kanashi.endpoint.follow import Follow, FollowError, FollowSuccess
-from kanashi.endpoint.profile import Profile, ProfileError, ProfileSuccess
-from kanashi.endpoint.report import Report, ReportError, ReportSuccess
-from kanashi.endpoint.restrict import Restrict, RestrictError, RestrictSuccess
-from kanashi.endpoint.signin import SignIn, SignInCheckpoint, SignInError, SignIn2FAError, SignInCsrftokenError, SignInPasswordError, SignInSpamError, SignInUserNotFoundError, SignInSuccess, SignIn2FARequired, SignIn2FASuccess
-from kanashi.endpoint.user import User, UserError, UserInfoError, UserNotFoundError
+from kanashi.error import Error
+from kanashi.object import Object
+from kanashi.request import RequestRequired
+
+#[kanashi.endpoint.Report]
+class Report( RequestRequired ):
+	
+	#[Report.throws( Profile user )]
+	def throws( self, user ):
+		if user.isMySelf:
+			raise FollowError( "Unable to report yourself" )
+		
+	#[Report.report()]
+	def report( self, user, report ):
+		self.throws( user )
+	
+
+#[kanashi.endpoint.ReportError]
+class ReportError( Error ):
+	pass
+	
+
+#[kanashi.endpoint.ReportSuccess]
+class ReportSuccess( Object ):
+	pass
+	

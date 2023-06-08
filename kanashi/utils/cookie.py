@@ -23,12 +23,13 @@
 # not for SPAM.
 #
 
+from http.cookies import SimpleCookie
 from kanashi.utils.string import String
 
 #[kanashi.utils.Cookie]
 class Cookie:
 	
-	#[Cookie.parse()]
+	#[Cookie.parse( String raw )]
 	@staticmethod
 	def parse( raw ):
 		expires = findall( r"expires\=([^\;]+)", raw )
@@ -68,6 +69,16 @@ class Cookie:
 								pass
 			jar.append( cookie )
 		return( jar )
+		
+	#[Cookie.simple( String raw )]
+	@staticmethod
+	def simple( raw ):
+		cookie = SimpleCookie()
+		cookie.load( raw )
+		parsed = {}
+		for key, morsel in cookie.items():
+			parsed[key] = morsel.value
+		return( parsed )
 		
 	#[Cookie.string( RequestsCookieJar cookies )]
 	@staticmethod

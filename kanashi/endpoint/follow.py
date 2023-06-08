@@ -33,54 +33,54 @@ from kanashi.utils import File
 #[kanashi.endpoint.Follow]
 class Follow( RequestRequired ):
 	
-	#[Follow.ondelete( Profile user )]
-	def ondelete( self, user ):
-		""" Delete followers """
-		pass
+	#[Follow.throws( Profile user )]
+	def throws( self, user ):
+		if user.isMySelf:
+			raise FollowError( "Unable to follow or unfollow for yourself" )
 		
-	#[Follow.onfollow( Profile user, Hashtag hashtag )]
-	def onfollow( self, user=None, hashtag=None ):
-		""" Follow account or hashtag """
+	#[ProfileMethods.follow( Profile user )]
+	def follow( self, user ):
+		self.throws( user )
+		self.session.headers.update({
+			"Content-Type": "application/x-www-form-urlencoded",
+			"Origin": "https://www.instagram.com",
+			"Referer": "https://www.instagram.com/{}/".format( user.username )
+		})
 		try:
-			if isinstance( user, Profile ):
-				self.session.headers.update({ "Referer": f"https://www.instargram.com/{user.username}/" })
-				if user.followedByViewer:
-					action = "unfollow"
-					url = f"https://www.instagram.com/api/v1/web/friendships/{user.id}/unfollow/"
-				else:
-					action = "follow"
-					url = f"https://www.instagram.com/api/v1/web/friendships/{user.id}/follow/"
-				resp = self.request.post( url )
-				match resp.status_code:
-					case 200:
-						json = resp.json()
-						if json['status'] == "ok":
-							return FollowSuccess({ **json, **{ "action": action, "target": user } })
-						else:
-							raise FollowError( f"" )
-					case 401:
-						raise AuthError( f"" )
-					case _:
-						raise FollowError( f"" )
-				pass
-			# elif isinstance( hashtag, Hashtag ):
-			#	self.session.headers.update({ "Referer": f"https://www.instagram.com/explore/tags/{hashtag.}" })
-			#	pass
+			data = {
+				"container_module": "profile",
+				"nav_chain": "PolarisProfileRoot:profilePage:1:via_cold_start",
+				"user_id": user.id
+			}
+			if user.followedByViewer:
+				target = f"https://www.instagram.com/api/v1/friendships/destroy/{user.id}/"
+				action = "Unfollow"
+			elif user.requestedByViewer:
+				target = f"https://www.instagram.com/api/v1/friendships/destroy/{user.id}/"
+				action = "Cancel request follow"
 			else:
-				raise FollowError( "The user or hashtag parameter is required, no arguments are passed" )
-		except RequestError as e:
-			raise e
-		
-	#[Follow.unfollow( Profile user, Hashtag hashtag )]
-	def unfollow( self, user=None, hashtag=None ):
-		""" Unfollow account of hashtag """
-		try:
-			if isinstance( user, Profile ):
-				pass
-			# elif isinstance( hashtag, Hashtag ):
-			#	pass
-			else:
-				raise FollowError( "The user or hashtag parameter is required, no arguments are passed" )
+				target = f"https://www.instagram.com/api/v1/friendships/create/{user.id}/"
+				action = "Following"
+			resp = self.request.post( target, data=data )
+			match resp.status_code:
+				case 200:
+					follow = resp.json()
+					if "friendship_status" in follow:
+						return Follow({
+							"id": user.id,
+							"private": follow['is_private'],
+							"username": user.username,
+							"following": follow['following'], # Following status
+							"requested": follow['outgoing_request'], # Waiting for aprove
+						})
+					else:
+						raise FollowError( f"Something wrong when {action} the {user.username}" )
+				case 401:
+					raise AuthError( f"Failed to {action}, because the credential is invalid, status 401", throw=self )
+				case 404:
+					raise UserNotFoundError( f"Target /{user.username}/ user not found" )
+				case _:
+					raise UserError( f"An error occurred while {action} the user [{resp.status_code}]" )
 		except RequestError as e:
 			raise e
 		
@@ -100,7 +100,7 @@ class Follow( RequestRequired ):
 	def getFollowingByUsername( self, username ):
 		pass
 		
-	#[Follow.]
+	#[Follow.nextCursorScroll( )]
 	def nextCursorScroll( self ):
 		pass
 	

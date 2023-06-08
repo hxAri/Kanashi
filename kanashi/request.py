@@ -44,6 +44,9 @@ class Request( Context ):
 		self.history = []
 		self.historyF = "response.json"
 		
+		# Request default timeout.
+		self.timeout = 15
+		
 		try:
 			self.history = File.json( self.historyF )
 		except BaseException as e:
@@ -62,13 +65,25 @@ class Request( Context ):
 		# Create new Session.
 		self.session = Session()
 		self.session.headers.update({
+			"Accept": "*/*",
+			"Accept-Encoding": "gzip, deflate, br",
+			"Accept-Language": "en-US,en;q=0.9",
 			"Origin": "https://www.instagram.com",
 			"Referer": "https://www.instagram.com/",
+			"Sec-Ch-Prefers-Color-Scheme": "dark",
+			"Sec-Ch-UA": "\"Not:A-Brand\";v=\"99\", \"Chromium\";v=\"112\"",
+			"Sec-Ch-UA-Full-Version-List": "\"Not:A-Brand\";v=\"99.0.0.0\", \"Chromium\";v=\"112.0.5615.137\"",
+			"Sec-Ch-UA-Mobile": "?0",
+			"Sec-Ch-UA-Platform": "Linux",
+			"Sec-Fetch-Dest": "empty",
+			"Sec-Fetch-Mode": "cors",
+			"Sec-Fetch-Site": "same-origin",
 			"User-Agent": app.config.browser.default,
+			"Viewport-Width": "980",
 			"X-Asbd-Id": "198387",
 			"X-IG-App-Id": "1217981644879628",
-			"X-IG-WWW-Claim": "hmac.AR3Xr1WRl38gOuiPX1W-7xi7poRHnUgeLV6zVOzTivxj2QzA",
-			"X-Instagram-Ajax": "1006758126",
+			"X-IG-WWW-Claim": "hmac.AR04Hjqeow3ipAWpAcl8Q5Dc7eMtKr3Ff08SxTMJosgMAh-z",
+			"X-Instagram-Ajax": "1007625843",
 			"X-Requested-With": "XMLHttpRequest"
 		})
 		
@@ -192,6 +207,8 @@ class Request( Context ):
 	#[Request.request( String method, String url, **kwargs )]
 	def request( self, method, url, **kwargs ):
 		self.response = False
+		if "timeout" in kwargs == False:
+			kwargs['timeout'] = self.timeout
 		try:
 			self.response = self.session.request( method, url=url, **kwargs )
 			self.responseSave()

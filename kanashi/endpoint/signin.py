@@ -96,9 +96,9 @@ class SignIn( RequestRequired ):
 									user = user.json()
 									user = user['user']
 								case 401:
-									raise AuthError( "Failed to get user info, because the credential is invalid, status {user.status_code}", throw=self )
+									raise AuthError( f"Failed to get user info, because the credential is invalid, status {user.status_code}", throw=self )
 								case _:
-									raise SignInError( "Something wrong when get user info, status {user.status_code}" )
+									raise SignInError( f"Something wrong when get user info, status {user.status_code}" )
 						except KeyError as e:
 							raise SigInError( "Invalid json user info", prev=e )
 						return SignInSuccess({
@@ -140,11 +140,68 @@ class SignIn( RequestRequired ):
 		except RequestError as e:
 			raise e
 		
-	#[SignIn.remember( String username, String csrftoken, String sessionid, String datr, String dpr, String ds_user_id, String ig_did, String mid, String rur, String shbid, String shbts, String uagent )]
-	def remember( self, username, csrftoken, sessionid, datr, dpr, ds_user_id, ig_did, mid, rur, shbid, shbts, uagent=None ):
+	#[SignIn.remember( String cookies, String uagent )]
+	def remember( self, cookies, uagent=None ):
+		if type( cookies ).__name__ == "str":
+			cookies = Cookie.simple( cookies )
+		for cookie in cookies:
+			self.session.cookies.set(
+				cookie,
+				cookies[cookie],
+				domain=".instagram.com",
+				path="/"
+			)
+		try:
+			dsuserid = cookies['ds_user_id']
+			csrftoken = cookies['csrftoken']
+		except KeyError as e:
+			if str( e ) == "csrftoken":
+				message = "No Csrftoken in cookie"
+			else:
+				message = "Ds User Id not found in cookie"
+			raise SignInCsrftokenError( message, prev=e )
 		if uagent == None:
-			uagent = self.app.config.browser.default
-		pass
+			uagent = self.app.settings.browser.default
+		try:
+			signin = self.request.get( f"https://i.instagram.com/api/v1/users/{dsuserid}/info/" )
+			match signin.status_code:
+				case 200:
+					user = signin.json()
+					user = user['user']
+				case 401:
+					raise AuthError( f"Failed to get user info, because the credential is invalid, status {signin.status_code}", throw=self )
+				case _:
+					raise SignInError( f"Something wrong when get user info, status {signin.status_code}" )
+			return SignInSuccess({
+				"id": dsuserid,
+				"username": user['username'],
+				"browser": self.session.headers['User-Agent'],
+				"cookies": {
+					**dict( self.session.cookies ),
+					**dict( signin.cookies )
+				},
+				"content": user,
+				"headers": {
+					"request": {
+						**dict( self.session.headers ),
+						**{
+							"X-CSRFToken": signin.cookies['csrftoken'],
+							"Cookie": Cookie.string( self.session.cookies )
+						}
+					},
+					"response": {
+						"Cookie": Cookie.string( signin.cookies ),
+						"Set-Cookie": signin.headers['Set-Cookie']
+					}
+				},
+				"method": 29158,
+				"signin": {
+					"username": user['username'],
+					"password": None
+				}
+			})
+		except RequestError as e:
+			raise e
 		
 	#[SignIn.save( SignInSuccess signin, String username, Bool default )]
 	def save( self, signin, username=None, default=True ):
@@ -175,8 +232,8 @@ class SignIn( RequestRequired ):
 	def switch( self ):
 		pass
 		
-	#SignIn.verify2FA( SignIn2FARequired info, Int method )]
-	def verify2FA( self, resp, info, method, code ):
+	#[SignIn.verify2FA( SignIn2FARequired info, Int method )]
+	def verify2FA( self, info, method, code ):
 		length = len( f"{code}" )
 		if method == 1 or method == 2:
 			if length == 8 and method == 2 or length == 6 and method == 1:

@@ -93,8 +93,10 @@ class Object:
 		
 	#[Object.unset( String key )]
 	def unset( self, key ):
-		del self.__data__[key]
-		del self.__dict__[key]
+		if key in self.__data__:
+			del self.__data__[key]
+		if key in self.__dict__:
+			del self.__dict__[key]
 		
 	#[Object.__json( Dict | List data )]
 	def __json( self, data=None ):

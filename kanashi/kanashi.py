@@ -58,6 +58,7 @@ class Kanashi( Context ):
 			if app.settings.signin.active != False:
 				
 				# Set class attribute required after user login.
+				# Always call this method after successfully login.
 				self.afterLogin()
 		pass
 		
@@ -80,8 +81,15 @@ class Kanashi( Context ):
 		try:
 			if self.active == None:
 				self.app.active = self.app.settings.signin.switch.get( user )
-				self.app.session.headers.update( self.app.active.headers.request.dict() )
 				self.app.session.headers.update( self.app.active.headers.response.dict() )
+				self.app.session.headers.update( self.app.active.headers.request.dict() )
+			for cookie in self.app.active.cookies.dict():
+				self.app.session.cookies.set(
+					cookie,
+					self.app.active.cookies.get( cookie ),
+					domain=".instagram.com",
+					path="/"
+				)
 		except( AttributeError, KeyError ) as e:
 			self.app.active = None
 			self.app.settings.signin.set({ "active": False })
@@ -119,7 +127,7 @@ class Kanashi( Context ):
 			try:
 				if not isinstance( self.app.get( name ), attr ):
 					raise ValueError( f"The value of the {name} attribute must be {attr.__name__}, {type( self.app.get( name ) ).__name__} set" )
-			except:
+			except( AttributeError, IndexError, KeyError, ValueError ):
 				self.app.set( name, attr( self.app ) )
 			if name == "config":
 				self.config.read()

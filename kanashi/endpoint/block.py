@@ -27,7 +27,24 @@ from kanashi.request import RequestRequired
 
 #[kanashi.endpoint.Block]
 class Block( RequestRequired ):
-	pass
+	
+	# Block and other account.
+	BLOCK_MULTILEVEL = 78828
+	
+	# Block and report user.
+	BLOCK_REPORT = 89282
+	
+	# Block only.
+	BLOCK_ONLY = 99278
+	
+	#[Block.throws( Profile user )]
+	def throws( self, user ):
+		if user.isMySelf:
+			raise FollowError( "Unable to block or unblock yourself" )
+		
+	#[Block.block()]
+	def block( self, user, level=None, report=None ):
+		self.throws( user )
 	
 
 #[kanashi.endpoint.BlockError]

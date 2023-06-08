@@ -60,8 +60,8 @@ class Config( Context ):
 	        }
 	    ],
 	    "browser": {
-	        "default": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Mobile Safari/537.36",
-	        "private": "Instagram 64.0.0.14.96"
+	        "default": "Mozilla/5.0 (Linux; Android 9; CPH1923) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36",
+	        "private": "Instagram 274.0.0.26.90"
 	    },
 	    "license": {
 	        "name": "GNU General Public License v3",

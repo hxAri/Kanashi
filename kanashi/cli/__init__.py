@@ -33,9 +33,12 @@ from kanashi.endpoint import (
 	FavoriteSuccess, 
 	FollowError, 
 	FollowSuccess, 
+	ProfileError, 
+	ProfileSuccess, 
+	ReportError,
+	ReportSuccess, 
 	RestrictError, 
 	RestrictSuccess, 
-	ProfileError, 
 	SignInCheckpoint, 
 	SignInError, 
 	SignIn2FAError, 
@@ -97,13 +100,90 @@ class Request:
 #[kanashi.cli.Profile]
 class Profile:
 	
+	#[Profile.profileBlock( Profile user )]
+	def profileBlock( self, user ):
+		if user.blockedByViewer == False:
+			self.output( self, [
+				"They won't be able to message you or find",
+				"your profile, posts or story on Instagram.",
+				"They won't be notifed that you blocked them.",
+				"",
+				"1. Block {} and other accounts",
+				"2. Block {} and report",
+				"3. Block {} only",
+				"4. Cancel",
+				""
+			])
+			next = self.input( "Block", default=[ idx +1 for idx in range( 4 ) ] )
+			match next:
+				case 1:
+					pass
+				case 2:
+					pass
+				case 4:
+					self.profileOptions( user )
+					return
+		try:
+			pass
+		except Error as e:
+			self.emit( e )
+			if isinstance( e, ProfileError ):
+				pass
+			elif isinstance( e, RequestError ):
+				pass
+			else:
+				pass
+		
+	#[Profile.profileFollow( Profile user )]
+	def profileFollow( self, user, agree=False ):
+		try:
+			action = "Follow"
+			if user.followedByViewer:
+				action = "Unfollow"
+				if agree == False:
+					output = f"Are you sure will unfollow {user.username}"
+					if user.isPrivateAccount:
+						output = [
+							output,
+							"If you change your mind, you'll have to request",
+							f"to follow {user.username} again"
+						]
+					self.output( self, output )
+					next = self.input( f"Unfollow {user.username} [Y/n]", default=[ "Y", "y", "N", "n" ] )
+					if next.upper() == "N":
+						self.profileOptions( user )
+						return
+			elif user.requestedByViewer:
+				action = "Cancel request follow"
+			follow = self.thread( f"{action} {user.username}", lambda: self.follow.follow( user ) )
+			print( follow )
+		except Error as e:
+			self.emit( e )
+		
+	#[Profile.profileFavorite()]
+	def profileFavorite( self, user ):
+		pass
+		
+	#[Profile.profileRestrict()]
+	def profileRestrict( self, user ):
+		pass
+	
 	#[Profile.profileOptions( Profile user )]
-	def profileOptions( self, user=None ):
+	def profileOptions( self, user ):
+		follow = "Follow"
+		if user.followedByViewer:
+			follow = "Unfollow"
+		elif user.requestedByViewer:
+			follow = "Cancel request follow"
+		block = "Unblock" if user.blockedByViewer else "Block"
+		restrict = "Unrestrict" if user.restrictedByViewer else "Restrict"
+		favorite = "Make"
 		opts = {
-			"user.block": "{} User".format( "Unblock" if user.blockedByViewer else "Block" ),
-			"user.follow": "{} User".format( "Unfollow" if user.followedByViewer else "Follow" ),
-			"user.restrict": "{} User",
-			"user.favorite": "{} Favorite",
+			"user.block": "{} User".format( block ),
+			"user.follow": "{} User".format( follow ),
+			"user.restrict": "{} User".format( restrict ),
+			"user.report": "Report {}".format( user.username ),
+			"user.favorite": "{} Favorite".format( favorite ),
 			"save.profile-json": "Save Profile As Json",
 			"save.profile-picture": "Save Profile Picture",
 			"save.profile-picture-hd": "Save Profile Picture HD",
@@ -115,18 +195,17 @@ class Profile:
 		next = self.input( None, number=True, default=[ 1+ i for i in range( len( opts ) ) ] )
 		match keys[( next -1 )]:
 			case "user.block":
-				pass
+				self.profileBlock( user )
 			case "user.follow":
-				if user.followedByViewer:
-					self.unfollow( user )
-				else:
-					self.onfollow( user )
+				self.profileFollow( user )
+			case "user.report":
+				self.profileReport( user )
 			case "user.favorite":
-				pass
+				self.profileFavorite( user )
 			case "user.restrict":
-				pass
+				self.profileRestrict( user )
 			case "save.profile-json":
-				pass
+				self.saveProfile( user )
 			case "save.profile-picture":
 				self.saveProfilePicture( user, prev=self.profileOptions )
 			case "save.profile-picture-hd":
@@ -323,6 +402,75 @@ class SignIn:
 			self.tryAgain( "Next login [Y/n]", next=self.signInWithPassword, other=self.main, username=username, password=password, csrftoken=csrftoken, agreement=True )
 		pass
 		
+	#[SignIn.signInWithRemember( String cookies, String uagent )
+	def signInWithRemember( self, cookies=None, uagent=None ):
+		if cookies == None:
+			self.output( self, [ "",
+				"If you are afraid that your account will be",
+				"suspended from Instagram because logging in",
+				"from a third party is a fairly safe way",
+				"because you don't need to enter your",
+				"credentials, just paste your Instagram",
+				"login cookie.",
+				"",
+				"A raw cookie will usually looks like this",
+				"csrftoken=*****; ds_user_id=*****, ....",
+				"",
+				"If you are an Android user, please use Kiwi",
+				"Browser to get your Instagram login cookies",
+				"Please login as usual, after successfully",
+				"logging in please open the [Deloper Tools]",
+				"menu and select [Console] then run the",
+				"JavaScript code below to copy your",
+				"Instagram login cookie",
+				"",
+				"navigator.\x1b[33mclipboard\x1b[0m.\x1b[33mwriteText\x1b[0m(document.\x1b[33mcookie\x1b[0m)"
+			])
+			cookies = self.input( "cookies" )
+		if uagent == None:
+			uagent = self.input( "User-Agent", default=self.settings.browser.default )
+		try:
+			signin = self.thread( "Trying to SignIn with cookie", lambda: self.signin.remember( cookies, uagent ) )
+			if isinstance( signin, SignInSuccess ):
+				outputs = [
+					"",
+					"You have successfully logged in as {}".format( signin.username ),
+					"To use this tool again at a later time, Kanashi",
+					"provides a feature to save login info, you can",
+					"also log out at any time",
+					""
+				]
+				options = {
+					"next.none": "Next Main",
+					"next.none-doc": [
+						"Next to main without save any data",
+						"But every successful request will",
+						"still be logged to response file"
+					],
+					"next.save": "Next Save data",
+					"next.save-doc": [
+						"Save login information for future use"
+					]
+				}
+				self.output( self, [ *outputs, [ value for value in options.values() ] ] )
+				opts = self.rmdoc( options )
+				next = self.input( None, number=True, default=[ 1+ idx for idx in range( len( opts ) ) ] )
+				if opts[( next -1 )] == "next.save":
+					self.signInSaveInfo( signin, signin.username )
+				else:
+					self.app.active = signin
+					self.app.afterLogin()
+					self.main()
+			else:
+				print( type( signin ).__name__ )
+		except Error as e:
+			self.emit( e )
+			if isinstance( e, RequestError ):
+				self.tryAgain( "Re-login [Y/n]", next=self.signInWithRemember, other=self.main )
+			else:
+				self.previous( self.main, ">>>" )
+		pass
+		
 	#[SignIn.signInWithSwitch( Bool asked )]
 	def signInWithSwitch( self, asked=False ):
 		if asked == False:
@@ -336,27 +484,31 @@ class SignIn:
 			else:
 				self.signInWithSwitch( True )
 		else:
-			users = self.settings.signin.switch.keys()
-			self.output( self, [ "",
-				"Please select an account by filling in the",
-				"account number or username, fill in the",
-				"back slash to return", "",
-				users
-			])
-			user = self.input( None, default=[ "\\", *users, *[ str( i +1 ) for i in range( len( users ) ) ] ] )
-			if user != "\\":
-				try:
-					idx = int( user )
-					user = users[( idx -1 )]
-				except ValueError:
-					pass
-				self.active = self.settings.signin.switch.get( user )
-				self.app.session.headers.update( self.app.active.headers.request.dict() )
-				self.app.session.headers.update( self.app.active.headers.response.dict() )
-				self.afterLogin()
-				self.main()
+			if self.settings.signin.switch.len():
+				users = self.settings.signin.switch.keys()
+				self.output( self, [ "",
+					"Please select an account by filling in the",
+					"account number or username, fill in the",
+					"back slash to return", "",
+					users
+				])
+				user = self.input( None, default=[ "\\", *users, *[ str( i +1 ) for i in range( len( users ) ) ] ] )
+				if user != "\\":
+					try:
+						idx = int( user )
+						user = users[( idx -1 )]
+					except ValueError:
+						pass
+					self.active = self.settings.signin.switch.get( user )
+					self.app.session.headers.update( self.app.active.headers.request.dict() )
+					self.app.session.headers.update( self.app.active.headers.response.dict() )
+					self.afterLogin()
+					self.main()
+				else:
+					self.main()
 			else:
-				self.main()
+				self.output( self, "No account saved" )
+				self.previous( self.main, ">>>" )
 		pass
 		
 	#[SignIn.signInVerify2FA( SigIn2FARequired info, Int method, Int code )]
@@ -381,7 +533,8 @@ class SignIn:
 			self.output( self, message )
 			code = self.input( "code", number=True )
 		try:
-			self.thread( "Perform code verification", lambda: self.signin.verify2FA( info, method, code ) )
+			verify = self.thread( "Perform code verification", lambda: self.signin.verify2FA( info, method, code ) )
+			
 		except Error as e:
 			self.emit( e )
 			if isinstance( e, SignInError ):
@@ -441,9 +594,14 @@ class User:
 			if isinstance( e, AuthError ):
 				if self.settings.signin.active == self.active.username:
 					self.settings.signin.active = False
-				self.settings.signin.switch.unset( self.active.username )
-				self.config.save()
-				self.previous( self.main, ">>>" )
+				keep = self.input( "Keep login [Y/n]", default=[ "Y", "y", "N", "n" ] )
+				if keep.upper() == "Y":
+					self.userGetById()
+				else:
+					self.settings.signin.switch.unset( self.active.username )
+					self.active = None
+					self.configSave()
+					self.previous( self.main, ">>>" )
 			elif isinstance( e, UserError ):
 				self.tryAgain( next=self.userGetByUsername, other=self.userGet )
 			elif isinstance( e, RequestError ):
@@ -477,9 +635,14 @@ class User:
 			if isinstance( e, AuthError ):
 				if self.settings.signin.active == self.active.username:
 					self.settings.signin.active = False
-				self.settings.signin.switch.unset( self.active.username )
-				self.config.save()
-				self.previous( self.main, ">>>" )
+				keep = self.input( "Keep login [Y/n]", default=[ "Y", "y", "n", "n" ] )
+				if keep.upper() == "Y":
+					self.userGetByUsername()
+				else:
+					self.settings.signin.switch.unset( self.active.username )
+					self.active = None
+					self.configSave()
+					self.previous( self.main, ">>>" )
 			elif isinstance( e, UserError ):
 				self.tryAgain( next=self.userGetByUsername, other=self.userGet )
 			elif isinstance( e, RequestError ):
@@ -537,6 +700,11 @@ class Cli( Follow, Kanashi, Request, Profile, Save, SignIn, User, Util ):
 		if self.settings.len() == 0:
 			self.close( e, "Operation cannot be continued" )
 		
+	#[Cli.info()]
+	def info( self ):
+		self.output( self, self.parent.info )
+		self.previous( self.main, ">>>" )
+		
 	#[Cli.main()]
 	def main( self ):
 		
@@ -587,7 +755,7 @@ class Cli( Follow, Kanashi, Request, Profile, Save, SignIn, User, Util ):
 				"Logged in as {}".format( self.active.username ),
 				"",
 				"Author {}".format( self.settings.authors[0].name ),
-				"Github {}".format( self.settings.github ),
+				"Github {}".format( self.settings.source ),
 				"Issues {}".format( self.settings.issues ),
 				""
 			]

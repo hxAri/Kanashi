@@ -35,7 +35,7 @@ class ProfileMethods:
 	def ( self ):
 		pass
 	"""
-	
+		
 	#[ProfileMethods.saveProfilePicture( String name, Bool hd )]
 	def saveProfilePicture( self, name=None, hd=False ):
 		if name == None:
@@ -270,6 +270,16 @@ class ProfileProperties:
 	def pronounsFormat( self ):
 		return( "/".join( self.pronouns ) )
 		
+	#[ProfileProperties.requestedByViewer]
+	@property
+	def requestedByViewer( self ):
+		return( self.user.requested_by_viewer )
+		
+	#[ProfileProperties.]
+	@property
+	def restrictedByViewer( self ):
+		return( self.user.restricted_by_viewer )
+		
 	#[ProfileProperties.username]
 	@property
 	def username( self ):
@@ -371,6 +381,8 @@ class Profile( ProfileMethods, ProfileProperties, RequestRequired ):
 							follow.append( "- This user is not following your account" )
 						if self.followedByViewer:
 							follow.append( "- You have followed this user" )
+						elif self.requestedByViewer:
+							follow.append( "- Your follow request has not been approved" )
 						else:
 							follow.append( "- You are not following this user" )
 						self.outputs[idx] = "\x0a\x20\x20\x20\x20".join( follow )

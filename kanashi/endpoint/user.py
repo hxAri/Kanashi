@@ -57,7 +57,7 @@ class User( RequestRequired ):
 						user = find[3]
 					case _:
 						continue
-				if history['content']:
+				if "content" in history:
 					if "graphql" in history['content']:
 						content = {
 							**history['content']['graphql']['user'],
@@ -68,15 +68,23 @@ class User( RequestRequired ):
 					else:
 						content = history['data']['user']
 					self.recent.set({
-						user: content
+						user: Profile(
+							app=self.app,
+							user=content,
+							prev=self.main
+						)
 					})
-			except IndexError:
+			except( IndexError, KeyError ):
 				continue
 		pass
 		
 	#[User.getById( Int id )]
 	def getById( self, id ):
 		try:
+			self.session.headers.update({
+				"Origin": "https://www.instagram.com",
+				"Referer": "https://www.instagram.com/"
+			})
 			resp = self.request.get( f"https://i.instagram.com/api/v1/users/{id}/info/" )
 		except RequestError as e:
 			raise e
@@ -106,14 +114,20 @@ class User( RequestRequired ):
 		except( AttributeError, KeyError ):
 			pass
 		try:
+			return self.recent.get( username )
+		except( AttributeError, KeyError ):
+			pass
+		try:
 			# f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}" ['data']['user']
 			# f"https://www.instagram.com/{username}?__a=1&__d=dis" ['graphql']['user']
-			self.session.headers.update({ "Referer": "https://www.instagram.com/" })
+			self.session.headers.update({
+				"Origin": "https://www.instagram.com",
+				"Referer": "https://www.instagram.com/explore/"
+			})
 			resp = self.request.get( f"https://www.instagram.com/{username}?__a=1&__d=dis" )
 			match resp.status_code:
 				case 200:
 					data = resp.json()
-					# user = data['data']['user']
 					user = data['graphql']['user']
 					if user != None:
 						self.recent.set({
