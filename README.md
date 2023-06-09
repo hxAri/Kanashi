@@ -1,10 +1,13 @@
 
-![Kanashi · Logo](https://raw.githubusercontent.com/hxAri/hxAri/main/public/images/1654820424;51ydWrxRcv.png)
+![Kanashī · Logo](https://raw.githubusercontent.com/hxAri/hxAri/main/public/images/1654820424;51ydWrxRcv.png)
 
 Please note that this is not fully finished or not ready to use, if you are interested in using it please I don't require you to wait for this to finish because I am also busy.
 
 ## Abouts
-Kanashi is an open source project that can be used to login to real Instagram accounts via Linux Terminal and Android Termux, this also includes taking CSRF Tokens and Login Session IDs, besides that you can use Tokens and IDs to do various things like Instagram Web.
+Kanashī is an open source project that can be used to login to real Instagram accounts via Linux Terminal and Android Termux, this also includes taking CSRF Tokens and Login Session IDs, besides that you can use Tokens and ID to do various things like Instagram Web.
+
+## History
+Kanashī itself is a translation from Japanese which means **Sad** people might ask "**why is that?**"
 
 ## Install
 ```sh
@@ -85,13 +88,18 @@ This feature is under development, it is highly recommended not to log in with a
 Incoming
 
 ##### Login Multiple Account
-You can be the same as Instagram in general which has more than one account, now Kanashi supports it.
+You can be the same as Instagram in general which has more than one account, now Kanashī supports it.
 
 ##### Login Save Info
 Save your login information in a configuration file for future use.
 
 ##### Logout
 Incoming
+
+## Security
+For security purposes I highly recommend not to delete the `.gitignore` file why? Because by default the configuration file and also the result of the request response will be stored in the **Root Project Directory** so if you delete the `.gitignore` file then the data stored in  configuration file will be uploaded in github Repository (If you fork this project).
+
+Kanashī stores the response result of every successful request with the aim that if an error occurs in the core program such as, `Follow` class, `Block`, `SignIn`, etc., then the `response.json` file can be used to find out the cause of the problem when  make a request.
 
 ## Examples
 
@@ -197,7 +205,7 @@ Give spirit to the developer, no matter how many donations given will still be a
 [paypal.me/hxAri](https://paypal.me/hxAri)
 
 ## Licence
-All Kanashi source code is licensed under the GNU General Public License v3. Please [see](https://www.gnu.org/licenses) the original document for more details.
+All Kanashī source code is licensed under the GNU General Public License v3. Please [see](https://www.gnu.org/licenses) the original document for more details.
 
 ## Disclaimer
-Kanashi is not affiliated with or endorsed, endorsed at all by Instagram or any other party, if you use the main account to use this tool we as Coders and Developers are not responsible for anything that happens to that account, use it at your own risk, and this is Strictly not for SPAM.
+Kanashī is not affiliated with or endorsed, endorsed at all by Instagram or any other party, if you use the main account to use this tool we as Coders and Developers are not responsible for anything that happens to that account, use it at your own risk, and this is Strictly not for SPAM.
