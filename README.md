@@ -73,7 +73,7 @@ Login as usual using credentials such as your username and password.
 If you are afraid that your account will be suspended from Instagram because logging in from a third party is a fairly safe way because you don't need to enter your credentials, just paste your Instagram login cookie.
 
 If you are an Android user, please use Kiwi Browser to get your Instagram login cookies.
-Please login as usual, after successfully logging in please open the [Deloper Tools] menu and select [Console] then run the JavaScript code below to copy your Instagram login cookie:
+Please login as usual, after successfully logging in please open the **Deloper Tools** menu and select **Console** then run the JavaScript code below to copy your Instagram login cookie:
 ```js
 navigator.clipboard.writeText( document.cookie );
 ```
