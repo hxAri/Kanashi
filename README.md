@@ -23,7 +23,8 @@ git clone https://github.com/hxAri/Kanashi && cd Kanashi && python setup* instal
 
 ## Features
 I did not expect this ^_*
-* Get User Info
+* Get User Info<br/>
+  Display user profiles such as how many followers and following they have, number of edges e.g posts, reels, etc., find out whether the account owner has blocked your account or not and vice versa, and much more
 * Get User Posts (Onworking)
 * Get User Story (Onworking)
 * Get User Reels (Onworking)
