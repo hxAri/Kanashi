@@ -24,18 +24,24 @@ git clone https://github.com/hxAri/Kanashi && cd Kanashi && python setup* instal
 ## Features
 I did not expect this ^_*
 * Get User Info
-* Get User Posts (Incoming)
-* Get User Story (Incoming)
-* Get User Reels (Incoming)
-* Get User Followers (Incoming)
-* Get User Following (Incoming)
+* Get User Posts (Onworking)
+* Get User Story (Onworking)
+* Get User Reels (Onworking)
+* Get User Followers (Onworking)
+* Get User Following (Onworking)
 * Fetch Timeline Posts (Incoming)
 * Fetch Suggested Users (Incoming)
 * Downloader
-* Follow Account (Incoming)
-* Unfollow Account (Incoming)
+* Block Account
+* Unblock Account
+* Follow Account
+* Unfollow Account
+* Restrict Account (Onworking)
+* Unrestrict Account (Onworking)
+* Favorite Account (Onworking)
+* Report Account (Onworking)
 * Login with Password
-* Login with Sessionid (Incoming)
+* Login with Sessionid
 * Login 2FA Verification (Bug)
 * Login Checkpoint Handle (Incoming)
 * Login Multiple Account
