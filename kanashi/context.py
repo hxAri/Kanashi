@@ -37,14 +37,14 @@ class Context:
 				raise ContextError( "The main context cannot be used as a context" )
 		else:
 			raise ContextError( "Application context should extend the Context class" )
-		
+	
 	#[Context.__getattr__( String key )]
 	def __getattr__( self, key ):
 		try:
 			return( self.__dict__[key] )
 		except KeyError as e:
 			raise( AttributeError( "Class {} has no attribute {}".format( type( self ).__name__, key ) ) )
-		
+	
 	#[Context.__setattr__( String key, Mixed val )]
 	def __setattr__( self, key, val ):
 		
@@ -70,15 +70,15 @@ class Context:
 		except ValueError:
 			self.__dict__[key] = val
 		return( self )
-		
+	
 	#[Context.get( String key )]
 	def get( self, key ):
 		return( self.__getattr__( key ) )
-		
+	
 	#[Context.set( String key, Mixed val )]
 	def set( self, key, val ):
 		return( self.__setattr__( key, val ) )
-		
+	
 	#[Context.main()]
 	def main( self ):
 		try:

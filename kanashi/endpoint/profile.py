@@ -35,7 +35,7 @@ class ProfileMethods:
 	def ( self ):
 		pass
 	"""
-		
+	
 	#[ProfileMethods.saveProfilePicture( String name, Bool hd )]
 	def saveProfilePicture( self, name=None, hd=False ):
 		if name == None:
@@ -69,117 +69,117 @@ class ProfileProperties:
 	@property
 	def biography( self ):
 		return( self.user.biography )
-		
+	
 	#[ProfileProperties.biographyEntities]
 	@property
 	def biographyEntities( self ):
 		return( self.user.biography_with_entities.entities )
-		
+	
 	#[ProfileProperties.biographyFormat]
 	@property
 	def biographyFormat( self ):
 		return( self.user.biography_with_entities.raw_text.replace( "\n", "\x0a\x20\x20\x20\x20" ) )
-		
+	
 	#[ProfileProperties.biographyRawText]
 	@property
 	def biographyRawText( self ):
 		return( self.user.biography_with_entities.raw_text )
-		
+	
 	#[ProfileProperties.blockedByViewer]
 	@property
 	def blockedByViewer( self ):
 		return( self.user.blocked_by_viewer )
-		
+	
 	#[ProfileProperties.categoryName]
 	@property
 	def categoryName( self ):
 		return( self.user.category_name )
-		
+	
 	#[ProfileProperties.countEdgeFelixVideoTimeline]
 	@property
 	def countEdgeFelixVideoTimeline( self ):
 		return( self.user.edge_felix_video_timeline.count )
-		
+	
 	#[ProfileProperties.countEdgeFollow]
 	@property
 	def countEdgeFollow( self ):
 		return( self.user.edge_follow.count )
-		
+	
 	#[ProfileProperties.countEdgeFollowedBy]
 	@property
 	def countEdgeFollowedBy( self ):
 		return( self.user.edge_followed_by.count )
-		
+	
 	#[ProfileProperties.countEdgeMediaCollections]
 	@property
 	def countEdgeMediaCollections( self ):
 		return( self.user.edge_media_collections.count )
-		
+	
 	#[ProfileProperties.countEdgeMutualFollowedBy]
 	@property
 	def countEdgeMutualFollowedBy( self ):
 		return( self.user.edge_mutual_followed_by.count )
-		
+	
 	#[ProfileProperties.countEdgeOwnerToTimelineMedia]
 	@property
 	def countEdgeOwnerToTimelineMedia( self ):
 		return( self.user.edge_owner_to_timeline_media.count )
-		
+	
 	#[ProfileProperties.countEdgeSavedMedia]
 	@property
 	def countEdgeSavedMedia( self ):
 		return( self.user.edge_saved_media.count )
-		
+	
 	#[ProfileProperties.edgeFelixVideoTimeline]
 	@property
 	def edgeFelixVideoTimeline( self ):
 		return( self.user.edge_felix_video_timeline.edges )
-		
+	
 	#[ProfileProperties.edgeFollow]
 	@property
 	def edgeFollow( self ):
 		return( self.user.edge_follow.edges )
-		
+	
 	#[ProfileProperties.edgeFollowedBy]
 	@property
 	def edgeFollowedBy( self ):
 		return( self.user.edge_followed_by.edges )
-		
+	
 	#[ProfileProperties.edgeMediaCollections]
 	@property
 	def edgeMediaCollections( self ):
 		return( self.user.edge_media_collections.edges )
-		
+	
 	#[ProfileProperties.edgeMutualFollowedBy]
 	@property
 	def edgeMutualFollowedBy( self ):
 		return( self.user.edge_mutual_followed_by.edges )
-		
+	
 	#[ProfileProperties.edgeOwnerToTimelineMedia]
 	@property
 	def edgeOwnerToTimelineMedia( self ):
 		return( self.user.edge_owner_to_timeline_media.edges )
-		
+	
 	#[ProfileProperties.edgeSavedMedia]
 	@property
 	def edgeSavedMedia( self ):
 		return( self.user.edge_saved_media.edges )
-		
+	
 	#[ProfileProperties.followedByViewer]
 	@property
 	def followedByViewer( self ):
 		return( self.user.followed_by_viewer )
-		
+	
 	#[ProfileProperties.followsViewer]
 	@property
 	def followsViewer( self ):
 		return( self.user.follows_viewer )
-		
+	
 	#[ProfileProperties.fullName]
 	@property
 	def fullName( self ):
 		return( self.user.full_name )
-		
+	
 	#[ProfileProperties.fullNameFormat]
 	@property
 	def fullNameFormat( self ):
@@ -192,17 +192,17 @@ class ProfileProperties:
 		if self.user.is_verified:
 			name.append( "√" )
 		return( "\x20".join( name ) )
-		
+	
 	#[ProfileProperties.hasBlockedViewer]
 	@property
 	def hasBlockedViewer( self ):
 		return( self.user.has_blocked_viewer )
-		
+	
 	#[ProfileProperties.id]
 	@property
 	def id( self ):
 		return( self.user.id )
-		
+	
 	#[ProfileProperties.isBusinessAccount]
 	@property
 	def isBusinessAccount( self ):
@@ -213,73 +213,73 @@ class ProfileProperties:
 	@property
 	def isFetchById( self ):
 		return( self.fetch == Profile.FETCH_ID )
-		
+	
 	#[ProfileProperties.fetchIsByUsername]
 	@property
 	def isFetchByUsername( self ):
 		return( self.fetch == Profile.FETCH_USERNAME )
 	"""
-		
+	
 	#[ProfileProperties.isJoinedRecently]
 	@property
 	def isJoinedRecently( self ):
 		return( self.user.is_joined_recently )
-		
+	
 	#[ProfileProperties.isMySelf]
 	@property
 	def isMySelf( self ):
 		return( self.user.id == self.app.active.id )
-		
+	
 	#[ProfileProperties.isNotMySelf]
 	@property
 	def isNotMySelf( self ):
 		return( self.user.id != self.app.active.id )
-		
+	
 	#[ProfileProperties.isPrivateAccount]
 	@property
 	def isPrivateAccount( self ):
 		return( self.user.is_private )
-		
+	
 	#[ProfileProperties.isProfessionalAccount]
 	@property
 	def isProfessionalAccount( self ):
 		return( self.user.is_professional_account )
-		
+	
 	#[ProfileProperties.isVerified]
 	@property
 	def isVerified( self ):
 		return( self.user.is_verified )
-		
+	
 	#[ProfileProperties.profilePicture]
 	@property
 	def profilePicture( self ):
 		return( self.user.profile_pic_url )
-		
+	
 	#[ProfileProperties.profilePictureHD]
 	@property
 	def profilePictureHD( self ):
 		return( self.user.profile_pic_url_hd )
-		
+	
 	#[ProfileProperties.pronouns]
 	@property
 	def pronouns( self ):
 		return( self.user.pronouns )
-		
+	
 	#[ProfileProperties.pronounsFormat]
 	@property
 	def pronounsFormat( self ):
 		return( "/".join( self.pronouns ) )
-		
+	
 	#[ProfileProperties.requestedByViewer]
 	@property
 	def requestedByViewer( self ):
 		return( self.user.requested_by_viewer )
-		
+	
 	#[ProfileProperties.]
 	@property
 	def restrictedByViewer( self ):
 		return( self.user.restricted_by_viewer )
-		
+	
 	#[ProfileProperties.username]
 	@property
 	def username( self ):

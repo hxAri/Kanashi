@@ -28,6 +28,11 @@ from kanashi.error import Error
 from kanashi.object import Object
 from kanashi.utils import File, JSONError, Util
 
+#[kanashi.ConfigError]
+class ConfigError( Error ):
+	pass
+	
+
 #[kanashi.Config]
 class Config( Context ):
 	
@@ -105,9 +110,9 @@ class Config( Context ):
 		
 		# Call parent constructor.
 		super().__init__( app )
-		
+	
 	#[Config.read()]
-	def read( self ):
+	def read( self ) -> bool:
 		try:
 			self.fdict = File.json( self.fname )
 			self.fattr.set( self.fdict )
@@ -117,9 +122,9 @@ class Config( Context ):
 		except JSONError as e:
 			raise ConfigError( "Configuration file has corrupted", throw=self, prev=e )
 		return True
-		
+	
 	#[Config.save()]
-	def save( self ):
+	def save( self ) -> bool:
 		try:
 			if self.fdict != None:
 				data = self.fattr.dict()
@@ -131,9 +136,4 @@ class Config( Context ):
 		except Exception as e:
 			raise ConfigError( "Failed save configuration", throw=self, prev=e )
 		return True
-	
-
-#[kanashi.ConfigError]
-class ConfigError( Error ):
-	pass
 	

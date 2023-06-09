@@ -48,7 +48,7 @@ class SignIn( RequestRequired ):
 			raise e
 		except KeyError as e:
 			raise SignInCsrftokenError( "Csrftoken prelogin is not available" )
-		
+	
 	#[SignIn.password( String username, String password, String csrftoken )]
 	def password( self, username, password, csrftoken=None ):
 		if csrftoken == None:
@@ -139,7 +139,7 @@ class SignIn( RequestRequired ):
 				raise SignInError( "An error occurred while signing in" )
 		except RequestError as e:
 			raise e
-		
+	
 	#[SignIn.remember( String cookies, String uagent )]
 	def remember( self, cookies, uagent=None ):
 		if type( cookies ).__name__ == "str":
@@ -202,7 +202,7 @@ class SignIn( RequestRequired ):
 			})
 		except RequestError as e:
 			raise e
-		
+	
 	#[SignIn.save( SignInSuccess signin, String username, Bool default )]
 	def save( self, signin, username=None, default=True ):
 		if isinstance( signin, SignInSuccess ):
@@ -227,11 +227,11 @@ class SignIn( RequestRequired ):
 				raise SignInError( "Failed save account", prev=e )
 		else:
 			raise SignInError( f"Value of parameter signin must be type SignInSuccess, {type( signin ).__name__} passed", prev=ValueError( "Invalid argument value passed" ) )
-		
+	
 	#[SignIn.switch()]
 	def switch( self ):
 		pass
-		
+	
 	#[SignIn.verify2FA( SignIn2FARequired info, Int method )]
 	def verify2FA( self, info, method, code ):
 		length = len( f"{code}" )

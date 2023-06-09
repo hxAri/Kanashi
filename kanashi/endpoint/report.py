@@ -32,7 +32,7 @@ class Report( RequestRequired ):
 	def throws( self, user ):
 		if user.isMySelf:
 			raise FollowError( "Unable to report yourself" )
-		
+	
 	#[Report.report()]
 	def report( self, user, report ):
 		self.throws( user )

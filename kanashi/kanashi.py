@@ -27,7 +27,7 @@ from os import system
 
 from kanashi.config import Config, ConfigError
 from kanashi.context import Context
-from kanashi.endpoint import Block, Favorite, Follow, Restrict, SignIn, User
+from kanashi.endpoint import Block, Favorite, Follow, Report, Restrict, SignIn, User
 from kanashi.request import Request
 from kanashi.update import Update
 
@@ -61,7 +61,7 @@ class Kanashi( Context ):
 				# Always call this method after successfully login.
 				self.afterLogin()
 		pass
-		
+	
 	#[Kanashi.afterLogin()]
 	def afterLogin( self ):
 		
@@ -75,7 +75,7 @@ class Kanashi( Context ):
 				self.__afterLoginSetAttr()
 		else:
 			self.__afterLoginSetAttr()
-		
+	
 	#[Kanashi.__afterLoginSetActive( String user )]
 	def __afterLoginSetActive( self, user ):
 		try:
@@ -100,12 +100,12 @@ class Kanashi( Context ):
 				exit()
 			self.close( e, "Something wrong" )
 		pass
-		
+	
 	#[Kanashi.__afterLoginSetAttr()]
 	def __afterLoginSetAttr( self ):
 		
 		# Mapping attributes required after the user login.
-		for attr in [ Block, Favorite, Follow, Restrict, User ]:
+		for attr in [ Block, Favorite, Follow, Report, Restrict, User ]:
 			name = attr.__name__
 			name = name.lower()
 			name = name.replace( "", "" )
@@ -115,7 +115,7 @@ class Kanashi( Context ):
 			except( AttributeError, ValueError ):
 				self.app.set( name, attr( self.app ) )
 		pass
-		
+	
 	#[Kanashi.beforeLogin()]
 	def beforeLogin( self ):
 		
@@ -132,23 +132,23 @@ class Kanashi( Context ):
 			if name == "config":
 				self.config.read()
 		pass
-		
+	
 	#[Kanashi.authors]
 	@property
 	def authors( self ): return( self.settings.authors )
-		
+	
 	#[Kanashi.license]
 	@property
 	def license( self ): return( self.settings.license )
-		
+	
 	#[Kanashi.version]
 	@property
 	def version( self ): return( self.settings.version )
-		
+	
 	#[Kanashi.info]
 	@property
 	def info( self ): return([])
-		
+	
 	#[Kanashi.supportProject()]
 	def supportProject( self ):
 		system( f"xdg-open {self.settings.donate}" )

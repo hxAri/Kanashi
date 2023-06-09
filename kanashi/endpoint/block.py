@@ -22,30 +22,12 @@
 #
 
 from kanashi.error import Error
+from kanashi.endpoint.auth import AuthError
+from kanashi.endpoint.profile import Profile
+from kanashi.endpoint.user import UserError, UserNotFoundError
 from kanashi.object import Object
 from kanashi.request import RequestRequired
 
-#[kanashi.endpoint.Block]
-class Block( RequestRequired ):
-	
-	# Block and other account.
-	BLOCK_MULTILEVEL = 78828
-	
-	# Block and report user.
-	BLOCK_REPORT = 89282
-	
-	# Block only.
-	BLOCK_ONLY = 99278
-	
-	#[Block.throws( Profile user )]
-	def throws( self, user ):
-		if user.isMySelf:
-			raise FollowError( "Unable to block or unblock yourself" )
-		
-	#[Block.block()]
-	def block( self, user, level=None, report=None ):
-		self.throws( user )
-	
 
 #[kanashi.endpoint.BlockError]
 class BlockError( Error ):
@@ -55,4 +37,58 @@ class BlockError( Error ):
 #[kanashi.endpoint.BlockSuccess]
 class BlockSuccess( Object ):
 	pass
+	
+
+#[kanashi.endpoint.Block]
+class Block( RequestRequired ):
+	
+	# Block and other account.
+	BLOCK_MULTILEVEL = 78828
+	
+	# Block and report.
+	BLOCK_REPORT = 86272
+	
+	# Block only.
+	BLOCK_ONLY = 99278
+	
+	#[Block.throws( Profile user )]
+	def throws( self, user: Profile ) -> None:
+		if user.isMySelf:
+			raise FollowError( "Unable to block or unblock yourself" )
+	
+	#[Block.block( Profile user, int level )]
+	def block( self, user: Profile, level: int=None ) -> BlockSuccess:
+		self.throws( user )
+		self.session.headers.update({
+			"Accept-Encoding": "gzip, deflate, br",
+			"Content-Type": "application/x-www-form-urlencoded",
+			"Origin": "https://www.instagram.com",
+			"Referer": f"https://www.instagram.com/{user.username}/"
+		})
+		if user.blockedByViewer:
+			target = f"https://www.instagram.com/api/v1/web/friendships/{user.id}/unblock/"
+			action = "Unblock"
+		else:
+			target = f"https://www.instagram.com/api/v1/web/friendships/{user.id}/block/"
+			action = "Blocking"
+		resp = self.request.post( target )
+		match resp.status_code:
+			case 200:
+				block = resp.json()
+				if "status" in block and block['status'] == "ok":
+					user.user.blocked_by_viewer = False if user.blockedByViewer else True
+					return BlockSuccess({
+						"id": user.id,
+						"username": user.username,
+						"blocking": False if user.blockedByViewer else True
+					})
+				else:
+					raise BlockError( f"Something wrong when {action} the {user.username}" )
+			case 401:
+				raise AuthError( f"Failed to {action}, because the credential is invalid, status 401", throw=self )
+			case 404:
+				raise UserNotFoundError( f"Target /{user.username}/ user not found" )
+			case _:
+				raise UserError( f"An error occurred while {action} the user [{resp.status_code}]" )
+		pass
 	

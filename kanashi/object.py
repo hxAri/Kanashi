@@ -39,15 +39,15 @@ class Object:
 		
 		# Inject data.
 		self.set( data )
-		
+	
 	#[Object.__repr__()]
 	def __repr__( self ):
 		return( self.json() )
-		
+	
 	#[Object.__str__()]
 	def __str__( self ):
 		return( self.json() )
-		
+	
 	#[Object.dict()]
 	def dict( self ):
 		data = {}
@@ -73,15 +73,15 @@ class Object:
 					else:
 						data[key] = copy[key]
 		return( data )
-		
+	
 	#[Object.dump()]
 	def dump( self ):
 		return( "{}".format( self.dict() ) )
-		
+	
 	#[Object.json()]
 	def json( self ):
 		return( JSON.encode( self.__json( self.dict() ) ) )
-		
+	
 	#[Object.isset( String key )]
 	def isset( self, key ):
 		try:
@@ -90,14 +90,14 @@ class Object:
 			return( True )
 		except KeyError:
 			return( False )
-		
+	
 	#[Object.unset( String key )]
 	def unset( self, key ):
 		if key in self.__data__:
 			del self.__data__[key]
 		if key in self.__dict__:
 			del self.__dict__[key]
-		
+	
 	#[Object.__json( Dict | List data )]
 	def __json( self, data=None ):
 		if data == None:
@@ -120,30 +120,30 @@ class Object:
 							if not JSON.isSerializable( data[idx] ):
 								data[idx] = self.__str( data[idx] )
 		return( data )
-		
+	
 	#[Object.__str( Mixed data )]
 	def __str( self, data ):
 		text = f"{data}"
 		text = text.replace( "'", "" )
 		text = text.replace( ">", "/>" )
 		return( text )
-		
+	
 	#[Object.idxs()]
 	def idxs( self ):
 		return([ idx for idx in range( len( self.__data__ ) ) ])
-		
+	
 	#[Object.keys()]
 	def keys( self ):
 		return( list( self.__data__.keys() ) )
-		
+	
 	#[Object.get()]
 	def get( self, key ):
 		return( self.__dict__[key] )
-		
+	
 	#[Object.len()]
 	def len( self ):
 		return( len( self.__data__ ) )
-		
+	
 	#[Object.__set( Dictionary data )]
 	def set( self, data ):
 		match type( data ).__name__:
@@ -166,11 +166,11 @@ class Object:
 				try:
 					self.set( JSON.decode( data ) )
 				except JSONError as e:
-					raise ValueError( "Invalid JSON String data parameter." )
+					raise ValueError( "Invalid JSON String data parameter" )
 			case _:
 				raise ValueError( "Parameter data must be type Dictionary or JSON Strings, {} given".format( type( data ).__name__ ) )
 		self.ref()
-		
+	
 	#[Object.__ref()]
 	def ref( self ) -> None:
 		if self.__parent__ != None:

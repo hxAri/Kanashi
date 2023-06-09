@@ -92,10 +92,10 @@ class Request( Context ):
 			app.session = self.session
 		except:
 			pass
-		
+	
 		# Call parent constructor.
 		super().__init__( app )
-		
+	
 	#[Request.reset()]
 	def reset( self ):
 		
@@ -104,7 +104,7 @@ class Request( Context ):
 		
 		# Rewrite response logs.
 		File.write( self.historyF, self.history )
-		
+	
 	#[Request.download( String url, String name )]
 	def download( self, url, name ):
 		try:
@@ -119,7 +119,7 @@ class Request( Context ):
 				raise RequestDownloadError( f"Failed write file /{name}/", prev=e )
 		else:
 			raise RequestDownloadError( f"Failed get content from url, status [{resp.status_code}]" )
-		
+	
 	#[Request.onerror( List error )]
 	def onerror( self, error ):
 		named = type( error ).__name__
@@ -175,35 +175,35 @@ class Request( Context ):
 			case _:
 				error = RequestError( f"{named} There was an ambiguous exception that occurred while handling your request" )
 		return( error )
-		
+	
 	#[Request.delete( String url, **kwargs )]
 	def delete( self, url, **kwargs ):
 		return( self.request( "DELETE", url=url, **kwargs ) )
-		
+	
 	#[Request.get( String url, **kwargs )]
 	def get( self, url, **kwargs ):
 		return( self.request( "GET", url=url, **kwargs ) )
-		
+	
 	#[Request.head( String url, **kwargs )]
 	def head( self, url, **kwargs ):
 		return( self.request( "HEAD", url=url, **kwargs ) )
-		
+	
 	#[Request.options( String url, **kwargs )]
 	def options( self, url, **kwargs ):
 		return( self.request( "OPTIONS", url=url, **kwargs ) )
-		
+	
 	#[Request.patch( String url, **kwargs )]
 	def patch( self, url, **kwargs ):
 		return( self.request( "PATCH", url=url, **kwargs ) )
-		
+	
 	#[Request.post( String url, **kwargs )]
 	def post( self, url, **kwargs ):
 		return( self.request( "POST", url=url, **kwargs ) )
-		
+	
 	#[Request.put( String url, **kwargs )]
 	def put( self, url, **kwargs ):
 		return( self.request( "PUT", url=url, **kwargs ) )
-		
+	
 	#[Request.request( String method, String url, **kwargs )]
 	def request( self, method, url, **kwargs ):
 		self.response = False
@@ -219,7 +219,7 @@ class Request( Context ):
 			})
 			return( False )
 		return( self.response )
-		
+	
 	#[Request.responseSave()]
 	def responseSave( self ):
 		if self.response != False:

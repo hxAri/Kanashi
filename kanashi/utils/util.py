@@ -41,20 +41,20 @@ banner = "\x1b[1;38;5;32m\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x2
 class Util:
 	
 	#[Util.clear()]
-	def clear( self ):
+	def clear( self ) -> None:
 		system( "clear" )
-		
+	
 	#[Util.close()]
-	def close( self, *args, **kwargs ):
+	def close( self, *args, **kwargs ) -> None:
 		self.output( *args, **kwargs )
 		sys.exit()
-		
+	
 	#[Util.exit()]
-	def exit( self, *args, **kwargs ):
+	def exit( self, *args, **kwargs ) -> None:
 		self.close( *args, **kwargs )
-		
+	
 	#[Util.emit( BaseException|Error|List error )]
-	def emit( self, error ):
+	def emit( self, error: BaseException ) -> None:
 		self.clear()
 		name = type( self ).__name__
 		strings = f"{name}\x2e\x65\x72\x72\x6f\x72\x0a"
@@ -110,7 +110,7 @@ class Util:
 		for subject in findall( r"(\[Errno\s\d+\]\s*)", strings ):
 			strings = strings.replace( subject, "" )
 		print( "\x0a\x7b\x7d\x0a\x0a\x0a\x7b\x7d".format( banner, strings ) )
-		
+	
 	#[Util.getpass( String label )]
 	def getpass( self, label, ignore=True ):
 		if label == None or label == "":
@@ -128,7 +128,7 @@ class Util:
 			if ignore == False:
 				self.close( e, "\x46\x6f\x72\x63\x65\x20\x63\x6c\x6f\x73\x65" )
 			return( self.getpass( label, default, ignore ) )
-		
+	
 	#[Util.input( String label )]
 	def input( self, label, default=None, number=False, ignore=True ):
 		if label == None or label == "":
@@ -162,11 +162,11 @@ class Util:
 			if ignore == False:
 				self.close( e, "\x46\x6f\x72\x63\x65\x20\x63\x6c\x6f\x73\x65" )
 			return( self.input( label, default, number, ignore ) )
-		
+	
 	#[Util.open( String target )]
 	def open( self, target ):
 		system( "xdg-open {}".format( target ) )
-		
+	
 	#[Util.output( Object refer, Dict|List|String message, Bool line )]
 	def output( self, refer, message, line=False ):
 		self.clear()
@@ -189,7 +189,7 @@ class Util:
 			strings += f"\x20\x20{named}\x2e{refer}\x0a"
 		strings += self.println( message, 4, line )
 		print( "\x0a\x7b\x7d\x0a\x0a\x0a\x7b\x7d".format( banner, strings ) )
-		
+	
 	#[Util.previous( Function | Method back, String label, *args, **kwargs )]
 	def previous( self, back, label=None, *args, **kwargs ):
 		match type( back ).__name__:
@@ -203,7 +203,7 @@ class Util:
 				return( back( *args, **kwargs ) )
 			case _:
 				raise ValueError( f"Argument back must be type Function|Method, {type( back ).__name__} given" )
-		
+	
 	#[Util.println( Dict|List|String message, Int indent, Bool line )]
 	def println( self, message, indent=4, line=False ):
 		space = "\x20" * indent
@@ -274,7 +274,7 @@ class Util:
 			case _:
 				stack = "\x7b\x30\x7d\x7b\x31\x7d\x0a".format( space, message )
 		return( stack )
-		
+	
 	#[Util.rmdoc( Dict lists )]
 	def rmdoc( self, lists ):
 		stack = []
@@ -285,7 +285,7 @@ class Util:
 				case _:
 					stack.append( i )
 		return( stack )
-		
+	
 	#[Util.thread( String strings, Function Object, *args, **kwargs )]
 	def thread( self, strings, target, *args, **kwargs ):
 		self.clear()
@@ -317,7 +317,7 @@ class Util:
 			raise error
 		else:
 			return task.getReturn()
-		
+	
 	#[Util.tryAgain( String label, Function | Method next, Function | Method other, String value, List defaultValue, *args, **kwargs )]
 	def tryAgain( self, label="Try again [Y/n]", next=None, other=None, value="Y", defaultValue=[ "Y", "y", "N", "n" ], *args, **kwargs ):
 		call = {

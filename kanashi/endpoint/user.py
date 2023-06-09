@@ -57,7 +57,7 @@ class User( RequestRequired ):
 						user = find[3]
 					case _:
 						continue
-				if "content" in history:
+				if "content" in history and history['content']:
 					if "graphql" in history['content']:
 						content = {
 							**history['content']['graphql']['user'],
@@ -77,7 +77,7 @@ class User( RequestRequired ):
 			except( IndexError, KeyError ):
 				continue
 		pass
-		
+	
 	#[User.getById( Int id )]
 	def getById( self, id ):
 		try:
@@ -86,37 +86,25 @@ class User( RequestRequired ):
 				"Referer": "https://www.instagram.com/"
 			})
 			resp = self.request.get( f"https://i.instagram.com/api/v1/users/{id}/info/" )
+			match resp.status_code:
+				case 200:
+					user = resp.json()
+					if user['user']['username'] != "":
+						return self.getByUsername( user['user']['username'] )
+					else:
+						raise UserInfoError( f"Target /{id}/ user found but user data not available" )
+				case 401:
+					raise AuthError( "Failed to get user info, because the credential is invalid, status 401", throw=self )
+				case 404:
+					raise UserNotFoundError( f"Target /{id}/ user not found" )
+				case _:
+					raise UserError( f"An error occurred while fetching the user [{resp.status_code}]" )
+			pass
 		except RequestError as e:
 			raise e
-		match resp.status_code:
-			case 200:
-				user = resp.json()
-				if user['user']['username'] != "":
-					return self.getByUsername( user['user']['username'] )
-				else:
-					raise UserInfoError( f"Target /{id}/ user found but user data not available" )
-			case 401:
-				raise AuthError( "Failed to get user info, because the credential is invalid, status 401", throw=self )
-			case 404:
-				raise UserNotFoundError( f"Target /{id}/ user not found" )
-			case _:
-				raise UserError( f"An error occurred while fetching the user [{resp.status_code}]" )
-		pass
-		
+	
 	#[User.getByUsername( String username )]
 	def getByUsername( self, username ):
-		try:
-			find = findall( r"^r\:([^\n]+)$", username )
-			try:
-				username = find[0]
-			except IndexError:
-				return self.recent.get( username )
-		except( AttributeError, KeyError ):
-			pass
-		try:
-			return self.recent.get( username )
-		except( AttributeError, KeyError ):
-			pass
 		try:
 			# f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}" ['data']['user']
 			# f"https://www.instagram.com/{username}?__a=1&__d=dis" ['graphql']['user']
@@ -128,7 +116,9 @@ class User( RequestRequired ):
 			match resp.status_code:
 				case 200:
 					data = resp.json()
-					user = data['graphql']['user']
+					user = None
+					if "graphql" in data:
+						user = data['graphql']['user']
 					if user != None:
 						self.recent.set({
 							username: Profile(

@@ -25,21 +25,35 @@ from time import sleep
 
 from kanashi.endpoint.auth import AuthError
 from kanashi.endpoint.profile import Profile
+from kanashi.endpoint.user import UserError, UserNotFoundError
 from kanashi.error import Error
 from kanashi.object import Object
 from kanashi.request import RequestError, RequestRequired
 from kanashi.utils import File
 
+
+#[kanashi.endpoint.FollowError]
+class FollowError( Error ):
+	pass
+	
+
+#[kanashi.endpoint.FollowSuccess]
+class FollowSuccess( Object ):
+	pass
+	
+
 #[kanashi.endpoint.Follow]
 class Follow( RequestRequired ):
 	
 	#[Follow.throws( Profile user )]
-	def throws( self, user ):
+	def throws( self, user: Profile ) -> None:
 		if user.isMySelf:
 			raise FollowError( "Unable to follow or unfollow for yourself" )
-		
+		if user.blockedByViewer:
+			raise FollowError( "Unable to follow or unfollwo blocked account" )
+	
 	#[ProfileMethods.follow( Profile user )]
-	def follow( self, user ):
+	def follow( self, user: Profile ) -> FollowSuccess:
 		self.throws( user )
 		self.session.headers.update({
 			"Content-Type": "application/x-www-form-urlencoded",
@@ -66,12 +80,16 @@ class Follow( RequestRequired ):
 				case 200:
 					follow = resp.json()
 					if "friendship_status" in follow:
-						return Follow({
+						follow = follow['friendship_status']
+						user.user.requested_by_viewer = private = follow['is_private']
+						user.user.followed_by_viewer = following = follow['following']
+						user.user.is_private = requested = follow['outgoing_request']
+						return FollowSuccess({
 							"id": user.id,
-							"private": follow['is_private'],
+							"private": private,
 							"username": user.username,
-							"following": follow['following'], # Following status
-							"requested": follow['outgoing_request'], # Waiting for aprove
+							"following": following,
+							"requested": requested,
 						})
 					else:
 						raise FollowError( f"Something wrong when {action} the {user.username}" )
@@ -83,34 +101,24 @@ class Follow( RequestRequired ):
 					raise UserError( f"An error occurred while {action} the user [{resp.status_code}]" )
 		except RequestError as e:
 			raise e
-		
+	
 	#[Follow.getFollowersById( Int id )]
-	def getFollowersById( self, id ):
+	def getFollowersById( self, id: int ):
 		pass
-		
+	
 	#[Follow.getFollowersByUsername( String username )]
-	def getFollowersByUsername( self, username ):
+	def getFollowersByUsername( self, username: str ):
 		pass
-		
+	
 	#[Follow.getFollowingById( Int id )]
-	def getFollowingById( self, id ):
+	def getFollowingById( self, id: int ):
 		pass
-		
+	
 	#[Follow.getFollowingByUsername( String username )]
-	def getFollowingByUsername( self, username ):
+	def getFollowingByUsername( self, username: str ):
 		pass
-		
+	
 	#[Follow.nextCursorScroll( )]
 	def nextCursorScroll( self ):
 		pass
-	
-
-#[kanashi.endpoint.FollowError]
-class FollowError( Error ):
-	pass
-	
-
-#[kanashi.endpoint.FollowSuccess]
-class FollowSuccess( Object ):
-	pass
 	
