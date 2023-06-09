@@ -1,10 +1,12 @@
+#!/usr/bin/env python
+
 #
 # @author Ari Setiawan
 # @create 23.05-2022
 # @github https://github.com/hxAri/Kanashi
 #
-# Kanashi Copyright (c) 2022 - Ari Setiawan <ari160824@gmail.com>
-# Kanashi Licence under GNU General Public Licence v3
+# Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
+# Kanashī Licence under GNU General Public Licence v3
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
-# Kanashi is not affiliated with or endorsed, endorsed at all by
+# Kanashī is not affiliated with or endorsed, endorsed at all by
 # Instagram or any other party, if you use the main account to use this
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
@@ -25,6 +27,17 @@ from kanashi.error import Error
 from kanashi.object import Object
 from kanashi.request import RequestError, RequestRequired
 from kanashi.utils import File, JSON, String
+
+
+#[kanashi.endpoint.ProfileError]
+class ProfileError( Error ):
+	pass
+	
+
+#[kanashi.endpoint.ProfileSuccess]
+class ProfileSuccess( Object ):
+	pass
+	
 
 #[kanashi.endpoint.ProfileMethods]
 class ProfileMethods:
@@ -37,21 +50,18 @@ class ProfileMethods:
 	"""
 	
 	#[ProfileMethods.saveProfilePicture( String name, Bool hd )]
-	def saveProfilePicture( self, name=None, hd=False ):
+	def saveProfilePicture( self, name:str=None, hd:bool=False ) -> ProfileSuccess:
 		if name == None:
 			name = self.username
 		if name == "\\r":
 			name = String.random( 16 )
 		path = self.app.settings.path.image
-		try:
-			self.request.download( self.profilePictureHD if hd else self.profilePicture, saved := f"{path}/{name}.jpg" )
-			return Object({
-				"name": name,
-				"path": path,
-				"saved": saved
-			})
-		except RequestError as e:
-			raise e
+		self.request.download( self.profilePictureHD if hd else self.profilePicture, saved := f"{path}/{name}.jpg" )
+		return ProfileSuccess({
+			"name": name,
+			"path": path,
+			"saved": saved
+		})
 	
 
 #[kanashi.endpoint.ProfileProperties]
@@ -167,22 +177,22 @@ class ProfileProperties:
 	
 	#[ProfileProperties.followedByViewer]
 	@property
-	def followedByViewer( self ):
+	def followedByViewer( self ) -> bool:
 		return( self.user.followed_by_viewer )
 	
 	#[ProfileProperties.followsViewer]
 	@property
-	def followsViewer( self ):
+	def followsViewer( self ) -> bool:
 		return( self.user.follows_viewer )
 	
 	#[ProfileProperties.fullName]
 	@property
-	def fullName( self ):
+	def fullName( self ) -> str:
 		return( self.user.full_name )
 	
 	#[ProfileProperties.fullNameFormat]
 	@property
-	def fullNameFormat( self ):
+	def fullNameFormat( self ) -> str:
 		name = []
 		if self.user.full_name != "":
 			name.append( self.user.full_name )
@@ -195,17 +205,17 @@ class ProfileProperties:
 	
 	#[ProfileProperties.hasBlockedViewer]
 	@property
-	def hasBlockedViewer( self ):
+	def hasBlockedViewer( self ) -> bool:
 		return( self.user.has_blocked_viewer )
 	
 	#[ProfileProperties.id]
 	@property
-	def id( self ):
+	def id( self ) -> int:
 		return( self.user.id )
 	
 	#[ProfileProperties.isBusinessAccount]
 	@property
-	def isBusinessAccount( self ):
+	def isBusinessAccount( self ) -> bool:
 		return( self.user.is_business_account )
 		
 	"""
@@ -222,67 +232,67 @@ class ProfileProperties:
 	
 	#[ProfileProperties.isJoinedRecently]
 	@property
-	def isJoinedRecently( self ):
+	def isJoinedRecently( self ) -> bool:
 		return( self.user.is_joined_recently )
 	
 	#[ProfileProperties.isMySelf]
 	@property
-	def isMySelf( self ):
+	def isMySelf( self )-> bool:
 		return( self.user.id == self.app.active.id )
 	
 	#[ProfileProperties.isNotMySelf]
 	@property
-	def isNotMySelf( self ):
+	def isNotMySelf( self ) -> bool:
 		return( self.user.id != self.app.active.id )
 	
 	#[ProfileProperties.isPrivateAccount]
 	@property
-	def isPrivateAccount( self ):
+	def isPrivateAccount( self ) -> bool:
 		return( self.user.is_private )
 	
 	#[ProfileProperties.isProfessionalAccount]
 	@property
-	def isProfessionalAccount( self ):
+	def isProfessionalAccount( self ) -> bool:
 		return( self.user.is_professional_account )
 	
 	#[ProfileProperties.isVerified]
 	@property
-	def isVerified( self ):
+	def isVerified( self ) -> bool:
 		return( self.user.is_verified )
 	
 	#[ProfileProperties.profilePicture]
 	@property
-	def profilePicture( self ):
+	def profilePicture( self ) -> str:
 		return( self.user.profile_pic_url )
 	
 	#[ProfileProperties.profilePictureHD]
 	@property
-	def profilePictureHD( self ):
+	def profilePictureHD( self ) -> str:
 		return( self.user.profile_pic_url_hd )
 	
 	#[ProfileProperties.pronouns]
 	@property
-	def pronouns( self ):
+	def pronouns( self ) -> list:
 		return( self.user.pronouns )
 	
 	#[ProfileProperties.pronounsFormat]
 	@property
-	def pronounsFormat( self ):
+	def pronounsFormat( self ) -> str:
 		return( "/".join( self.pronouns ) )
 	
 	#[ProfileProperties.requestedByViewer]
 	@property
-	def requestedByViewer( self ):
+	def requestedByViewer( self ) -> bool:
 		return( self.user.requested_by_viewer )
 	
 	#[ProfileProperties.]
 	@property
-	def restrictedByViewer( self ):
+	def restrictedByViewer( self ) -> bool:
 		return( self.user.restricted_by_viewer )
 	
 	#[ProfileProperties.username]
 	@property
-	def username( self ):
+	def username( self ) -> str:
 		return( self.user.username )
 	
 
@@ -421,14 +431,4 @@ class Profile( ProfileMethods, ProfileProperties, RequestRequired ):
 		
 		# Call parent constructor.
 		super().__init__( app )
-	
-
-#[kanashi.endpoint.ProfileError]
-class ProfileError( Error ):
-	pass
-	
-
-#[kanashi.endpoint.ProfileSuccess]
-class ProfileSuccess( Object ):
-	pass
 	

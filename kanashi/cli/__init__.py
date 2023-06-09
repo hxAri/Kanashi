@@ -5,8 +5,8 @@
 # @create 23.05-2022
 # @github https://github.com/hxAri/Kanashi
 #
-# Kanashi Copyright (c) 2022 - Ari Setiawan <ari160824@gmail.com>
-# Kanashi Licence under GNU General Public Licence v3
+# Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
+# Kanashī Licence under GNU General Public Licence v3
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
-# Kanashi is not affiliated with or endorsed, endorsed at all by
+# Kanashī is not affiliated with or endorsed, endorsed at all by
 # Instagram or any other party, if you use the main account to use this
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
@@ -83,7 +83,7 @@ class Cli( Kanashi, Util ):
 		# Default outputs.
 		self.outputs = [
 			"",
-			"Kanashi v{}".format( self.settings.version ),
+			"Kanashī v{}".format( self.settings.version ),
 			"",
 			"Author {}".format( self.settings.authors[0].name ),
 			"Github {}".format( self.settings.source ),
@@ -162,7 +162,7 @@ class Cli( Kanashi, Util ):
 		if self.active != None:
 			self.outputs = [
 				"",
-				"Kanashi v{}".format( self.settings.version ),
+				"Kanashī v{}".format( self.settings.version ),
 				"Logged in as {}".format( self.active.username ),
 				"",
 				"Author {}".format( self.settings.authors[0].name ),
@@ -278,11 +278,12 @@ class Cli( Kanashi, Util ):
 				"They won't be able to message you or find",
 				"your profile, posts or story on Instagram.",
 				"They won't be notifed that you blocked them.",
-				"",
-				f"1. Block {user.username} and other accounts",
-				f"2. Block {user.username} and report",
-				f"3. Block {user.username} only",
-				f"4. Cancel"
+				"", [
+					f"Block {user.username} and other accounts",
+					f"Block {user.username} and report",
+					f"Block {user.username} only",
+					f"Cancel"
+				]
 			])
 			next = self.input( "Block", number=True, default=[ idx +1 for idx in range( 4 ) ] )
 			match next:
@@ -393,9 +394,15 @@ class Cli( Kanashi, Util ):
 	def profileFavorite( self, user:Profile ) -> None:
 		pass
 	
-	#[Profile.profileReport( Profile user )]
-	def profileReport( self, user:Profile ) -> None:
-		pass
+	#[Profile.profileReport( Profile user, Dict data, Bool asked )]
+	def profileReport( self, user:Profile, data:dict=None, asked:bool=True ) -> None:
+		self.output( self, [ "",
+			"This feature might take a long time to",
+			"develop or even just make it, it is very",
+			"likely that this feature will be removed",
+			"from Kanashī"
+		])
+		self.previous( self.profileOptions, ">>>", user )
 	
 	#[Profile.profileRestrict()]
 	def profileRestrict( self, user:Profile ) -> None:
@@ -509,7 +516,7 @@ class Cli( Kanashi, Util ):
 				})
 		else:
 			self.output( self, [
-				"Kanashi provides a feature to save",
+				"Kanashī provides a feature to save",
 				"more than one login, do you want the",
 				"current login to be used as the default",
 				"for future use"
@@ -574,7 +581,7 @@ class Cli( Kanashi, Util ):
 						outputs = [
 							"",
 							"You have successfully logged in as {}".format( signin.username ),
-							"To use this tool again at a later time, Kanashi",
+							"To use this tool again at a later time, Kanashī",
 							"provides a feature to save login info, you can",
 							"also log out at any time",
 							""
@@ -677,7 +684,7 @@ class Cli( Kanashi, Util ):
 				outputs = [
 					"",
 					"You have successfully logged in as {}".format( signin.username ),
-					"To use this tool again at a later time, Kanashi",
+					"To use this tool again at a later time, Kanashī",
 					"provides a feature to save login info, you can",
 					"also log out at any time",
 					""
