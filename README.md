@@ -24,73 +24,73 @@ git clone https://github.com/hxAri/Kanashi && cd Kanashi && python setup* instal
 ## Features
 I did not expect this ^_*
 
-#### Get User Info
+##### Get User Info
 Display user profiles such as how many followers and following they have, number of edges e.g posts, reels, etc., find out whether the account owner has blocked your account or not and vice versa, and much more.
 
-#### Get User Posts
+##### Get User Posts
 Onworking
 
-#### Get User Story
+##### Get User Story
 Onworking
 
-#### Get User Reels
+##### Get User Reels
 Onworking
 
-#### Get User Followers
+##### Get User Followers
 Onworking
 
-#### Get User Following
+##### Get User Following
 Onworking
 
-#### Fetch Timeline Posts
+##### Fetch Timeline Posts
 Incoming/ Deprecated
 
-#### Fetch Suggested Users
+##### Fetch Suggested Users
 Incoming/ Deprecated
 
-#### Downloader
+##### Downloader
 Download media from Instagram users i.g Posts, Reels, Stories, Highlights, Profile Photos, and etc.
 
-#### Block Account
+##### Block Account
 Block or unblock instagram account.
 
-#### Follow Account
+##### Follow Account
 Follow or unfollow instagram account.
 
-#### Restrict Account
+##### Restrict Account
 Onworking
 
-#### Favorite Account
+##### Favorite Account
 Onworking
 
-#### Report Account
+##### Report Account
 Onworking
 
-#### Login with Password
+##### Login with Password
 Login as usual using credentials such as your username and password.
 
-#### Login with Cookie
+##### Login with Cookie
 If you are afraid that your account will be suspended from Instagram because logging in from a third party is a fairly safe way because you don't need to enter your credentials, just paste your Instagram login cookie.
 
 If you are an Android user, please use Kiwi Browser to get your Instagram login cookies.
-Please login as usual, after successfully logging in please open the [Deloper Tool] menu and select [Console] then run the JavaScript code below to copy your Instagram login cookie:
+Please login as usual, after successfully logging in please open the [Deloper Tools] menu and select [Console] then run the JavaScript code below to copy your Instagram login cookie:
 ```js
 navigator.clipboard.writeText( document.cookie );
 ```
 
-#### Login 2FA Verification
+##### Login 2FA Verification
 This feature is under development, it is highly recommended not to log in with an account that has two factor security.
 
-#### Login Checkpoint Handle
+##### Login Checkpoint Handle
 Incoming
 
-#### Login Multiple Account
+##### Login Multiple Account
 You can be the same as Instagram in general which has more than one account, now Kanashi supports it.
 
-#### Login Save Info
+##### Login Save Info
 Save your login information in a configuration file for future use.
 
-#### Logout
+##### Logout
 Incoming
 
 ## Examples
