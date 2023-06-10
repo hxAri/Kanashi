@@ -49,22 +49,6 @@ class Report( RequestRequired ):
 	#[Report.report()]
 	def report( self, user, report ):
 		self.throws( user )
-		
-		# Content-Type application/x-www-form-urlencoded
-		# Origin https://www.instagram.com
-		# Referer https://www.instagram.com/{user.id}/
-		# Post https://www.instagram.com/api/v1/web/reports/get_frx_prompt/
-		
-		# Payload<Option<1>>
-		# container_module profilePage
-		# entry_point 1
-		# location 2
-		# object_id {user.id}
-		# object_type 5
-		# context {}
-		# selected_tag_types ["ig_user_impersonation_me"]
-		# action_type 2
-		# fix_prompt_request_type 2
 	
 	#[Report.reportPost()]
 	def reportPost( self, user, post, report ):

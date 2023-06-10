@@ -49,6 +49,26 @@ class ProfileMethods:
 		pass
 	"""
 	
+	#[ProfileMethods.block()]
+	def block( self ):
+		return self.app.block.block( self )
+	
+	#[ProfileMethods.favorite()]
+	def favorite( self ):
+		return self.app.favorite.favorite( self )
+	
+	#[ProfileMethods.follow()]
+	def follow( self ):
+		return self.app.follow.follow( self )
+	
+	#[ProfileMethods.report()]
+	def report( self ):
+		pass
+	
+	#[ProfileMethods.restrict()]
+	def restrict( self ):
+		pass
+	
 	#[ProfileMethods.saveProfilePicture( String name, Bool hd )]
 	def saveProfilePicture( self, name:str=None, hd:bool=False ) -> ProfileSuccess:
 		if name == None:

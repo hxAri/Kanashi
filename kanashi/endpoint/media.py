@@ -23,4 +23,11 @@
 # not for SPAM.
 #
 
-from kanashi.cli.cli import Cli
+from kanashi.error import Error
+from kanashi.object import Object
+from kanashi.request import RequestError, RequestRequired
+
+
+class Media( RequestRequired ):
+	pass
+	

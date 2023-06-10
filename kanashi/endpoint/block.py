@@ -56,7 +56,7 @@ class Block( RequestRequired ):
 	#[Block.throws( Profile user )]
 	def throws( self, user: Profile ) -> None:
 		if user.isMySelf:
-			raise FollowError( "Unable to block or unblock yourself" )
+			raise BlockError( "Unable to block or unblock yourself" )
 	
 	#[Block.block( Profile user, int level )]
 	def block( self, user: Profile, level: int=None ) -> BlockSuccess:
