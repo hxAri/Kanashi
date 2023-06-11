@@ -25,80 +25,36 @@
 
 from re import findall
 
-from kanashi.utils.json import JSON
-from kanashi.utils.json import JSONError
+from kanashi.utility.json import JSON
+from kanashi.utility.json import JSONError
 
 #[kanashi.Object]
 class Object:
 	
-	#[Object( Dictionary data, Object parent )]
+	#[Object( Dict data, Object parent )]: None
 	def __init__( self, data, parent=None ):
+		
 		self.__parent__ = parent
 		self.__method__ = {}
+		self.__index__ = 0
 		self.__data__ = {}
 		
 		# Inject data.
 		self.set( data )
 	
-	#[Object.__repr__()]
-	def __repr__( self ):
-		return( self.json() )
+	#[Object.__getitem__( String key )]: Mixed
+	def __getitem__( self, key ):
+		return self.__dict__[key]
 	
-	#[Object.__str__()]
-	def __str__( self ):
-		return( self.json() )
+	#[Object.__setitem__( String key, Mixed value )]: None
+	def __setitem__( self, key, value ):
+		self.set({ key: value })
 	
-	#[Object.dict()]
-	def dict( self ):
-		data = {}
-		copy = self.__dict__
-		for key in copy.keys():
-			match key:
-				case "__data__":
-					pass
-				case "__method__":
-					pass
-				case "__parent__":
-					pass
-				case _:
-					if isinstance( copy[key], Object ):
-						data[key] = copy[key].dict()
-					elif isinstance( copy[key], list ):
-						data[key] = []
-						for item in copy[key]:
-							if isinstance( item, Object ):
-								data[key].append( item.dict() )
-							else:
-								data[key].append( item )
-					else:
-						data[key] = copy[key]
-		return( data )
+	#[Object.__iter__()]: Object
+	def __iter__( self ):
+		return self
 	
-	#[Object.dump()]
-	def dump( self ):
-		return( "{}".format( self.dict() ) )
-	
-	#[Object.json()]
-	def json( self ):
-		return( JSON.encode( self.__json( self.dict() ) ) )
-	
-	#[Object.isset( String key )]
-	def isset( self, key ):
-		try:
-			if self.__dict__[key]:
-				pass
-			return( True )
-		except KeyError:
-			return( False )
-	
-	#[Object.unset( String key )]
-	def unset( self, key ):
-		if key in self.__data__:
-			del self.__data__[key]
-		if key in self.__dict__:
-			del self.__dict__[key]
-	
-	#[Object.__json( Dict | List data )]
+	#[Object.__json( Dict | List data )]: Dict
 	def __json( self, data=None ):
 		if data == None:
 			data = self.dict()
@@ -119,32 +75,105 @@ class Object:
 						case _:
 							if not JSON.isSerializable( data[idx] ):
 								data[idx] = self.__str( data[idx] )
-		return( data )
+		return data
 	
-	#[Object.__str( Mixed data )]
+	#[Object.__next__()]
+	def __next__( self ):
+		
+		# Get current index iteration.
+		index = self.__index__
+		
+		# Get object length.
+		length = self.len()
+		try:
+			if index < length:
+				self.__index__ += 1
+				return self[self.keys( index )]
+		except IndexError:
+			pass
+		raise StopIteration
+	
+	#[Object.__repr__()]: String
+	def __repr__( self ):
+		return "Object({}\x20{})".format( type( self ).__name__, self.json() )
+	
+	#[Object.__str__()]: String
+	def __str__( self ):
+		return self.json()
+	
+	#[Object.__str( Mixed data )]: String
 	def __str( self, data ):
 		text = f"{data}"
 		text = text.replace( "'", "" )
 		text = text.replace( ">", "/>" )
-		return( text )
+		return text
 	
-	#[Object.idxs()]
+	#[Object.copy()]: Object
+	def copy( self ):
+		return Object( self.dict() )
+	
+	#[Object.dict()]: Dict
+	def dict( self ):
+		data = {}
+		copy = self.__dict__
+		for key in copy.keys():
+			if key != "__data__" and key != "__index__" and key != "__method__" and key != "__parent__":
+				if isinstance( copy[key], Object ):
+					data[key] = copy[key].dict()
+				elif isinstance( copy[key], list ):
+					data[key] = []
+					for item in copy[key]:
+						if isinstance( item, Object ):
+							data[key].append( item.dict() )
+						else:
+							data[key].append( item )
+				else:
+					data[key] = copy[key]
+		return data
+	
+	#[Object.dump()]: String
+	def dump( self ):
+		return "{}".format( self.dict() )
+	
+	#[Object.json()]: String
+	def json( self ):
+		return JSON.encode( self.__json( self.dict() ) )
+	
+	#[Object.isset( String key )]: Bool
+	def isset( self, key ):
+		try:
+			if self.__dict__[key]:
+				pass
+			return True
+		except KeyError:
+			return False
+	
+	#[Object.unset( String key )]: None
+	def unset( self, key ):
+		if key in self.__data__:
+			del self.__data__[key]
+		if key in self.__dict__:
+			del self.__dict__[key]
+	
+	#[Object.idxs()]: List<Int>
 	def idxs( self ):
 		return([ idx for idx in range( len( self.__data__ ) ) ])
 	
-	#[Object.keys()]
-	def keys( self ):
-		return( list( self.__data__.keys() ) )
+	#[Object.keys()]: List<String>
+	def keys( self, index=None ):
+		if isinstance( index, int ):
+			 return self.keys()[index]
+		return list( self.__data__.keys() )
 	
-	#[Object.get()]
+	#[Object.get()]: Mixed
 	def get( self, key ):
-		return( self.__dict__[key] )
+		return self.__dict__[key]
 	
-	#[Object.len()]
+	#[Object.len()]: Int
 	def len( self ):
-		return( len( self.__data__ ) )
+		return len( self.__data__ )
 	
-	#[Object.__set( Dictionary data )]
+	#[Object.__set( Dictionary data )]: None
 	def set( self, data ):
 		match type( data ).__name__:
 			case "dict":
@@ -152,7 +181,10 @@ class Object:
 					self.__data__[key] = data[key]
 					match type( data[key] ).__name__:
 						case "dict":
-							self.__dict__[key] = Object( data[key] )
+							if key in self.__dict__ and isinstance( self.__dict__[key], Object ):
+								self.__dict__[key].set( data[key] )
+							else:
+								self.__dict__[key] = Object( data[key] )
 						case "list":
 							self.__dict__[key] = []
 							for item in data[key]:
@@ -171,9 +203,10 @@ class Object:
 				raise ValueError( "Parameter data must be type Dictionary or JSON Strings, {} given".format( type( data ).__name__ ) )
 		self.ref()
 	
-	#[Object.__ref()]
-	def ref( self ) -> None:
+	#[Object.__ref()]: None
+	def ref( self ):
 		if self.__parent__ != None:
 			for i, v in enumerate( self.__dict__ ):
 				self.__parent__.__dict__[v] = self.__dict__[v]
+		pass
 	
