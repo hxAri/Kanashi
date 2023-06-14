@@ -117,7 +117,10 @@ class Object:
 		data = {}
 		copy = self.__dict__
 		for key in copy.keys():
-			if key != "__data__" and key != "__index__" and key != "__method__" and key != "__parent__":
+			if  key != "__data__" and \
+				key != "__index__" and \
+				key != "__method__" and \
+				key != "__parent__":
 				if isinstance( copy[key], Object ):
 					data[key] = copy[key].dict()
 				elif isinstance( copy[key], list ):
@@ -173,34 +176,37 @@ class Object:
 	def len( self ):
 		return len( self.__data__ )
 	
-	#[Object.__set( Dictionary data )]: None
+	#[Object.__set( Dict data )]: None
 	def set( self, data ):
-		match type( data ).__name__:
-			case "dict":
-				for key in data.keys():
-					self.__data__[key] = data[key]
-					match type( data[key] ).__name__:
-						case "dict":
-							if key in self.__dict__ and isinstance( self.__dict__[key], Object ):
-								self.__dict__[key].set( data[key] )
-							else:
-								self.__dict__[key] = Object( data[key] )
-						case "list":
-							self.__dict__[key] = []
-							for item in data[key]:
-								if type( item ).__name__ == "dict":
-									self.__dict__[key].append( Object( item ) )
-								else:
-									self.__dict__[key].append( item )
-						case _:
-							self.__dict__[key] = data[key]
-			case "str":
-				try:
-					self.set( JSON.decode( data ) )
-				except JSONError as e:
-					raise ValueError( "Invalid JSON String data parameter" )
-			case _:
-				raise ValueError( "Parameter data must be type Dictionary or JSON Strings, {} given".format( type( data ).__name__ ) )
+		name = type( data ).__name__
+		if name == "dict":
+			for k in data:
+				name = type( data[k] ).__name__
+				if name == "dict":
+					if self.isset( k ):
+						if isinstance( self.__dict__[k], Object ):
+							self.__dict__[k].set( data[k] )
+							continue
+					self.__dict__[k] = Object( data[k] )
+				elif name == "list":
+					self.__dict__[k] = []
+					for v in data[k]:
+						if isinstance( v, dict ):
+							v = Object( v )
+						self.__dict__[k].append( v )
+				else:
+					self.__dict__[k] = data[k]
+		elif name == "list":
+			for v in data:
+				self.set( v )
+		elif name == "str":
+			raise DeprecationWarning( "Json String is deprecated" )
+		elif isinstance( data, Object ):
+			keys = object.keys()
+			for i, v in object:
+				self.set({ keys[i]: v })
+		else:
+			raise ValueError( "Parameter data must be type Dictionary or JSON Strings, {} given".format( type( data ).__name__ ) )
 		self.ref()
 	
 	#[Object.__ref()]: None
