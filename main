@@ -23,8 +23,8 @@
 # not for SPAM.
 #
 
-from kanashi import Main
+from kanashi import Main, Object
 
-if __name__ == "__main__":
+if  __name__ == "__main__":
 	main = Main()
 	main.main()
