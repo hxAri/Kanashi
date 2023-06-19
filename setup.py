@@ -23,25 +23,21 @@
 # not for SPAM.
 #
 
-from kanashi import Config
+from kanashi import Config, File
 from setuptools import find_packages, setup
 
-# Get current version from default configuration.
-version = Config.default['version']
 
 # Module Requirements
-requirements = [
-	"requests>=2.28.1"
-]
+requirements = File.readline( "requirements.txt" )
 
 # Setup Tool
 setup(
     name = "kanashi",
-    author = "Ari Setiawan",
-    author_email = "hxari@proton.me",
-    version = version,
-    license = "GNU General Public License v3",
-    url = "https://github.com/hxAri/Kanashi",
+    author = Config.AUTHOR,
+    author_email = Config.AUTHOR_EMAIL,
+    version = Config.VERSION,
+    license = Config.LICENSE,
+    url = Config.REPOSITORY,
     install_requires = requirements,
     keywords = [
         "instagram",
