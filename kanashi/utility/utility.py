@@ -38,7 +38,7 @@ class Utility:
 				"colorize": "\x1b[1;38;5;61m{}{}"
 			},
 			"define": {
-				"pattern": r"(?P<define>(@|\$)[a-zA-Z0-9_-]+)",
+				"pattern": r"(?P<define>(?:@|\$)[a-zA-Z0-9_-]+)",
 				"colorize": "\x1b[1;38;5;111m{}{}"
 			},
 			"symbol": {
@@ -50,12 +50,21 @@ class Utility:
 				"colorize": "\x1b[1;38;5;214m{}{}"
 			},
 			"boolean": {
-				"pattern": r"(?P<boolean>\b(False|True|None)\b)",
+				"pattern": r"(?P<boolean>\b(?:False|True|None)\b)",
 				"colorize": "\x1b[1;38;5;199m{}{}"
 			},
 			"type": {
-				"pattern": r"(?P<type>\b(int|float|str|list|tuple|dict|set|bool|range|BaseException|BaseExceptionGroup|GeneratorExit|KeyboardInterrupt|BufferError|EOFError|ExceptionGroup|ImportError|ModuleNotFoundError|LookupError|IndexError|KeyError|MemoryError|NameError|UnboundLocalError|OSError|BlockingIOError|ChildProcessError|ConnectionError|BrokenPipeError|ConnectionAbortedError|ConnectionRefusedError|ConnectionResetError|FileExistsError|FileNotFoundError|InterruptedError|IsADirectoryError|NotADirectoryError|PermissionError|ProcessLookupError|TimeoutError|ReferenceError|RuntimeError|NotImplementedError|RecursionError|StopAsyncIteration|StopIteration|SyntaxError|IndentationError|TabError|SystemError|TypeError|ValueError|UnicodeError|UnicodeDecodeError|UnicodeEncodeError|UnicodeTranslateError|Warning|BytesWarning|DeprecationWarning|EncodingWarning|FutureWarning|ImportWarning|PendingDeprecationWarning|ResourceWarning|RuntimeWarning|SyntaxWarning|UnicodeWarning|UserWarning)\b)",
+				"pattern": r"(?P<type>\b(?:int|float|str|list|tuple|dict|set|bool|range|BaseException|BaseExceptionGroup|GeneratorExit|KeyboardInterrupt|BufferError|EOFError|ExceptionGroup|ImportError|ModuleNotFoundError|LookupError|IndexError|KeyError|MemoryError|NameError|UnboundLocalError|OSError|BlockingIOError|ChildProcessError|ConnectionError|BrokenPipeError|ConnectionAbortedError|ConnectionRefusedError|ConnectionResetError|FileExistsError|FileNotFoundError|InterruptedError|IsADirectoryError|NotADirectoryError|PermissionError|ProcessLookupError|TimeoutError|ReferenceError|RuntimeError|NotImplementedError|RecursionError|StopAsyncIteration|StopIteration|SyntaxError|IndentationError|TabError|SystemError|TypeError|ValueError|UnicodeError|UnicodeDecodeError|UnicodeEncodeError|UnicodeTranslateError|Warning|BytesWarning|DeprecationWarning|EncodingWarning|FutureWarning|ImportWarning|PendingDeprecationWarning|ResourceWarning|RuntimeWarning|SyntaxWarning|UnicodeWarning|UserWarning)\b)",
 				"colorize": "\x1b[1;38;5;213m{}{}"
+			},
+			"version": {
+				"pattern": r"(?P<version>\b[vV][\d\.]+\b)",
+				"colorize": "\x1b[1;38;5;112m{}{}",
+				"handler": lambda match: re.sub( r"([\d\.]+)", lambda m: "\x1b[1;38;5;190m{}\x1b[1;38;5;112m".format( m.group() ), match.group( 0 ) )
+			},
+			"kanashi": {
+				"pattern": r"(?P<kanashi>\b(?:[kK]anash[i|ī])\b)",
+				"colorize": "\x1b[1;38;5;111m{}{}"
 			},
 			"string": {
 				"pattern": r"(?P<string>(?<!\\)(\".*?(?<!\\)\"|\'.*?(?<!\\)\'|`.*?(?<!\\)`))",
@@ -117,6 +126,7 @@ class Utility:
 						result += colorize.format( chars, escape )
 						search = match.end()
 					pass
+				result += escape
 				result += string[search:]
 				#escape = None
 		except Exception as e:
@@ -199,7 +209,7 @@ class Utility:
 				strings += f"\x20\x20\x20\x20{message}\x0a"
 		for subject in findall( r"(\[Errno\s\d+\]\s*)", strings ):
 			strings = strings.replace( subject, "" )
-		print( "\x0a\x7b\x7d\x0a\x0a\x0a\x7b\x7d".format( banner, strings ) )
+		print( "\x0a\x7b\x7d\x0a\x0a\x0a\x7b\x7d".format( banner, self.colorize( f"\x1b[0m{strings}" ) ) )
 	
 	#[Utility.getpass( String label )]
 	def getpass( self, label, ignore=True ):
@@ -208,7 +218,7 @@ class Utility:
 		else:
 			place = "\x7b\x7d\x3a\x20".format( label )
 		try:
-			value = getpass( place )
+			value = getpass( self.colorize( place ) )
 			if  value == "":
 				value = self.getpass( label, ignore )
 			return value
@@ -230,9 +240,9 @@ class Utility:
 				place = label
 		try:
 			if  number:
-				value = int( float( input( place ) ) )
+				value = int( float( input( self.colorize( place ) ) ) )
 			else:
-				value = input( place )
+				value = input( self.colorize( place ) )
 			if  value == "":
 				if  default != None:
 					value = default if type( default ).__name__ != "list" else default[0]
@@ -278,7 +288,7 @@ class Utility:
 		else:
 			strings += f"\x20\x20{named}\x2e{refer}\x0a"
 		strings += self.println( message, 4, line )
-		print( "\x0a\x7b\x7d\x0a\x0a\x0a\x7b\x7d".format( banner, self.colorize( strings ) ) )
+		print( "\x0a\x7b\x7d\x0a\x0a\x0a\x7b\x7d".format( banner, self.colorize( f"\x1b[0m{strings}" ) ) )
 	
 	#[Utility.previous( Function | Method back, String label, *args, **kwargs )]
 	def previous( self, back, label=None, *args, **kwargs ):
@@ -389,12 +399,12 @@ class Utility:
 				sys.stdout.write( e )
 				sys.stdout.flush()
 				if  e != "\x20":
-					#sleep( 00000.1 )
+					sleep( 00000.1 )
 					pass
 			task.start()
 			while task.is_alive():
 				for i in "\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x20":
-					print( "\x0d\x7b\x7d\x20\x7b\x7d".format( strings, i ), end="" )
+					print( "\x0d\x7b\x7d\x20\x1b[1;33m\x7b\x7d".format( self.colorize( strings ), i ), end="" )
 					sleep( 00000.1 )
 			print( "\x0d\x0a" )
 			self.clear()
