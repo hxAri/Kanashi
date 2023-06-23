@@ -7,198 +7,125 @@ Please note that this is not fully finished or not ready to use, if you are inte
 Kanashī is an open source project that can be used to login to real Instagram accounts via Linux Terminal and Android Termux, this also includes taking CSRF Tokens and Login Session IDs, besides that you can use Tokens and ID to do various things like Instagram Web.
 
 ## History
-Kanashī itself is a translation from Japanese which means **Sad** people might ask "**why is that?**"
+Kanashī itself is a translation of the word from Japan which means Sadness, I built this program for the sadness that I have experienced so far, if you are wondering why that is? Don't ask! Just use this program if you are interested, no need to think about anyone's sadness or even me.
 
-## Install
-```sh
-git clone https://github.com/hxAri/Kanashi && cd Kanashi && pip install -r requirements.txt
-```
-## Install with PIP
-*Not available for PIP at this time.*
-## Install as Module
-```sh
-git clone https://github.com/hxAri/Kanashi && cd Kanashi && python setup* install
-```
+## Features
+* Login with Password and Cookies
+* Login Two Factor Authentication **Bug**
+* Login Multiple Accounts
+* Switch Accounts
+* Download Instagram Media
+* Extract Profile Info
+* Block or Unblock User
+* Follow or Unfollow User
+* Besties or Unbesties User **Bug**
+* Favorite or Unfavorite User
+* Restrict or Unrestrict User
+* Mute Posts or Story User
+* Report User **Deprecated**
+* Profile Follows Info
+* Settings Configuration
+* Interactive CLI
 
-## Requires
+## Requirements
 * Python **>=3.10.4**
 * [Requests](https://github.com/psf/requests) **>=2.28.1**
 
-## Features
-I did not expect this ^_*
-
-##### Get User Info
-Display user profiles such as how many followers and following they have, number of edges e.g posts, reels, etc., find out whether the account owner has blocked your account or not and vice versa, and much more.
-
-##### Get User Posts
-Onworking
-
-##### Get User Story
-Onworking
-
-##### Get User Reels
-Onworking
-
-##### Get User Followers
-Onworking
-
-##### Get User Following
-Onworking
-
-##### Fetch Timeline Posts
-Incoming/ Deprecated
-
-##### Fetch Suggested Users
-Incoming/ Deprecated
-
-##### Downloader
-Download media from Instagram users i.g Posts, Reels, Stories, Highlights, Profile Photos, and etc.
-
-##### Block Account
-Block or unblock instagram account.
-
-##### Follow Account
-Follow or unfollow instagram account.
-
-##### Restrict Account
-Onworking
-
-##### Favorite Account
-Onworking
-
-##### Report Account
-Onworking
-
-##### Login with Password
-Login as usual using credentials such as your username and password.
-
-##### Login with Cookie
-If you are afraid that your account will be suspended from Instagram because logging in from a third party is a fairly safe way because you don't need to enter your credentials, just paste your Instagram login cookie.
-
-If you are an Android user, please use Kiwi Browser to get your Instagram login cookies.
-Please login as usual, after successfully logging in please open the **Deloper Tools** menu and select **Console** then run the JavaScript code below to copy your Instagram login cookie:
-```js
-navigator.clipboard.writeText( document.cookie );
+## Installation
+Installing Kanashī is very easy, please clone or download this repository archive
+```sh
+git clone https://github.com/hxAri/Kanashi
+```
+If you want to install it as a module you can too, but right now Kanashī is not a complete version or perfectly finished so you can't install it from **PIP**, simply run the command below Kanashī will be installed as a python module which you can import
+```sh
+cd Kanashi && python3 setup.py install
 ```
 
-##### Login 2FA Verification
-This feature is under development, it is highly recommended not to log in with an account that has two factor security.
-
-##### Login Checkpoint Handle
-Incoming
-
-##### Login Multiple Account
-You can be the same as Instagram in general which has more than one account, now Kanashī supports it.
-
-##### Login Save Info
-Save your login information in a configuration file for future use.
-
-##### Logout
-Incoming
-
-## Security
-For security purposes I highly recommend not to delete the `.gitignore` file why? Because by default the configuration file and also the result of the request response will be stored in the **Root Project Directory** so if you delete the `.gitignore` file then the data stored in  configuration file will be uploaded in github Repository (If you fork this project).
-
-Kanashī stores the response result of every successful request with the aim that if an error occurs in the core program such as, `Follow` class, `Block`, `SignIn`, etc., then the `response.json` file can be used to find out the cause of the problem when  make a request.
-
-## Examples
-
-## Simple Usage
+## Interactive CLI
 ```sh
 cd Kanashi && chmod +x main && ./main
 ```
 
-## Usage as Module
+## Example Usages
 ```py
-# This is a simple class usage,
-# you can extend Kanashi class or not
+from random import choice
+from kanashi import Kanashi
 
-# Import the required modules
-from kanashi import Kanashi, Object
-
-# You can expand or not
-class Example( Kanashi ):
+engine = Kanashi()
+engine.headers.update({
     
-    @property
-    def getUserActive( self ) -> Object | None:
-        """ Get current user active """
-        return( self.active )
-        
-    @property
-    def getUserActiveFromConfig( self ) -> str | False:
-        """ Get current user default login """
-        return( self.settings.signin.active )
+    # If you want to use the browser randomly.
+    "User-Agent": choice( engine.settings.browser.randoms ),
     
+    # The default browser will be applied automatically.
+    "User-Agent": engine.settings.browser.default
+})
 
-# Create new Instance
-example = Example()
-example.getUserActive
-example.getUserActiveFromConfig
-```
-
-## Trying to Login
-```py
-# Import the required modules
-from kanashi import (
-    Error,
-    Kanashi, 
-    SignInError, 
-    SignInSuccess, 
-    SignInCheckpoint, 
-    SignIn2FARequired
-)
-
-# Create new Instance.
-app = Kanashi()
+# Credentials
 username = "USERNAME"
 password = "PASSWORD"
 
 try:
-    login = app.signin.password( username, password )
-    if isinstance( login, SignInSuccess ):
-        print( f"You are logged as {login.username} ({login.id})" )
-    elif isinstance( login, SignInCheckpoint ):
-        print( "Your account has ben Checkpoint" )
-    elif isinstance( login, SignIn2FARequired ):
-        print( "Your account require to verify 2FA" )
+    signin = engine.signin( username, password )
+    if signin.success:
+        print( signin.result )
+    elif singin.two_factor:
+        print( signin.two_factor )
+    elif signin.checkpoint:
+        print( signin.checkpoint )
     else:
-        raise SignInError( "Something wrong!" )
-except SignInError as e:
+        print( "Something wrong" )
+except Exception as e:
     print( e )
 ```
 
-## Classes
-| From | Class | Context | Extends |
-| ------------- |:-------------|:-------------|:-------------|
-| kanashi | Main | True | kanashi.cli.Cli |
-| kanashi.cli | Cli | True | kanashi.kanashi.Kanashi, kanashi.utils.util.Util |
-| kanashi.config | Config | True | kanashi.context.Context |
-| kanashi.context | Context | False | None |
-| kanashi.endpoint.auth | AuthError | False | kanashi.error.Error |
-| kanashi.endpoint.block | Block | True | kanashi.request.RequestRequired |
-| kanashi.endpoint.favorite | Favorite | True | kanashi.request.RequestRequired |
-| kanashi.endpoint.follow | Follow | True | kanashi.request.RequestRequired |
-| kanashi.endpoint.profile | Profile | True | kanashi.context.Context |
-| kanashi.endpoint.restrict | Restrict | True | kanashi.request.RequestRequired |
-| kanashi.endpoint.signin | SignIn | True | kanashi.request.RequestRequired |
-| kanashi.endpoint.user | User | True | kanashi.request.RequestRequired |
-| kanashi.error | Alert | False | kanashi.error.Throwable, Warning |
-| kanashi.error | Error | False | kanashi.error.Throwable, TypeError |
-| kanashi.error | Throwable | False | Exception |
-| kanashi.kanashi | Kanashi | True|False | kanashi.context.Context |
-| kanashi.object | Object | False | None |
-| kanashi.request | Request | True | kanashi.context.Context |
-| kanashi.request | RequestRequired | True | kanashi.context.Context |
-| kanashi.update | Update | True | kanashi.request.RequestRequired |
-| kanashi.utils.cookie | Cookie | False | None |
-| kanashi.utils.file | File | False | kanashi.utils.path.Path |
-| kanashi.utils.json | JSON | False | None |
-| kanashi.utils.json | JSONError | False | json.JSONDecodeError |
-| kanashi.utils.path | Path | False | None |
-| kanashi.utils.string | Binary | False | None |
-| kanashi.utils.string | String | False | kanashi.utils.string.Binary |
-| kanashi.utils.thread | Thread | False | threading.Thread |
-| kanashi.utils.util | Util | False | None |
+#### Get CSRFToken
+To take csrf tokens is very easy.
+```py
+from kanashi import Client
+
+# Initialize Client Instance.
+client = Client()
+
+try:
+    
+    # The csrftoken method uses the property decoration
+    # so you only need to type it, don't call it as method.
+    print( client.csrftoken )
+    
+except Exception as e:
+    print( e )
+```
+
+#### Get Profile Info
+Retrieving user profile information is also very easy, to retrieve information the client must log in first.
+```py
+from kanashi import Kanashi
+
+# Initialize Kanashi Instance.
+engine = Kanashi()
+
+# Login logic here.
+# ...
+
+try:
+	
+	# You can also retrieve the
+	# client instance from Kanashi.
+	client = engine.client
+	
+	# Trying to get profile info.
+	profile = client.profile( username="USERNAME" )
+	
+	# Print profile info.
+	print( profile.blockedByViewer )
+	print( profile.hasBlockedViewer )
+	print( profile.requestedByViewer )
+	print( profile.followedByViewer )
+	
+except Exception as e:
+    print( e )
+```
 
 ## Donate
 Give spirit to the developer, no matter how many donations given will still be accepted<br/>
