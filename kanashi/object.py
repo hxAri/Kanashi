@@ -42,9 +42,21 @@ class Object:
 		# Inject data.
 		self.set( data )
 	
+	#[Object.__getattr__( self, name )]: Mixed
+	def __getattr__( self, name ):
+		if  name in self.__dict__:
+			return self.__dict__[name]
+		else:
+			return self.__data__[name]
+	
+	#[Object.__setattr__( String name, Mixed value )]: None
+	
+	
 	#[Object.__getitem__( String key )]: Mixed
 	def __getitem__( self, key ):
-		return self.__dict__[key]
+		if  key in self.__data__:
+			return self.__data__[key]
+		raise KeyError( "\"{}\" object has no item \"{}\"".format( type( self ).__name__ ), key )
 	
 	#[Object.__setitem__( String key, Mixed value )]: None
 	def __setitem__( self, key, value ):
@@ -56,7 +68,7 @@ class Object:
 	
 	#[Object.__json( Dict | List data )]: Dict
 	def __json( self, data=None ):
-		if data == None:
+		if  data == None:
 			data = self.dict()
 		match type( data ):
 			case "dict":
@@ -86,7 +98,7 @@ class Object:
 		# Get object length.
 		length = self.len()
 		try:
-			if index < length:
+			if  index < length:
 				self.__index__ += 1
 				return self[self.keys( index )]
 		except IndexError:
@@ -115,23 +127,19 @@ class Object:
 	#[Object.dict()]: Dict
 	def dict( self ):
 		data = {}
-		copy = self.__dict__
+		copy = self.__data__
 		for key in copy.keys():
-			if  key != "__data__" and \
-				key != "__index__" and \
-				key != "__method__" and \
-				key != "__parent__":
-				if isinstance( copy[key], Object ):
-					data[key] = copy[key].dict()
-				elif isinstance( copy[key], list ):
-					data[key] = []
-					for item in copy[key]:
-						if isinstance( item, Object ):
-							data[key].append( item.dict() )
-						else:
-							data[key].append( item )
-				else:
-					data[key] = copy[key]
+			if  isinstance( copy[key], Object ):
+				data[key] = copy[key].dict()
+			elif isinstance( copy[key], list ):
+				data[key] = []
+				for item in copy[key]:
+					if  isinstance( item, Object ):
+						data[key].append( item.dict() )
+					else:
+						data[key].append( item )
+			else:
+				data[key] = copy[key]
 		return data
 	
 	#[Object.dump()]: String
@@ -145,7 +153,7 @@ class Object:
 	#[Object.isset( String key )]: Bool
 	def isset( self, key ):
 		try:
-			if self.__dict__[key]:
+			if  self.__data__[key]:
 				pass
 			return True
 		except KeyError:
@@ -153,10 +161,8 @@ class Object:
 	
 	#[Object.unset( String key )]: None
 	def unset( self, key ):
-		if key in self.__data__:
+		if  key in self.__data__:
 			del self.__data__[key]
-		if key in self.__dict__:
-			del self.__dict__[key]
 	
 	#[Object.idxs()]: List<Int>
 	def idxs( self ):
@@ -164,7 +170,7 @@ class Object:
 	
 	#[Object.keys()]: List<String>
 	def keys( self, index=None ):
-		if isinstance( index, int ):
+		if  isinstance( index, int ):
 			 return self.keys()[index]
 		return list( self.__data__.keys() )
 	
@@ -179,31 +185,31 @@ class Object:
 	#[Object.__set( Dict data )]: None
 	def set( self, data ):
 		name = type( data ).__name__
-		if name == "dict":
+		if  name == "dict":
 			for k in data:
 				name = type( data[k] ).__name__
-				if name == "dict":
-					if self.isset( k ):
-						if isinstance( self.__dict__[k], Object ):
-							self.__dict__[k].set( data[k] )
+				if  name == "dict":
+					if  self.isset( k ):
+						if  isinstance( self.__data__[k], Object ):
+							self.__data__[k].set( data[k] )
 							continue
-					self.__dict__[k] = Object( data[k] )
+					self.__data__[k] = Object( data[k] )
 				elif name == "list":
-					self.__dict__[k] = []
+					self.__data__[k] = []
 					for v in data[k]:
-						if isinstance( v, dict ):
+						if  isinstance( v, dict ):
 							v = Object( v )
-						self.__dict__[k].append( v )
+						self.__data__[k].append( v )
 				else:
-					self.__dict__[k] = data[k]
+					self.__data__[k] = data[k]
 		elif name == "list":
 			for v in data:
 				self.set( v )
 		elif name == "str":
 			raise DeprecationWarning( "Json String is deprecated" )
 		elif isinstance( data, Object ):
-			keys = object.keys()
-			for i, v in object:
+			keys = data.keys()
+			for i, v in enumerate( data ):
 				self.set({ keys[i]: v })
 		else:
 			raise ValueError( "Parameter data must be type Dictionary or JSON Strings, {} given".format( type( data ).__name__ ) )
@@ -211,8 +217,8 @@ class Object:
 	
 	#[Object.__ref()]: None
 	def ref( self ):
-		if self.__parent__ != None:
-			for i, v in enumerate( self.__dict__ ):
-				self.__parent__.__dict__[v] = self.__dict__[v]
+		if  self.__parent__ != None:
+			for i, v in enumerate( self.__data__ ):
+				self.__parent__.__dict__[v] = self.__data__[v]
 		pass
 	

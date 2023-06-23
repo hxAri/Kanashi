@@ -21,136 +21,200 @@
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
-#
 
-from os import system
-
+from kanashi.client import Client
 from kanashi.config import Config, ConfigError
-from kanashi.context import Context
-from kanashi.endpoint import Block, Favorite, Follow, Report, Restrict, SignIn, User
-from kanashi.request import Request
-from kanashi.update import Update
+from kanashi.error import *
+from kanashi.object import Object
+from kanashi.readonly import Readonly
+from kanashi.utility import Cookie
 
-#[kanashi.Kanashi]
-class Kanashi( Context ):
+
+#[kanashi.kanashi.Kanashi]
+class Kanashi( Readonly ):
 	
-	#[Kanashi( Object app )]
-	def __init__( self, app=None ):
+	#[Kanashi( Object active, Client client, Config config )]: None
+	def __init__( self, active=None, client=None, config=None ):
 		
-		# ...
-		app = app if app != None else self
+		# Resolve if Client active is not available.
+		if not isinstance( active, Object ):
+			active = self.__create()
 		
-		# Call parent constructor.
-		super().__init__( app )
+		# Resolve if Client instance is not available.
+		if not isinstance( client, Client ):
+			client = Client()
 		
-		# Set class attributes required before login.
-		self.beforeLogin()
-		
-		# Check if attribute active is set.
-		try:
-			if app.active == None:
+		# Resolve if Config instance is not available.
+		if not isinstance( config, Config ):
+			config = Config()
+			try:
+				config.load()
+			except ConfigError:
 				pass
-		except AttributeError:
-			app.active = None
 		
-		# Check if the user has not logged in.
-		if app.active == None:
-			if app.settings.signin.active != False:
-				
-				# Set class attribute required after user login.
-				# Always call this method after successfully login.
-				self.afterLogin()
+		# Readonly exceptional.
+		self.excepts = [ "active" ]
+		
+		# Instance of class Client.
+		self.client = client
+		
+		# Instances of class from Request
+		self.cookies = client.cookies
+		self.headers = client.headers
+		self.request = client.request
+		self.session = client.session
+		
+		# Instance of class Config.
+		self.config = config
+		
+		# Represent user active.
+		self.active = active
+		
+		# Represent configuration settings.
+		self.settings = config.settings
+		
+		# Prepare initialize.
+		self.__prepare()
+	
+	#[Kanashi.__create()]: Object
+	def __create( self ):
+		return Object({
+			"id": 0,
+			"session": {
+				"browser": None,
+				"cookies": {},
+				"headers": {},
+				"response": {
+					"headers": {}
+				},
+				"csrftoken": None,
+				"sessionid": None
+			},
+			"fullname": None,
+			"username": None,
+			"password": None
+		})
+	
+	#[Kanashi.__prepare()]: None
+	def __prepare( self ):
+		
+		if  self.settings.browser.default:
+			self.headers.update({
+				"User-Agent": self.settings.browser.default
+			})
+		
+		# Check if there are no active users in the instance.
+		if  self.isActive == False:
+			
+			# Check if there are active user saved.
+			if  self.settings.signin.active and \
+				self.settings.signin.switch.isset( self.settings.signin.active ):
+				self.active.set( self.settings.signin.switch[self.settings.signin.active] )
+				self.setupable()
 		pass
 	
-	#[Kanashi.afterLogin()]
-	def afterLogin( self ):
-		
-		# Get previously logged in users.
-		user = self.app.settings.signin.active
-		
-		# Check if user has previois login.
-		if self.active == None:
-			if user != False:
-				self.__afterLoginSetActive( user )
-				self.__afterLoginSetAttr()
-		else:
-			self.__afterLoginSetAttr()
-	
-	#[Kanashi.__afterLoginSetActive( String user )]
-	def __afterLoginSetActive( self, user ):
+	#[Kanashi.setupable()]: None
+	def setupable( self ):
 		try:
-			if self.active == None:
-				self.app.active = self.app.settings.signin.switch.get( user )
-				self.app.session.headers.update( self.app.active.headers.response.dict() )
-				self.app.session.headers.update( self.app.active.headers.request.dict() )
-			for cookie in self.app.active.cookies.dict():
-				self.app.session.cookies.set(
-					cookie,
-					self.app.active.cookies.get( cookie ),
-					domain=".instagram.com",
-					path="/"
-				)
-		except( AttributeError, KeyError ) as e:
-			self.app.active = None
-			self.app.settings.signin.set({ "active": False })
-			try:
-				self.app.config.save()
-			except ConfigError as e:
-				self.emit( e )
-				exit()
-			self.close( e, "Something wrong" )
+			self.headers.update( **self.active.session.headers.dict() )
+			self.headers.update({ "User-Agent": self.active.session.browser })
+			cookies = self.active.session.cookies.dict()
+			for i, cookie in enumerate( cookies ):
+				Cookie.set( self.cookies, cookie, cookies[cookie] )
+			self.client.id = self.active.id
+			self.client.username = self.active.username
+			self.client.password = self.active.password
+		except AttributeError:
+			pass
+		except IndexError:
+			pass
+		except KeyError:
+			pass
+	
+	#[Kanashi.isActive]: Bool
+	@property
+	def isActive( self ):
+		
+		"""
+		Return if current user representation is active.
+		
+		:return Bool
+			True if current representation is active
+			False Otherwise
+		"""
+		
+		if  self.active.id and \
+			self.active.fullname and \
+			self.active.username and \
+			self.active.session.csrftoken and \
+			self.active.session.sessionid is not None and \
+			self.active.session.cookies.len() and \
+			self.active.session.headers.len():
+			return True
+		return False
+	
+	#[Kanashi.logout<kanashi.client.Client.logout>]: Object
+	def logout( self ):
+		
+		# Unset current active user.
+		self.active = None
+		self.active = self.__create()
 		pass
 	
-	#[Kanashi.__afterLoginSetAttr()]
-	def __afterLoginSetAttr( self ):
+	#[Kanashi.signin<kanashi.client.Client.sigin>]: Object
+	def signin( self, username, password, csrftoken=None, cookies=None, browser=None ):
 		
-		# Mapping attributes required after the user login.
-		for attr in [ Block, Favorite, Follow, Report, Restrict, User ]:
-			name = attr.__name__
-			name = name.lower()
-			name = name.replace( "", "" )
+		# Trying to login.
+		signin = self.client.signin( username, password, csrftoken, cookies, browser )
+		
+		# If login successfull.
+		if  signin.success:
+			
+			# Set account as default login.
+			self.active.set( signin.result )
+			self.settings.signin.active = signin.result.username
+			self.settings.signin.switch[signin.result.username] = signin.result.copy()
+			self.setupable()
+		
+		return signin
+	
+	#[Kanashi.switch( Object user )]: Object
+	def switch( self, user ):
+		
+		"""
+		Switch session user active.
+		
+		:params Object user
+			Representation of user active
+		
+		:return Object
+			Representtation of user active
+		:raises ValueError
+			When invalid value passed
+		"""
+		
+		if  isinstance( user, Object ):
 			try:
-				if not isinstance( self.app.get( name ), attr ):
-					raise ValueError( f"The value of the {name} attribute must be {attr.__name__}, {type( self.app.get( name ) ).__name__} set" )
-			except( AttributeError, ValueError ):
-				self.app.set( name, attr( self.app ) )
-		pass
-	
-	#[Kanashi.beforeLogin()]
-	def beforeLogin( self ):
+				
+				# Trying to re-login.
+				# This is to ensure that the login credentials have not expired.
+				signin = self.signin( None, None, **{
+					"browser": user.session.browser,
+					"cookies": user.session.cookies,
+					"csrftoken": user.session.csrftoken
+				})
+				self.config.save()
+			except AuthError as e:
+				if  user.username == self.active.username:
+					self.active = None
+					self.active = self.__create()
+				if  user.username == self.settings.signin.active:
+					self.settings.signin.active = None
+				self.settings.signin.switch.unset( user.username )
+				self.config.save()
+				raise AuthError( "The credentials provided are invalid or may be expired", prev=e )
+		else:
+			raise ValueError( "User must be object representation of user info" )
 		
-		# Mapping attributes required before the user login.
-		for attr in [ Config, Request, SignIn, Update ]:
-			name = attr.__name__
-			name = name.lower()
-			name = name.replace( "", "" )
-			try:
-				if not isinstance( self.app.get( name ), attr ):
-					raise ValueError( f"The value of the {name} attribute must be {attr.__name__}, {type( self.app.get( name ) ).__name__} set" )
-			except( AttributeError, IndexError, KeyError, ValueError ):
-				self.app.set( name, attr( self.app ) )
-			if name == "config":
-				self.config.read()
-		pass
-	
-	#[Kanashi.authors]
-	@property
-	def authors( self ): return( self.settings.authors )
-	
-	#[Kanashi.license]
-	@property
-	def license( self ): return( self.settings.license )
-	
-	#[Kanashi.version]
-	@property
-	def version( self ): return( self.settings.version )
-	
-	#[Kanashi.info]
-	@property
-	def info( self ): return([])
-	
-	#[Kanashi.supportProject()]
-	def supportProject( self ):
-		system( f"xdg-open {self.settings.donate}" )
-		
+		return signin
 	

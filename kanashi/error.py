@@ -21,40 +21,92 @@
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
-#
 
-#[kanashi.Throwable]
+#[kanashi.error.Throwable]
 class Throwable( Exception ):
 	
 	#[Throwable( String message, Int code, Context throw, BaseException prev, List group, **data )]
 	def __init__( self, message, code=0, throw=None, prev=None, group=[], **data ):
 		
-		# Set exception message.
+		# Exception message.
 		self.message = message
 		
-		# Set exception code.
+		# Exception code.
 		self.code = code
 		
-		# Set exception throw.
+		# Exception thrown.
 		self.throw = throw
 		
-		# Set exception previous.
+		# Exception previous.
 		self.prev = prev
 		
-		# Set exception groups.
+		# Sxception groups.
 		self.group = group
 		
-		# Set exception data passed.
+		# Exception data passed.
 		self.data = data
 		
 		# Call parent constructor.
-		Exception.__init__( self, message, code )
+		super().__init__( message, code )
+	pass
 	
-#[kanashi.Alert]
+
+#[kanashi.error.Alert]
 class Alert( Throwable, Warning ):
 	pass
 	
-#[kanashi.Error]
+
+#[kanashi.erorr.Error]
 class Error( Throwable, TypeError ):
 	pass
 	
+class AuthError( Error ):
+	pass
+
+class BestiesError( Error ):
+	pass
+
+class BlockError( Error ):
+	pass
+
+class FavoriteError( Error ):
+	pass
+
+class FollowError( Error ):
+	pass
+
+class ReportError( Error ):
+	pass
+
+class RestrictError( Error ):
+	pass
+
+class UserError( Error ):
+	pass
+
+class UserNotFoundError( UserError ):
+	pass
+
+class SignInError( Error ):
+	pass
+
+class CsrftokenError( Error ):
+	pass
+
+class ConfigError( Error ):
+	pass
+
+class PasswordError( UserError ):
+	pass
+
+class ProfileError( Error ):
+	pass
+
+class SpamError( Error ):
+	pass
+
+class RequestError( Error ):
+	pass
+
+class RequestDownloadError( RequestError ):
+	pass

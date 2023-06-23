@@ -21,25 +21,14 @@
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
-#
 
-from kanashi.cli import Cli
-from kanashi.config import Config, ConfigError
-from kanashi.context import Context, ContextError
-from kanashi.endpoint import *
+from kanashi.client import Client
 from kanashi.error import *
+from kanashi.endpoint import *
 from kanashi.kanashi import Kanashi
+from kanashi.main import Main
 from kanashi.object import Object
-from kanashi.request import Request, RequestError, RequestDownloadError
-from kanashi.update import Update, UpdateError
-from kanashi.utils import *
-
-#[kanashi.Main]
-class Main( Cli ):
-	pass
-	
-
-if __name__ == "__main__":
-	main = Main()
-	main.main()
-	
+from kanashi.profile import Profile
+from kanashi.readonly import Readonly
+from kanashi.request import Request, RequestDownloadError, RequestError, RequestRequired
+from kanashi.utility import *

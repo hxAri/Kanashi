@@ -21,160 +21,257 @@
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
-#
 
+from datetime import datetime, timedelta
+from re import match
 from requests import Session
-from requests.exceptions import *
 
-from kanashi.config import Config
-from kanashi.context import Context
-from kanashi.error import Error
-from kanashi.utils import Activity, File, JSONError, Util
-
-#[kanashi.Request]
-class Request( Context ):
+from kanashi.error import RequestError, RequestDownloadError
+from kanashi.utility.file import File
 	
-	#[BaseRequest( Object app )]
-	def __init__( self, app ):
+
+#[kanashi.request.Request]
+class Request:
+	
+	# Default header settings for requests.
+	HEADERS = {
+		"Accept": "*/*",
+		"Accept-Encoding": "gzip, deflate, br",
+		"Accept-Language": "en-US,en;q=0.9",
+		"Authority": "www.instagram.com",
+		"Connection": "close",
+		"Origin": "https://www.instagram.com",
+		"Referer": "https://www.instagram.com/",
+		"Sec-Fetch-Dest": "empty",
+		"Sec-Fetch-Mode": "cors",
+		"Sec-Fetch-Site": "same-origin",
+		"User-Agent": "Mozilla/5.0 (Linux; Android 4.4.1; [HM NOTE|NOTE-III|NOTE2 1LTETD) AppleWebKit/535.42 (KHTML, like Gecko)  Chrome/112.0.5615.137 Mobile Safari/600.3",
+		"Viewport-Width": "980",
+		"X-Asbd-Id": "198387",
+		"X-IG-App-Id": "1217981644879628",
+		"X-IG-WWW-Claim": "hmac.AR04Hjqeow3ipAWpAcl8Q5Dc7eMtKr3Ff08SxTMJosgMAh-z",
+		"X-Instagram-Ajax": "1007625843",
+		"X-Requested-With": "XMLHttpRequest"
+	}
+	
+	#[Request( Dict headers, Int timeout, Bool history )]: None
+	def __init__( self, headers=None, timeout=15, history=True ):
 		
-		# Request response.
-		self.response = False
+		"""
+		Construct of method class Request.
 		
-		# Request history.
-		self.history = []
-		self.historyF = "response.json"
+		:params Dict headers
+			Header settings for requests
+		:params Int timeout
+			Default timeout for requests
+		:params Bool history
+			Allow every successful request to save
 		
-		# Request default timeout.
-		self.timeout = 15
+		:return None
+		"""
 		
-		try:
-			self.history = File.json( self.historyF )
-		except BaseException as e:
-			try:
-				File.write( self.historyF, "[]" )
-			except BaseException as e:
-				self.emit( Error( f"Failed create file {self.historyF}", e ) )
-				exit()
+		if  headers == None:
+			headers = {}
 		
-		try:
-			if app.config:
-				pass
-		except AttributeError:
-			app.config = BaseConfig( app )
+		# Resolve require headers.
+		for i, k in enumerate( Request.HEADERS ):
+			if  k not in headers:
+				headers[k] = Request.HEADERS[k]
 		
-		# Create new Session.
+		# Request configurations.
 		self.session = Session()
-		self.session.headers.update({
-			"Accept": "*/*",
-			"Accept-Encoding": "gzip, deflate, br",
-			"Accept-Language": "en-US,en;q=0.9",
-			"Origin": "https://www.instagram.com",
-			"Referer": "https://www.instagram.com/",
-			"Sec-Ch-Prefers-Color-Scheme": "dark",
-			"Sec-Ch-UA": "\"Not:A-Brand\";v=\"99\", \"Chromium\";v=\"112\"",
-			"Sec-Ch-UA-Full-Version-List": "\"Not:A-Brand\";v=\"99.0.0.0\", \"Chromium\";v=\"112.0.5615.137\"",
-			"Sec-Ch-UA-Mobile": "?0",
-			"Sec-Ch-UA-Platform": "Linux",
-			"Sec-Fetch-Dest": "empty",
-			"Sec-Fetch-Mode": "cors",
-			"Sec-Fetch-Site": "same-origin",
-			"User-Agent": app.config.browser.default,
-			"Viewport-Width": "980",
-			"X-Asbd-Id": "198387",
-			"X-IG-App-Id": "1217981644879628",
-			"X-IG-WWW-Claim": "hmac.AR04Hjqeow3ipAWpAcl8Q5Dc7eMtKr3Ff08SxTMJosgMAh-z",
-			"X-Instagram-Ajax": "1007625843",
-			"X-Requested-With": "XMLHttpRequest"
+		self.cookies = self.session.cookies
+		self.headers = self.session.headers
+		self.headers.update({
+			**headers
 		})
 		
-		# Allow other program for access request session.
-		try:
-			app.session = self.session
-		except:
-			pass
-	
-		# Call parent constructor.
-		super().__init__( app )
-	
-	#[Request.reset()]
-	def reset( self ):
+		# Previous request results.
+		self.previous = None
 		
-		self.history = []
+		# Request results.
 		self.response = None
 		
-		# Rewrite response logs.
-		File.write( self.historyF, self.history )
+		# Default request timeout.
+		self.timeout = 10
+		
+		# History configurations.
+		self.historyAllow = history == True
+		self.historyFname = "response.json"
+		self.history = []
+		
+		# If every successful request is allowed to save.
+		if  history:
+			try:
+				self.history = File.json( self.historyFname )
+			except Exception as e:
+				self.clean()
 	
-	#[Request.download( String url, String name )]
-	def download( self, url, name ):
+	#[Request.clean()]: Bool
+	def clean( self ):
+		self.history = []
+		self.previous = None
+		self.response = None
 		try:
-			resp = self.get( url )
+			File.write( self.historyFname, "[]" )
+		except Exception:
+			return False
+		return True
+	
+	#[Request.save( String url, String name, **kwargs )]: Bool
+	def save( self, url, name, **kwargs ):
+		
+		"""
+		Download content from url.
+		
+		:params String url
+			The target url of the content
+		:params String name
+			Content/ Filename
+		:params Mixed **kwargs
+			Request options
+		
+		:return Bool<True>
+			When the content is successfully saved
+		:raises RequestError
+			When an error occurs while performing the request
+		:raises RequestDownloadError
+			When the download is failed
+			When the content/ file can't save
+		"""
+		
+		try:
+			result = self.get( url )
 		except RequestError as e:
 			raise e
-		if resp.status_code == 200:
+		if  result.status_code == 200:
 			try:
-				File.write( name, resp.content, "wb" )
-				return( True )
+				File.write( name, result.content, "wb" )
 			except Exception as e:
-				raise RequestDownloadError( f"Failed write file /{name}/", prev=e )
+				raise RequestDownloadError( f"Failed write file \"{name}\"", prev=e )
+			return True 
 		else:
-			raise RequestDownloadError( f"Failed get content from url, status [{resp.status_code}]" )
+			raise RequestDownloadError( f"Failed get content from url, status [{result.status_code}]" )
 	
-	#[Request.onerror( List error )]
-	def onerror( self, error ):
-		named = type( error ).__name__
-		match named:
-			case InvalidJSONError.__name__:
-				error = RequestError( f"{named} A JSON error occured" )
-			case JSONDecodeError.__name__:
-				error = RequestError( f"{named} Couldn't decode the text into json" )
-			case HTTPError.__name__:
-				error = RequestError( f"{named} An HTTP error occurred" )
-			case ConnectionError.__name__:
-				error = RequestError( f"{named} A Connection error occurred" )
-			case ProxyError.__name__:
-				error = RequestError( f"{named} A proxy error occurred" )
-			case SSLError.__name__:
-				error = RequestError( f"{named} An SSL error occurred" )
-			case Timeout.__name__:
-				error = RequestError( f"{named} The request timed out" )
-			case ConnectTimeout.__name__:
-				error = RequestError( f"{named} The request timed out while trying to connect to the remote server" )
-			case ReadTimeout.__name__:
-				error = RequestError( f"{named} The server did not send any data in the allotted amount of time" )
-			case URLRequired.__name__:
-				error = RequestError( f"{named} A valid URL is required to make a request" )
-			case TooManyRedirects.__name__:
-				error = RequestError( f"{named} Too many redirects" )
-			case MissingSchema.__name__:
-				error = RequestError( f"{named} The URL scheme (e.g. http or https) is missing" )
-			case InvalidSchema.__name__:
-				error = RequestError( f"{named} The URL scheme provided is either invalid or unsupported" )
-			case InvalidURL.__name__:
-				error = RequestError( f"{named} The URL provided was somehow invalid" )
-			case InvalidHeader.__name__:
-				error = RequestError( f"{named} The header value provided was somehow invalid" )
-			case InvalidProxyURL.__name__:
-				error = RequestError( f"{named} The proxy URL provided is invalid" )
-			case ChunkedEncodingError.__name__:
-				error = RequestError( f"{named} The server declared chunked encoding but sent an invalid chunk" )
-			case ContentDecodingError.__name__:
-				error = RequestError( f"{named} Failed to decode response content" )
-			case StreamConsumedError.__name__:
-				error = RequestError( f"{named} The content for this response was already consumed" )
-			case RetryError.__name__:
-				error = RequestError( f"{named} Custom retries logic failed" )
-			case UnrewindableBodyError.__name__:
-				error = RequestError( f"{named} Requests encountered an error when trying to rewind a body" )
-			case RequestsWarning.__name__:
-				error = RequestError( f"{named} Base warning for Requests" )
-			case FileModeWarning.__name__:
-				error = RequestError( f"{named} A file was opened in text mode, but Requests determined its binary length" )
-			case RequestsDependencyWarning.__name__:
-				error = RequestError( f"{named} An imported dependency doesn't match the expected version range" )
-			case _:
-				error = RequestError( f"{named} There was an ambiguous exception that occurred while handling your request" )
-		return( error )
+	#[Request.error( Exception error )]: Exception
+	def error( self, error ):
+		name = type( error ).__name__
+		names = {
+			"InvalidJSONError": "{name}: A JSON error occured",
+			"JSONDecodeError": "{name}: Couldn't decode the text into json",
+			"HTTPError ": "{name}: An HTTP error occurred",
+			"ConnectionError ": "{name}: A Connection error occurred",
+			"ProxyError ": "{name}: A proxy error occurred",
+			"SSLError ": "{name}: An SSL error occurred",
+			"Timeout ": "{name}: The request timed out",
+			"ConnectTimeout ": "{name}: The request timed out while trying to connect to the remote server",
+			"ReadTimeout ": "{name}: The server did not send any data in the allotted amount of time",
+			"URLRequired ": "{name}: A valid URL is required to make a request",
+			"TooManyRedirects ": "{name}: Too many redirects",
+			"MissingSchema ": "{name}: The URL scheme (e.g. http or https) is missing",
+			"InvalidSchema ": "{name}: The URL scheme provided is either invalid or unsupported",
+			"InvalidURL ": "{name}: The URL provided was somehow invalid",
+			"InvalidHeader ": "{name}: The header value provided was somehow invalid",
+			"InvalidProxyURL ": "{name}: The proxy URL provided is invalid",
+			"ChunkedEncodingError": "{name}: The server declared chunked encoding but sent an invalid chunk",
+			"ContentDecodingError": "{name}: Failed to decode response content",
+			"StreamConsumedError": "{name}: The content for this response was already consumed",
+			"RetryError": "{name}: Custom retries logic failed",
+			"UnrewindableBodyError": "{name}: Requests encountered an error when trying to rewind a body",
+			"RequestsWarning": "{name}: Base warning for Requests",
+			"FileModeWarning": "{name}: A file was opened in text mode, but Requests determined its binary length",
+			"RequestsDependencyWarning": "{name}: An imported dependency doesn't match the expected version range"
+		}
+		if  name in names:
+			string = names[name]
+		else:
+			string = "{name}: There was an ambiguous exception that occurred while handling your request"
+			string += str( error )
+		return RequestError( string.format( name=name ), prev=error )
+	
+	#[Request.historySave()]: Request
+	def historySave( self ):
+		
+		"""
+		Save every successful request
+		
+		:return Request
+			Instance of class Request
+		"""
+		
+		if  self.historyAllow != True:
+			return
+		if  self.response != False and \
+			self.response != None:
+			try:
+				try:
+					content = self.response.json()
+				except Exception:
+					content = None
+				self.history.append({
+					"target": self.response.url,
+					"browser": self.session.headers['User-Agent'],
+					"content": content,
+					"cookies": {
+						"request": dict( self.cookies ),
+						"response": dict( self.response.cookies )
+					},
+					"headers": {
+						"request": dict( self.headers ),
+						"response": dict( self.response.headers )
+					},
+					"timestamp": datetime.timestamp( datetime.now() ),
+					"status": f"{self.response}",
+				})
+				File.write( self.historyFname, self.history )
+			except Exception as e:
+				pass
+		return( self )
+	
+	#[Request.previously( time )]: List
+	def previously( self, time ):
+		
+		"""
+		Return previous request responses based on given time.
+		
+		:params String time
+			Value must be like [0-9](s|m|h|d|w|M|y)
+		
+		:return List
+			List of request responses
+		:raises TypeError
+			When the given string is invalid syntax
+		:raises ValueError
+			When the parameter passed is invalid value
+		"""
+		
+		current = datetime.now()
+		if not isinstance( time, str ):
+			raise ValueError( "Invalid time parameter, value must be type str, {} passed".format( type( time ).__name__ ) )
+		if valid := match( r"^(?P<diff>[1-9][0-9]*)(?P<unit>s|m|h|d|w|M|y)$", time ):
+			diff = int( valid.group( "diff" ) )
+			unit = valid.group( "unit" )
+			data = []
+			match unit:
+				case "m":
+					delta = timedelta( minutes=diff )
+				case "h":
+					delta = timedelta( hours=diff )
+				case "d":
+					delta = timedelta( days=diff )
+				case "w":
+					delta = timedelta( weeks=diff )
+				case "M":
+					delta = timedelta( days=diff * 30 )
+				case "y":
+					delta = timedelta( days=diff * 365 )
+			for history in self.history:
+				timestamp = datetime.fromtimestamp( history['timestamp'] )
+				if timestamp >= current - delta:
+					data.append( history )
+			return data
+		else:
+			raise TypeError( "Invalid time syntax, value must be like \\d+(s|m|h|d|w|M|y)" )
 	
 	#[Request.delete( String url, **kwargs )]
 	def delete( self, url, **kwargs ):
@@ -206,68 +303,63 @@ class Request( Context ):
 	
 	#[Request.request( String method, String url, **kwargs )]
 	def request( self, method, url, **kwargs ):
-		self.response = False
-		if "timeout" in kwargs == False:
-			kwargs['timeout'] = self.timeout
+		
+		"""
+		Send request to url target.
+		
+		:params String method
+			Request method name
+		:params String url
+			Request url target
+		:params Mixed **kwargs
+			Request options
+		
+		:return Mixed
+		:raises RequestError
+			When an error occurs while performing the request
+		"""
+		
+		self.previous = self.response
+		self.response = None
+		
+		#if  "timeout" not in kwargs:
+		#	kwargs['timeout'] = self.timeout
 		try:
 			self.response = self.session.request( method, url=url, **kwargs )
-			self.responseSave()
+			self.historySave()
+			return self.response
 		except Exception as e:
 			raise RequestError(**{
 				"message": "There was an error sending the request",
-				"prev": self.onerror( e )
+				"prev": self.error( e )
 			})
-			return( False )
-		return( self.response )
-	
-	#[Request.responseSave()]
-	def responseSave( self ):
-		if self.response != False:
-			try:
-				try:
-					content = self.response.json()
-				except BaseException:
-					content = None
-				self.history.append({
-					"target": self.response.url,
-					"browser": self.session.headers['User-Agent'],
-					"content": content,
-					"cookies": {
-						"request": dict( self.session.cookies ),
-						"response": dict( self.response.cookies )
-					},
-					"headers": {
-						"request": dict( self.session.headers ),
-						"response": dict( self.response.headers )
-					},
-					"status": "{}".format( self.response )
-				})
-				File.write( self.historyF, self.history )
-			except BaseException as e:
-				raise RequestError( "Unable to log request sent", prev=e )
-		return( self )
 	
 
-#[kanashi.RequestError]
-class RequestError( Error ):
-	pass
+#[kanashi.request.RequestRequired]
+class RequestRequired:
 	
-
-#[kanashi.RequestDownloadError]
-class RequestDownloadError( RequestError ):
-	pass
-	
-
-#[kanashi.RequestRequired]
-class RequestRequired( Context ):
-	
-	#[RequestRequired( Object app )]
-	def __init__( self, app ):
+	#[RequestRequired( Request request )]
+	def __init__( self, request ):
 		
-		# Copy Request and Session instance.
-		self.request = app.request
-		self.session = app.session
+		"""
+		Construct method of class RequestRequired.
 		
-		# Call parent constructor.
-		super().__init__( app )
+		:params Object app
+			Application context
+		:return None
+		:raises ValueError
+			When invalid argument passed
+		"""
+		
+		# Trying to inject properties.
+		try:
+			if  isinstance( request, Request ):
+				self.cookies = request.cookies
+				self.headers = request.headers
+				self.session = request.session
+				self.request = request
+			else:
+				raise ValueError( "Parameter request must be type Request, {} passed".format( type( request ).__name__ ) )
+		except AttributeError:
+			pass
 	
