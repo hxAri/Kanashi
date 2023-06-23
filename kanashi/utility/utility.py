@@ -66,6 +66,10 @@ class Utility:
 				"pattern": r"(?P<kanashi>\b(?:[kK]anash[i|ī])\b)",
 				"colorize": "\x1b[1;38;5;111m{}{}"
 			},
+			"comment": {
+				"pattern": r"(?P<comment>\#\S+)",
+				"colorize": "\x1b[1;38;5;250m{}{}"
+			},
 			"string": {
 				"pattern": r"(?P<string>(?<!\\)(\".*?(?<!\\)\"|\'.*?(?<!\\)\'|`.*?(?<!\\)`))",
 				"colorize": "\x1b[1;38;5;220m{}{}",
@@ -421,16 +425,12 @@ class Utility:
 	#[Utility.tryAgain( String label, Function | Method next, Function | Method other, String value, List defaultValue, *args, **kwargs )]:
 	def tryAgain( self, label="Try again [Y/n]", next=None, other=None, value="Y", defaultValue=[ "Y", "y", "N", "n" ], *args, **kwargs ):
 		if  self.input( label, default=defaultValue ).upper() == value:
-			name = type( next ).__name__
-			if  name == "function" or \
-				name == "method":
+			if  callable( next ):
 				return next( *args, **kwargs )
 			else:
-				raise ValueError( f"Argument next must be type Function|Method, {name} given" )
+				raise ValueError( "Argument next must be type Function|Method, {} passed".format( type( next ).__name__ ) )
 		else:
-			name = type( other ).__name__
-			if  name == "function" or \
-				name == "method":
+			if  callable( other ):
 				return other()
 		pass
 	
