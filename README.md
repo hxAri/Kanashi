@@ -80,12 +80,17 @@ except Exception as e:
 ```
 
 #### Get CSRFToken
-To take csrf tokens is very easy.
+To take csrftoken is very easy.
 ```py
 from kanashi import Client
+from kanashi import CsrftokenError
+from kanashi import Request
+
+# Initialize Request Instance.
+request = Request()
 
 # Initialize Client Instance.
-client = Client()
+client = Client( request=request )
 
 try:
     
@@ -93,7 +98,7 @@ try:
     # so you only need to type it, don't call it as method.
     print( client.csrftoken )
     
-except Exception as e:
+except CsrftokenError as e:
     print( e )
 ```
 
@@ -109,22 +114,78 @@ engine = Kanashi()
 # ...
 
 try:
-	
-	# You can also retrieve the
-	# client instance from Kanashi.
-	client = engine.client
-	
-	# Trying to get profile info.
-	profile = client.profile( username="USERNAME" )
-	
-	# Print profile info.
-	print( profile.blockedByViewer )
-	print( profile.hasBlockedViewer )
-	print( profile.requestedByViewer )
-	print( profile.followedByViewer )
-	
+    
+    # You can also retrieve the
+    # client instance from Kanashi.
+    client = engine.client
+    
+    # Trying to get profile info.
+    profile = client.profile( username="USERNAME" )
+    
+    # Print profile info.
+    print( profile.blockedByViewer )
+    print( profile.hasBlockedViewer )
+    print( profile.requestedByViewer )
+    print( profile.followedByViewer )
+    
+    # Bestie/ unbestie user.
+    profile.bestie()
+    
+    # Block/ unblock user.
+    profile.block()
+    
+    # Favorite/ unfavorite user.
+    profile.favorite()
+    
+    # Follow/ unfollow/ cancel request follow user.
+    profile.follow()
+    
+    # Restrict/ unrestrict user.
+    profile.restrict()
+    
 except Exception as e:
+    
+    #
+    # For the record, if the user is found but
+    # the data is not available, it will raise
+    # kanashi.error.UserError( "Target \"{id|username}\" user found but user data not available" )
+    #
+    # This is purely not Kanashī's fault, this
+    # happened because the account owner
+    # deactivated his account.
+    #
     print( e )
+```
+
+#### Request History
+Please note that Kanashī stores all successful request results and stores all request logs in the `history` property and also writes them to the `~/response.json` file, you can use each request log for further analysis if you need it and make sure your directory allows it Kanashī to write the file.
+```py
+from kanashi import Request
+
+# Initialize Request Instance
+request = Request()
+
+# Print request response.
+# Return: Response|None
+print( request.response )
+
+# Print previous request.
+# Return: Response|None
+print( request.previous )
+
+# Print previous request by time.
+# This is supported unit time e.g s|m|h|w|M|y
+# For example we use 5 minutes ago.
+# Return: list<Response>
+print( request.previously( "5m" ) )
+
+# Print all histories.
+# Return: list<Response>
+print( request.history )
+
+# Reset or remove all request histories.
+# This is also include in `history|response|previous` property.
+request.clean()
 ```
 
 ## Donate
