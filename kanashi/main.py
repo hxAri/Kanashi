@@ -712,9 +712,18 @@ class Main( Utility, RequestRequired ):
 		elif flag == 5:
 			try:
 				signin = self.thread( "Trying to SignIn your account", lambda: self.kanashi.signin( username, password, cookies, csrftoken, browser ) )
-				if  signin.success:
+				if  signin.success == True:
+					output = [
+						"",
+						"You have successfully logged in as \x1b[1;38;5;189m{}\x1b[0m".format( signin.signin.fullname if signin.signin.fullname else signin.signin.username ),
+						"To use this tool again at a later time, Kanashī",
+						"provides a feature to save login info, you can",
+						"also log out at any time"
+					]
+					if signin.remember:
+						output = [ "", "Your login information is still valid", *output ]
 					self.active = self.kanashi.active
-					self.output( self, "Successfully logged in as \x1b[1;38;5;189m{}\x1b[0m".format( signin.signin.fullname if signin.signin.fullname else signin.signin.username ) )
+					self.output( self, output )
 					save = self.input( "Save login info [Y/n]", default=[ "Y", "y", "N", "n" ] )
 					if save.upper() == "Y":
 						self.configSave()
