@@ -18,7 +18,7 @@ Kanashī itself is a translation of the word from Japan which means Sadness, I b
 * Extract Profile Info
 * Block or Unblock User
 * Follow or Unfollow User
-* Besties or Unbesties User **Bug**
+* Bestie or Unbestie User **Bug**
 * Favorite or Unfavorite User
 * Restrict or Unrestrict User
 * Mute Posts or Story User
