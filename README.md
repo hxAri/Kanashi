@@ -4,7 +4,9 @@
 Please note that this is not fully finished or not ready to use, if you are interested in using it please I don't require you to wait for this to finish because I am also busy.
 
 ## Abouts
-Kanashī is an open source project that can be used to login to real Instagram accounts via Linux Terminal and Android Termux, this also includes taking CSRF Tokens and Login Session IDs, besides that you can use Tokens and ID to do various things like Instagram Web.
+Kanashī is an independent open source project without any organizational involvement in it, this project is used to perform Instagram Login via the Command Line, it is capable of taking and also performing actions like Instagram Web in general however, not everything can be done here.
+
+Because this is an open source project, the creators and developers of this project will not tolerate or be held responsible if it happens to any Instagram account that is used to log in or any user profiles that you collect information through this program.
 
 ## History
 Kanashī itself is a translation of the word from Japan which means Sadness, I built this program for the sadness that I have experienced so far, if you are wondering why that is? Don't ask! Just use this program if you are interested, no need to think about anyone's sadness or even me.
@@ -65,8 +67,13 @@ engine.headers.update({
 username = "USERNAME"
 password = "PASSWORD"
 
+# If you want to be safer use cookies
+# to avoid checkpoints on your account.
+# Or if your account has 2FA login.
+cookies = "csrftoken=xxx; sessionid=xxx; ds_user_id=xxx; ..."
+
 try:
-    signin = engine.signin( username, password )
+    signin = engine.signin( username, password, cookies=cookies )
     if signin.success:
         print( signin.result )
     elif singin.two_factor:
