@@ -27,11 +27,13 @@ from re import match
 from requests import Session
 
 from kanashi.error import RequestError, RequestDownloadError
+from kanashi.object import Object
+from kanashi.readonly import Readonly
 from kanashi.utility.file import File
 	
 
 #[kanashi.request.Request]
-class Request:
+class Request( Readonly ):
 	
 	# Default header settings for requests.
 	HEADERS = {
@@ -85,6 +87,14 @@ class Request:
 		self.headers.update({
 			**headers
 		})
+		
+		# Readonly exceptional.
+		self.excepts = [
+			"previous",
+			"response",
+			"timeout",
+			"history"
+		]
 		
 		# Previous request results.
 		self.previous = None
@@ -207,21 +217,24 @@ class Request:
 				try:
 					content = self.response.json()
 				except Exception:
-					content = None
+					try:
+						content = f"[{self.response.headers['Content-Type']}]"
+					except Exception:
+						content = None
 				self.history.append({
 					"target": self.response.url,
 					"browser": self.session.headers['User-Agent'],
-					"content": content,
-					"cookies": {
-						"request": dict( self.cookies ),
-						"response": dict( self.response.cookies )
+					"unixtime": datetime.timestamp( datetime.now() ),
+					"request": {
+						"cookies": dict( self.cookies ),
+						"headers": dict( self.headers )
 					},
-					"headers": {
-						"request": dict( self.headers ),
-						"response": dict( self.response.headers )
-					},
-					"timestamp": datetime.timestamp( datetime.now() ),
-					"status": f"{self.response}",
+					"response": {
+						"status": f"{self.response}",
+						"cookies": dict( self.response.cookies ),
+						"headers": dict( self.response.headers ),
+						"content": content
+					}
 				})
 				File.write( self.historyFname, self.history )
 			except Exception as e:
@@ -266,7 +279,7 @@ class Request:
 				case "y":
 					delta = timedelta( days=diff * 365 )
 			for history in self.history:
-				timestamp = datetime.fromtimestamp( history['timestamp'] )
+				timestamp = datetime.fromtimestamp( history['unixtime'] )
 				if timestamp >= current - delta:
 					data.append( history )
 			return data
@@ -347,19 +360,40 @@ class RequestRequired:
 		:params Object app
 			Application context
 		:return None
+		:raises TypeError
+			When the class is inherit from Object
 		:raises ValueError
 			When invalid argument passed
 		"""
 		
-		# Trying to inject properties.
+		if  isinstance( self, Object ):
+			raise TypeError( "Class \"{}\" may not inherit an Object if it has inherited a previous RequestRequired".format( type( self ).__name__ ) )
+		if  isinstance( request, Request ):
+			
+			# Trying to inject properties.
+			self.request = request
+			self.__setup__( request )
+		else:
+			raise ValueError( "Parameter request must be type Request, {} passed".format( type( request ).__name__ ) )
+	
+	#[RequestRequired.__setattr__( String name, Mixed value )]: None
+	def __setattr__( self, name, value ):
+		if name == "request":
+			if isinstance( value, Request ):
+				self.__dict__[name] = value
+				self.__setup__( value )
+				return
+		if isinstance( self, Readonly ):
+			Readonly.__setattr__( self, name, value )
+		else:
+			self.__dict__[name] = value
+	
+	#[RequestRequired.__setup__( Request request )]: None
+	def __setup__( self, request ):
 		try:
-			if  isinstance( request, Request ):
-				self.cookies = request.cookies
-				self.headers = request.headers
-				self.session = request.session
-				self.request = request
-			else:
-				raise ValueError( "Parameter request must be type Request, {} passed".format( type( request ).__name__ ) )
+			self.cookies = request.cookies
+			self.headers = request.headers
+			self.session = request.session
 		except AttributeError:
 			pass
 	
