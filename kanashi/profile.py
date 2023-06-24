@@ -29,28 +29,8 @@ from kanashi.request import RequestRequired
 from kanashi.utility import File
 
 
-#[kanashi.profile.Properties]
+#[kanashi.profile.ProfilePriperties]
 class ProfileProperties:
-	
-	#[ProfileProperties.__getitem__( String key )]: Mixed
-	def __getitem__( self, key ):
-		return self.avoider( key )
-	
-	#[ProfileProperties.avoider( String key, Mixed default )]: Mixed
-	def avoider( self, key, default=None ):
-		
-		"""
-		Drop profile info wthout raise KeyError
-		
-		:params String key
-		:params Mixed default
-		
-		:return Mixed
-		"""
-		
-		if  self.profile.isset( key ):
-			return self.profile[key]
-		return default
 	
 	@property
 	def besties( self ):
@@ -327,7 +307,7 @@ class ProfileProperties:
 	
 
 #[kanashi.profile.Profile]
-class Profile( Readonly, RequestRequired, ProfileProperties ):
+class Profile( ProfileProperties, Readonly, RequestRequired ):
 	
 	#[Profile( Object viewer, Request request, Dict profile )]: None
 	def __init__( self, viewer, request, profile ):
@@ -354,10 +334,18 @@ class Profile( Readonly, RequestRequired, ProfileProperties ):
 		# Instance of parent class.
 		self.parent = super()
 		self.parent.__init__( request )
+	
+	#[ProfileProperties.__getitem__( String key )]: Mixed
+	def __getitem__( self, key ):
+		return self.avoider( key )
+	
+	#[Profile.prints]: List
+	@property
+	def prints( self ):
 		
 		# General information to be displayed.
 		# The empty string will be used for the new line.
-		self.prints = [
+		prints = [
 			"",
 			"id",
 			"username",
@@ -387,23 +375,23 @@ class Profile( Readonly, RequestRequired, ProfileProperties ):
 			""
 		]
 		
-		for i in range( len( self.prints ), 0, -1 ):
+		for i in range( len( prints ), 0, -1 ):
 			idx = i -1
-			val = self.prints[idx]
+			val = prints[idx]
 			match val:
 				case "id":
-					self.prints[idx] = f"ID {self.id}"
+					prints[idx] = f"ID {self.id}"
 				case "fullname":
-					self.prints[idx] = f"Fullname \x1b[1;37m{self.fullname}\x1b[0m"
+					prints[idx] = f"Fullname \x1b[1;37m{self.fullname}\x1b[0m"
 				case "username":
-					self.prints[idx] = f"Username \x1b[4m\x1b[1;38;5;189m{self.username}\x1b[0m"
+					prints[idx] = f"Username \x1b[4m\x1b[1;38;5;189m{self.username}\x1b[0m"
 				case "pronouns":
-					self.prints[idx] = "\x0a\x20\x20\x20\x20....".join([ "- Pronouns", self.pronounsFormat if self.pronounsFormat else "None" ])
+					prints[idx] = "\x0a\x20\x20\x20\x20....".join([ "- Pronouns", self.pronounsFormat if self.pronounsFormat else "None" ])
 				case "category":
 					if  self.isProfessionalAccount:
-						self.prints[idx] = "\x0a\x20\x20\x20\x20....".join([ "- Category", self.categoryName if self.categoryName else "None" ])
+						prints[idx] = "\x0a\x20\x20\x20\x20....".join([ "- Category", self.categoryName if self.categoryName else "None" ])
 					else:
-						del self.prints[idx]
+						del prints[idx]
 				case "account":
 					account = []
 					if  self.isPrivateAccount:
@@ -414,20 +402,20 @@ class Profile( Readonly, RequestRequired, ProfileProperties ):
 							account.append( "Business" )
 						if  self.isProfessionalAccount:
 							account.append( "Professional" )
-					self.prints[idx] = "\x0a\x20\x20\x20\x20....".join([ "- Account", "/".join( account ) ])
+					prints[idx] = "\x0a\x20\x20\x20\x20....".join([ "- Account", "/".join( account ) ])
 				case "website":
-					self.prints[idx] = [ "- Website" ]
+					prints[idx] = [ "- Website" ]
 					if self['bio_links']:
 						if "title" in self['bio_links'][0]:
-							self.prints[idx].append( "Title {}".format( self['bio_links']['title'] ) )
-						self.prints[idx].append( self['bio_links'][0]['link_type'].capitalize() )
-						self.prints[idx].append( "\x1b[1;38;5;81m{}\x1b[0m".format( self['bio_links'][0]['url'] ) )
+							prints[idx].append( "Title {}".format( self['bio_links']['title'] ) )
+						prints[idx].append( self['bio_links'][0]['link_type'].capitalize() )
+						prints[idx].append( "\x1b[1;38;5;81m{}\x1b[0m".format( self['bio_links'][0]['url'] ) )
 					else:
-						self.prints[idx].append( "None" )
-					self.prints[idx] = "\x0a\x20\x20\x20\x20....".join( self.prints[idx] )
+						prints[idx].append( "None" )
+					prints[idx] = "\x0a\x20\x20\x20\x20....".join( prints[idx] )
 				case "biography":
 					if  self.biography != "":
-						self.prints[idx] = "\x0a\x20\x20\x20\x20".join([
+						prints[idx] = "\x0a\x20\x20\x20\x20".join([
 							"----------------------------------------",
 							"- Biography",
 							"----------------------------------------",
@@ -445,10 +433,10 @@ class Profile( Readonly, RequestRequired, ProfileProperties ):
 							"----------------------------------------"
 						])
 					else:
-						del self.prints[idx]
+						del prints[idx]
 				case "block":
 					if  self.isMySelf:
-						self.prints[idx] = "- Block is not available for own profile"
+						prints[idx] = "- Block is not available for own profile"
 					else:
 						block = []
 						if  self.hasBlockedViewer:
@@ -459,42 +447,42 @@ class Profile( Readonly, RequestRequired, ProfileProperties ):
 							block.append( "- You have blocked this user" )
 						else:
 							block.append( "- You did not block this user" )
-						self.prints[idx] = "\x0a\x20\x20\x20\x20".join( block )
+						prints[idx] = "\x0a\x20\x20\x20\x20".join( block )
 				case "muting":
 					if  self.isNotMySelf:
 						if  self.muting:
-							self.prints[idx] = "- You have mute this user"
+							prints[idx] = "- You have mute this user"
 						else:
-							self.prints[idx] = "- You did not mute this user"
+							prints[idx] = "- You did not mute this user"
 					else:
-						self.prints[idx] = "- Mute is not available for own profile"
+						prints[idx] = "- Mute is not available for own profile"
 				case "restrict":
 					if  self.isNotMySelf:
 						if  self.restrictedByViewer:
-							self.prints[idx] = "- You have restrict this user"
+							prints[idx] = "- You have restrict this user"
 						else:
-							self.prints[idx] = "- You did not restrict this user"
+							prints[idx] = "- You did not restrict this user"
 					else:
-						self.prints[idx] = "- Restrict is not available for own profile"
+						prints[idx] = "- Restrict is not available for own profile"
 				case "besties":
 					if  self.isNotMySelf:
 						if  self.isBesties:
-							self.prints[idx] = "- This user is your besties"
+							prints[idx] = "- This user is your besties"
 						else:
-							self.prints[idx] = "- This user is not your besties"
+							prints[idx] = "- This user is not your besties"
 					else:
-						self.prints[idx] = "- Bestie is not available for own profile"
+						prints[idx] = "- Bestie is not available for own profile"
 				case "favorite":
 					if  self.isNotMySelf:
 						if  self.isFeedFavorite:
-							self.prints[idx] = "- This user feed is your favourite"
+							prints[idx] = "- This user feed is your favourite"
 						else:
-							self.prints[idx] = "- This user feed is not your favourite"
+							prints[idx] = "- This user feed is not your favourite"
 					else:
-						self.prints[idx] = "- Favorite is not available for own profile"
+						prints[idx] = "- Favorite is not available for own profile"
 				case "follow":
 					if  self.isMySelf:
-						self.prints[idx] = "- Follow is not available for own profile"
+						prints[idx] = "- Follow is not available for own profile"
 					else:
 						follow = []
 						if  self.followsViewer:
@@ -507,9 +495,9 @@ class Profile( Readonly, RequestRequired, ProfileProperties ):
 							follow.append( "- Your follow request has not been approved" )
 						else:
 							follow.append( "- You are not following this user" )
-						self.prints[idx] = "\x0a\x20\x20\x20\x20".join( follow )
+						prints[idx] = "\x0a\x20\x20\x20\x20".join( follow )
 				case "edges":
-					self.prints[idx] = "\x0a\x20\x20\x20\x20".join([
+					prints[idx] = "\x0a\x20\x20\x20\x20".join([
 						"----------------------------------------",
 						"┌───────┬───────┬────────┬─────────────┐",
 						"│ Posts │ Reels │ Saveds │ Collections │",
@@ -524,7 +512,7 @@ class Profile( Readonly, RequestRequired, ProfileProperties ):
 						"└─────────────┴─────────────┴──────────┘",
 						"----------------------------------------"
 					])
-					self.prints[idx] = self.prints[idx].format(*[
+					prints[idx] = prints[idx].format(*[
 						f"{self.countEdgeOwnerToTimelineMedia}".center( 5 ),
 						f"{self.countEdgeFelixVideoTimeline}".center( 5 ),
 						f"{self.countEdgeSavedMedia}".center( 6 ),
@@ -536,7 +524,23 @@ class Profile( Readonly, RequestRequired, ProfileProperties ):
 				case _:
 					pass
 			pass
-		pass
+		return prints
+	
+	#[Profile.avoider( String key, Mixed default )]: Mixed
+	def avoider( self, key, default=None ):
+		
+		"""
+		Drop profile info wthout raise KeyError
+		
+		:params String key
+		:params Mixed default
+		
+		:return Mixed
+		"""
+		
+		if  self.profile.isset( key ):
+			return self.profile[key]
+		return default
 	
 	#[Profile.besties()]: Object
 	def besties( self ):
@@ -619,7 +623,7 @@ class Profile( Readonly, RequestRequired, ProfileProperties ):
 				return Object({
 					"id": self.id,
 					"username": self.username,
-					"blocking": False if self.blockedByViewer else True
+					"blocking": self.blockedByViewer
 				})
 			else:
 				raise BlockError( response['message'] if "message" in response and response['message'] else f"Something wrong when {action} the {self.username}" )
@@ -648,7 +652,34 @@ class Profile( Readonly, RequestRequired, ProfileProperties ):
 		if  self.isMySelf:
 			raise FavoriteError( "Unable to set yourself as a favourite" )
 		if  self.followedByViewer:
-			pass
+			self.headers.update({
+				"Accept-Encoding": "gzip, deflate, br",
+				"Content-Type": "application/x-www-form-urlencoded",
+				"Origin": "https://www.instagram.com",
+				"Referer": "https://www.instagram.com/{}/".format( self.username )
+			})
+			data = { "source": "profile" }
+			if self.isFeedFavorite:
+				action = "Remove favorite"
+				data['remove'] = [ self.id ]
+			else:
+				action = "Make favorite"
+				data['add'] = [ self.id ]
+			request = self.request.post( "https://www.instagram.com/api/v1/friendships/update_feed_favorites/", data=data )
+			status = request.status_code
+			if  status == 200:
+				response = request.json()
+				if  "status" in response and response['status'] == "ok":
+					self.profile.is_feed_favorire = False if self.isFeedFavorite else True
+					return Object({
+						"id": self.id,
+						"username": self.username,
+						"favorite": self.isFeedFavorite
+					})
+				else:
+					raise FavoriteError( response['message'] if "message" in response and response['message'] else f"Something wrong when {action} the {self.username}" )
+			else:
+				self.throws( action, status )
 		else:
 			raise FavoriteError( "Can't set user as favorite before following" )
 	
@@ -692,15 +723,15 @@ class Profile( Readonly, RequestRequired, ProfileProperties ):
 			response = request.json()
 			if  "friendship_status" in response:
 				follow = response['friendship_status']
-				self.profile.requested_by_viewer = requested = follow['outgoing_request']
-				self.profile.followed_by_viewer = following = follow['following']
-				self.profile.is_private = private = follow['is_private']
+				self.profile.requested_by_viewer = follow['outgoing_request']
+				self.profile.followed_by_viewer = follow['following']
+				self.profile.is_private = follow['is_private']
 				return Object({
 					"id": self.id,
-					"private": private,
+					"private": self.isPrivate,
 					"username": self.username,
-					"following": following,
-					"requested": requested,
+					"following": self.followedByViewer,
+					"requested": self.requestedByViewer
 				})
 			else:
 				raise FollowError( response['message'] if "message" in response and response['message'] else f"Something wrong when {action} the {self.username}" )

@@ -39,14 +39,233 @@ class Main( Utility, RequestRequired ):
 	#[Main()]: None
 	def __init__( self ):
 		
-		# Default menu options.
-		self.options = {
+		# Instance of class Config.
+		self.config = Config()
+		self.configLoad()
+		
+		# Instance of class Kanashi.
+		self.kanashi = Kanashi( config=self.config )
+		
+		# Represent user active.
+		self.active = self.kanashi.active
+		
+		# Object represent configuration.
+		self.settings = self.config.settings
+		
+		# Call constructor RequestRequired.
+		RequestRequired.__init__( self, self.kanashi.request )
+	
+	#[Main.about()]: None
+	def about( self ):
+		display = [ "helpers", "version", "license" ]
+		displayLength = len( display )
+		outputs = []
+		for index, output in enumerate( display ):
+			outputs.append( "{}".format( output.capitalize() ) )
+			match output:
+				case "helpers":
+					authors = Config.AUTHORS
+					for idx, author in enumerate( authors ):
+						if  "name" in author:
+							profile = []
+							authors[idx] = []
+							authors[idx].append( "{}".format( author['name'] ) )
+							if  "section" in author:
+								profile.append( "{}".format( author['section'] ) )
+							if  "email" in author:
+								profile.append( "Email {}".format( author['email'] ) )
+							if  "github" in author:
+								profile.append( "Github {}".format( author['github'] ) )
+							authors[idx].append( profile )
+					outputs = [
+						*outputs,
+						*authors
+					]
+				case "version":
+					outputs.append( "Version Number v{}".format( Config.VERSION ) )
+					outputs.append( "Version Release v{}".format( Config.VERSION_RELEASE ) )
+				case "license":
+					outputs.append( "{}".format( Config.LICENSE ) )
+					outputs = [
+						*outputs,
+						*Config.LICENSE_DOC
+					]
+			if  index < displayLength -1:
+				outputs.append( "\x20" )
+			pass
+		self.output( self, [ *self.outputs, *outputs ] )
+		self.previous( self.main, ">>>" )
+	
+	#[Main.besties( Profile profile, Bool ask )]: None
+	def besties( self, profile, ask=True ):
+		if  not isinstance( profile, Profile ):
+			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
+		if  profile.isBesties and ask:
+			self.output( self, f"You want to remove {profile.username} from your bestie?" )
+			self.tryAgain( f"Keep remove {profile.username} as bestie [Y/n]", lambda: self.besties( profile, ask=False ), lambda: self.profile( profile=profile ) )
+		else:
+			if  profile.isBesties:
+				action = "Remove Bestie"
+			else:
+				action = "Adding Besties"
+			besties = self.thread( f"Trying to {action}", lambda: profile.besties() )
+			try:
+				print( besties )
+			except Exception as e:
+				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.besties( profile, ask=ask ) } )
+	
+	#[Main.block( Profile profile, Bool ask )]: None
+	def block( self, profile, ask=True ):
+		if  not isinstance( profile, Profile ):
+			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
+		if  profile.blockedByViewer:
+			action = "Unblock"
+			output = [ "",
+				f"Unblock {profile.username}",
+				"",
+				"They will now be able to see your posts and",
+				"follow you on Instagram. Instagram won’t let",
+				"them know you unblocked them."
+			]
+		else:
+			action = "Blocking"
+			output = [ "",
+				"They won’t be able to message you or find",
+				"your profile, posts or story on Instagram.",
+				"They won’t be notifed that you blocked them."
+			]
+		if  ask == True:
+			self.output( self, output )
+			self.tryAgain( f"Ignore and next {action} [Y/n]", lambda: self.block( profile, ask=False ), lambda: self.profile( profile=profile ) )
+		else:
+			try:
+				block = self.thread( f"Trying to {action.lower()} {profile.username}", lambda: profile.block() )
+			except Exception as e:
+				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.block( profile, ask=ask ) } )
+			self.output( self, "Successfully {} {}".format( action, profile.username ) )
+			self.previous( lambda: self.profile( profile=profile ), ">>>" )
+	
+	#[Main.clean()]: None
+	def clean( self ):
+		self.thread( "Clear request records", self.request.clean )
+		self.output( self, "The request log has been cleaned up" )
+		self.previous( self.main, ">>>" )
+	
+	#[Main.configLoad()]: None
+	def configLoad( self ):
+		try:
+			self.thread( "Reading configuration file", self.config.load )
+		except ConfigError as e:
+			self.emit( e )
+			self.tryAgain( next=self.configSave )
+		if  not isinstance( self.config.settings, Object ):
+			self.close( e, "Operation cannot be continued" )
+		pass
+	
+	#[Main.configSave()]: None
+	def configSave( self ):
+		try:
+			self.thread( "Saving configuration file", self.config.save )
+		except ConfigError as e:
+			self.emit( e )
+			self.tryAgain( next=self.configSave )
+		if  not isinstance( self.config.settings, Object ):
+			self.close( e, "Operation cannot be continued" )
+		pass
+	
+	#[Main.explore()]: None
+	def explore( self ):
+		pass
+	
+	#[Main.favorite( Profile profile )]: None
+	def favorite( self, profile ):
+		if  not isinstance( profile, Profile ):
+			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
+		if profile.isFeedFavorite:
+			action = "Remove favorite"
+		else:
+			action = "Make favorite"
+		favorite = self.thread( f"Trying to {action} {profile.username}", lambda: profile.favorite() )
+		try:
+			print( favorite )
+		except Exception as e:
+			raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.favorite( profile ) } )
+	
+	#[Main.follow( Profile profile, Bool ask )]: None
+	def follow( self, profile, ask=True ):
+		if  not isinstance( profile, Profile ):
+			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
+		if  ask and profile.followedByViewer or \
+			ask and profile.requestedByViewer:
+			output = "Are you sure will unfollow {}?".format( profile.username )
+			if  profile.isPrivateAccount:
+				output = [ "",
+					output,
+					"If you change your mind, you'll have to",
+					"request to follow {} again".format( profile.username )
+				]
+			self.output( self, output )
+			self.tryAgain( f"Unfollow {profile.username} [Y/n]", lambda: self.follow( profile, ask=False ), lambda: self.profile( profile=profile ) )
+		else:
+			action = "Follow"
+			if  profile.followedByViewer:
+				action = "Unfollow"
+			elif profile.requestedByViewer:
+				action = "Cancel request follow"
+			try:
+				follow = self.thread( f"{action} {profile.username}", lambda: profile.follow() )
+			except Exception as e:
+				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.follow( profile, ask=ask ) } )
+			if  follow.following:
+				output = f"Successfully following {profile.username}"
+			elif follow.requested:
+				output = [ "",
+					f"Successfully following {profile.username}",
+					f"But waiting to be approved from {profile.username}"
+				]
+			else:
+				output = f"Successfully unfollow {profile.username}"
+			self.output( self, output )
+			self.previous( lambda: self.profile( profile=profile ), ">>>" )
+	
+	#[Main.download()]: None
+	def download( self ):
+		pass
+	
+	#[Main.logout()]: None
+	def logout( self ):
+		pass
+	
+	#[Main.main()]: None
+	def main( self ):
+		
+		outputs = []
+		options = []
+		
+		# Default main menu actions.
+		actions = {
 			"profile": {
 				"signin": True,
 				"action": self.profile,
 				"output": "Visit Profile",
 				"prints": [
 					"Visit profile account"
+				]
+			},
+			"search": {
+				"signin": True,
+				"action": self.search,
+				"output": "Search Anything",
+				"prints": [
+					"Search posts, users, hashtags and more"
+				]
+			},
+			"explore": {
+				"signin": True,
+				"action": self.explore,
+				"output": "Explore Media",
+				"prints": [
+					"Explore recommended media"
 				]
 			},
 			"signin": {
@@ -120,69 +339,6 @@ class Main( Utility, RequestRequired ):
 			}
 		}
 		
-		# Instance of class Config.
-		self.config = Config()
-		self.configLoad()
-		
-		# Instance of class Kanashi.
-		self.kanashi = Kanashi( config=self.config )
-		
-		# Represent user active.
-		self.active = self.kanashi.active
-		
-		# Object represent configuration.
-		self.settings = self.config.settings
-		
-		# Call constructor RequestRequired.
-		RequestRequired.__init__( self, self.kanashi.request )
-	
-	#[Main.about()]: None
-	def about( self ):
-		display = [ "helpers", "version", "license" ]
-		displayLength = len( display )
-		outputs = []
-		for index, output in enumerate( display ):
-			outputs.append( "{}".format( output.capitalize() ) )
-			match output:
-				case "helpers":
-					authors = Config.AUTHORS
-					for idx, author in enumerate( authors ):
-						if  "name" in author:
-							profile = []
-							authors[idx] = []
-							authors[idx].append( "{}".format( author['name'] ) )
-							if  "section" in author:
-								profile.append( "{}".format( author['section'] ) )
-							if  "email" in author:
-								profile.append( "Email {}".format( author['email'] ) )
-							if  "github" in author:
-								profile.append( "Github {}".format( author['github'] ) )
-							authors[idx].append( profile )
-					outputs = [
-						*outputs,
-						*authors
-					]
-				case "version":
-					outputs.append( "Version Number v{}".format( Config.VERSION ) )
-					outputs.append( "Version Release v{}".format( Config.VERSION_RELEASE ) )
-				case "license":
-					outputs.append( "{}".format( Config.LICENSE ) )
-					outputs = [
-						*outputs,
-						*Config.LICENSE_DOC
-					]
-			if  index < displayLength -1:
-				outputs.append( "\x20" )
-			pass
-		self.output( self, [ *self.outputs, *outputs ] )
-		self.previous( self.main, ">>>" )
-	
-	#[Main.action( String label, Dict actions )]: None
-	def action( self, label, actions ):
-		
-		outputs = []
-		options = []
-		
 		# Default println outputs.
 		self.outputs = [
 			"",
@@ -228,107 +384,8 @@ class Main( Utility, RequestRequired ):
 					outputs.append( values['prints'] )
 		
 		self.output( self, [ *self.outputs, outputs ] )
-		option = self.input( label, number=True, default=[ idx +1 for idx in range( len( options ) ) ] )
+		option = self.input( None, number=True, default=[ idx +1 for idx in range( len( options ) ) ] )
 		actions[options[( option -1 )]]['action']()
-	
-	#[Main.besties( Profile profile, Bool ask )]: None
-	def besties( self, profile, ask=True ):
-		if  not isinstance( profile, Profile ):
-			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
-		if profile.isBesties and ask:
-			self.output( self, f"You want to remove {profile.username} from your bestie?" )
-			self.tryAgain( f"Keep remove {profile.username} as bestie [Y/n]", lambda: self.besties( profile, ask=False ), lambda: self.profile( profile=profile ) )
-		else:
-			if profile.isBesties:
-				action = "Remove Bestie"
-			else:
-				action = "Adding Besties"
-			besties = self.thread( f"Trying to {action}", lambda: profile.besties() )
-			try:
-				print( besties )
-			except Exception as e:
-				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.besties( profile, ask=ask ) } )
-	
-	#[Main.block( Profile profile, Bool ask )]: None
-	def block( self, profile, ask=True ):
-		if  not isinstance( profile, Profile ):
-			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
-		if  profile.blockedByViewer:
-			action = "Unblock"
-			output = [ "",
-				f"Unblock {profile.username}",
-				"",
-				"They will now be able to see your posts and",
-				"follow you on Instagram. Instagram won’t let",
-				"them know you unblocked them."
-			]
-		else:
-			action = "Blocking"
-			output = [ "",
-				"They won’t be able to message you or find",
-				"your profile, posts or story on Instagram.",
-				"They won’t be notifed that you blocked them."
-			]
-		if ask == True:
-			self.output( self, output )
-			self.tryAgain( f"Ignore and next {action} [Y/n]", lambda: self.block( profile, ask=False ), lambda: self.profile( profile=profile ) )
-		else:
-			try:
-				block = self.thread( f"Trying to {action.lower()} {profile.username}", lambda: profile.block() )
-			except Exception as e:
-				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.block( profile, ask=ask ) } )
-	
-	#[Main.clean()]: None
-	def clean( self ):
-		self.thread( "Clear request records", self.request.clean )
-		self.output( self, "The request log has been cleaned up" )
-		self.previous( self.main, ">>>" )
-	
-	#[Main.configLoad()]: None
-	def configLoad( self ):
-		try:
-			self.thread( "Reading configuration file", self.config.load )
-		except ConfigError as e:
-			self.emit( e )
-			self.tryAgain( next=self.configSave )
-		if  not isinstance( self.config.settings, Object ):
-			self.close( e, "Operation cannot be continued" )
-		pass
-	
-	#[Main.configSave()]: None
-	def configSave( self ):
-		try:
-			self.thread( "Saving configuration file", self.config.save )
-		except ConfigError as e:
-			self.emit( e )
-			self.tryAgain( next=self.configSave )
-		if  not isinstance( self.config.settings, Object ):
-			self.close( e, "Operation cannot be continued" )
-		pass
-	
-	#[Main.favorite( Profile profile )]: None
-	def favorite( self, profile ):
-		if  not isinstance( profile, Profile ):
-			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
-		pass
-	
-	#[Main.follow( Profile profile )]: None
-	def follow( self, profile ):
-		if  not isinstance( profile, Profile ):
-			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
-		pass
-	
-	#[Main.download()]: None
-	def download( self ):
-		pass
-	
-	#[Main.logout()]: None
-	def logout( self ):
-		pass
-	
-	#[Main.main()]: None
-	def main( self ):
-		self.action( None, self.options )
 	
 	#[Main.profile( String username, Profile profile )]: None
 	def profile( self, username=None, profile=None ):
@@ -475,9 +532,9 @@ class Main( Utility, RequestRequired ):
 							continue
 					if  "output" in action:
 						output = action['output']
-						if isinstance( output, list ):
-							if option == "follow":
-								if profile.followedByViewer:
+						if  isinstance( output, list ):
+							if  option == "follow":
+								if  profile.followedByViewer:
 									output = output[1]
 								elif profile.requestedByViewer:
 									output = output[2]
@@ -489,23 +546,19 @@ class Main( Utility, RequestRequired ):
 								continue
 						outputs.append( output )
 					options.append( option )
-					if "prints" in action:
+					if  "prints" in action:
 						outputs.append( action['prints'] )
 				try:
 					self.output( self, [ *profile.prints, outputs ] )
 					option = self.input( "Select", number=True, default=[ idx +1 for idx in range( len( options ) ) ] )
 					actions[options[( option -1 )]]['action']()
-				except Exception as e:
-					self.emit( e )
-					if  isinstance( e, Error ):
-						if  isinstance( e, AuthError ):
-							pass
-						if  callable( e.prev ):
-							pass
-							self.tryAgain( next=e.prev, other=lambda: self.profile( profile ) )
-							return
-						pass
-					self.previous( self.profile, ">>>", profile=profile )
+				except ProfileError as e:
+					self.emit( e.prev )
+					data = e.data
+					if "action" in data and callable( data['action'] ):
+						self.tryAgain( next=data['action'], other=lambda: self.profile( profile=profile ) )
+					else:
+						self.previous( lambda: self.profile( profile=profile ), ">>>" )
 	
 	#[Main.report( Profile profile )]: None
 	def report( self, profile ):
@@ -517,7 +570,7 @@ class Main( Utility, RequestRequired ):
 	def restrict( self, profile, ask=True ):
 		if  not isinstance( profile, Profile ):
 			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
-		if profile.restrictedByViewer == False and ask == True:
+		if  profile.restrictedByViewer == False and ask == True:
 			self.output( self, [
 				"",
 				"Are you having a problem with {}?".format( profile.fullname ),
@@ -534,7 +587,7 @@ class Main( Utility, RequestRequired ):
 			])
 			self.tryAgain( "Restrict account [Y/n]", lambda: self.restrict( profile, ask=False ), lambda: self.profile( profile=profile ) )
 		else:
-			if profile.restrictedByViewer:
+			if  profile.restrictedByViewer:
 				action = "Unrestrict"
 			else:
 				action = "Restrict"
@@ -542,6 +595,12 @@ class Main( Utility, RequestRequired ):
 				restrict = self.thread( f"Trying to {action} {profile.username}", lambda: profile.restrict() )
 			except Exception as e:
 				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.restrict( profile, ask=ask ) } )
+			self.output( self, "Successfully {} {}".format( action, profile.username ) )
+			self.previous( lambda: self.profile( profile=profile ), ">>>" )
+	
+	#[Main.search()]: None
+	def search( self ):
+		pass
 	
 	#[Main.setting()]: None
 	def setting( self ):
