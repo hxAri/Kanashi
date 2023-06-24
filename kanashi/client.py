@@ -309,45 +309,53 @@ class Client( RequestRequired ):
 			if  isinstance( cookies, str ):
 				cookies = Cookie.simple( cookies )
 			if  isinstance( cookies, dict ):
+				try:
+					id = cookies['ds_user_id']
+					csrftoken = cookies['csrftoken']
+					sessionid = cookies['sessionid']
+				except KeyError as e:
+					raise SignInError( "Invalid cookie, there is no \"{}\" in the cookie".format( str( e ) ), prev=e )
 				for i, cookie in enumerate( cookies ):
 					Cookie.set( self.cookies, cookie, cookies[cookie], domain=".instagram.com", path="/" )
 			else:
 				raise ValueError( "Invalid cookie, value must be Dict|Str|Object, {} passed".format( type( cookies ).__name__ ) )
-			try:
-				id = cookies['ds_user_id']
-				csrftoken = cookies['csrftoken']
-				sessionid = cookies['sessionid']
-			except KeyError as e:
-				raise SignInError( "Invalid cookie, there is no \"{}\" in the cookie".format( str( e ) ), prev=e )
 			
 			# Update request headers.
 			self.headers.update({
 				"Origin": "https://www.instagram.com",
-				"Referer": "https://www.instagram.com/accounts/login/",
-				"X-CSRFToken": result.signin.csrftoken
+				"Referer": "https://www.instagram.com/",
+				"X-CSRFToken": csrftoken
 			})
 			
 			# Trying to check if cookies is valid.
-			request = self.get( "https://www.instagram.com" )
-			cookies = request.cookies.dict()
+			request = self.request.get( f"https://i.instagram.com/api/v1/users/{id}/info/" )
+			cookies = dict( request.cookies )
 			status = request.status_code
-			if  status != 200:
-				if  "ds_user_id" not in cookies or \
-					"sessionid" not in cookies or \
-					"csrftoken" not in cookies:
+			if  status == 200:
+				response = request.json()
+				if  "ds_user_id" in cookies or \
+					"sessionid" in cookies or \
+					"csrftoken" in cookies:
+					if "user" in response:
+						if isinstance( response['user'], dict ):
+							if "username" in response['user']:
+								username = response['user']['username']
+							if "full_name" in response['user']:
+								result.set({ "signin": { "fullname": reponse['user']['full_name'] } })
 					result.set({
 						"remember": True,
 						"success": True,
 						"signin": {
 							"id": id,
+							"username": username,
 							"csrftoken": csrftoken,
 							"sessionid": sessionid
 						}
 					})
 				else:
-					raise SignInError( "Cookies are invalid or have expired" )
+					raise SignInError( response['message'] if "message" in response and response['message'] else "There was an error remembering the user" )
 			else:
-				raise SignInError( "There was an error remembering the user" )
+				raise SignInError( "Cookies are invalid or have expired" )
 		else:
 			if  not isinstance( username, str ):
 				if  not isinstance( self.username, str ):
@@ -431,7 +439,7 @@ class Client( RequestRequired ):
 				"result": {
 					"id": result.id,
 					"fullname": result.fullname,
-					"username": result.username,
+					"username": result.username if result.username else username,
 					"password": password,
 					"session": {
 						"browser": browser,
