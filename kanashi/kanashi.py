@@ -53,7 +53,13 @@ class Kanashi( Readonly ):
 				pass
 		
 		# Readonly exceptional.
-		self.excepts = [ "active" ]
+		self.excepts = [
+			"active",
+			"cookies",
+			"headers",
+			"request",
+			"session"
+		]
 		
 		# Instance of class Client.
 		self.client = client
@@ -90,7 +96,7 @@ class Kanashi( Readonly ):
 				"csrftoken": None,
 				"sessionid": None
 			},
-			"fullname": None,
+			"fullname": False,
 			"username": None,
 			"password": None
 		})
@@ -144,8 +150,8 @@ class Kanashi( Readonly ):
 		"""
 		
 		if  self.active.id and \
-			self.active.fullname and \
 			self.active.username and \
+			self.active.fullname is not False and \
 			self.active.session.csrftoken and \
 			self.active.session.sessionid is not None and \
 			self.active.session.cookies.len() and \

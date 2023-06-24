@@ -53,7 +53,8 @@ class Main( Utility, RequestRequired ):
 		self.settings = self.config.settings
 		
 		# Call constructor RequestRequired.
-		RequestRequired.__init__( self, self.kanashi.request )
+		self.parent = super()
+		self.parent.__init__( self.kanashi.request )
 	
 	#[Main.about()]: None
 	def about( self ):
@@ -96,23 +97,23 @@ class Main( Utility, RequestRequired ):
 		self.output( self, [ *self.outputs, *outputs ] )
 		self.previous( self.main, ">>>" )
 	
-	#[Main.besties( Profile profile, Bool ask )]: None
-	def besties( self, profile, ask=True ):
+	#[Main.bestie( Profile profile, Bool ask )]: None
+	def bestie( self, profile, ask=True ):
 		if  not isinstance( profile, Profile ):
 			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
-		if  profile.isBesties and ask:
+		if  profile.isBestie and ask:
 			self.output( self, f"You want to remove {profile.username} from your bestie?" )
-			self.tryAgain( f"Keep remove {profile.username} as bestie [Y/n]", lambda: self.besties( profile, ask=False ), lambda: self.profile( profile=profile ) )
+			self.tryAgain( f"Keep remove {profile.username} as bestie [Y/n]", lambda: self.bestie( profile, ask=False ), lambda: self.profile( profile=profile ) )
 		else:
-			if  profile.isBesties:
+			if  profile.isBestie:
 				action = "Remove Bestie"
 			else:
-				action = "Adding Besties"
-			besties = self.thread( f"Trying to {action}", lambda: profile.besties() )
+				action = "Adding Bestie"
+			bestie = self.thread( f"Trying to {action}", lambda: profile.bestie() )
 			try:
-				print( besties )
+				print( bestie )
 			except Exception as e:
-				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.besties( profile, ask=ask ) } )
+				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.bestie( profile, ask=ask ) } )
 	
 	#[Main.block( Profile profile, Bool ask )]: None
 	def block( self, profile, ask=True ):
@@ -216,9 +217,9 @@ class Main( Utility, RequestRequired ):
 				follow = self.thread( f"{action} {profile.username}", lambda: profile.follow() )
 			except Exception as e:
 				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.follow( profile, ask=ask ) } )
-			if  follow.following:
+			if  follow.following == True:
 				output = f"Successfully following {profile.username}"
-			elif follow.requested:
+			elif follow.requested == True:
 				output = [ "",
 					f"Successfully following {profile.username}",
 					f"But waiting to be approved from {profile.username}"
@@ -238,6 +239,22 @@ class Main( Utility, RequestRequired ):
 	
 	#[Main.main()]: None
 	def main( self ):
+		
+		"""
+		return self.profile(
+			profile=Profile(
+				request=self.request,
+				profile={
+					**self.request.history[0]['content']['graphql']['user'],
+					**self.request.history[1]['content']
+				},
+				viewer=Object({
+					"id": self.active.id,
+					"username": self.active.username
+				})
+			)
+		)
+		"""
 		
 		outputs = []
 		options = []
@@ -353,7 +370,7 @@ class Main( Utility, RequestRequired ):
 		if  self.kanashi.isActive:
 			self.outputs = [
 				*self.outputs[0:2],
-				"Logged as \x1b[1;38;5;189m{}\x1b[0m".format( self.active.fullname ),
+				"Logged as \x1b[1;38;5;189m{}\x1b[0m".format( self.active.fullname if self.active.fullname else self.active.username ),
 				*self.outputs[2:]
 			]
 		
@@ -431,17 +448,17 @@ class Main( Utility, RequestRequired ):
 							"Unblock User"
 						]
 					},
-					"besties": {
+					"bestie": {
 						"avoid": True,
 						"follow": True,
-						"action": lambda: self.besties( profile ),
-						"filter": profile.isBesties,
+						"action": lambda: self.bestie( profile ),
+						"filter": profile.isBestie,
 						"prints": [
-							"Make or remove this user as besties"
+							"Make or remove this user as bestie"
 						],
 						"output": [
-							"Make Besties",
-							"Remove Besties"
+							"Make Bestie",
+							"Remove Bestie"
 						]
 					},
 					"favorite": {
@@ -606,8 +623,8 @@ class Main( Utility, RequestRequired ):
 	def setting( self ):
 		pass
 	
-	#[Main.signin( String username, String password, Dict|Object|String cookies, String browser, Bool agreement, Int flag )]: None
-	def signin( self, username=None, password=None, csrftoken=None, cookies=None, browser=None, agreement=False, flag=0 ):
+	#[Main.signin( String username, String password, Dict|Object|String cookies, String browser, Bool ask, Int flag )]: None
+	def signin( self, username=None, password=None, csrftoken=None, cookies=None, browser=None, ask=True, flag=0 ):
 		if  flag == 0:
 			self.output( self, [
 				"",
@@ -620,7 +637,7 @@ class Main( Utility, RequestRequired ):
 			])
 			self.signin( flag=self.input( "Method", number=True, default=[ 1, 2, 3, 4 ] ) )
 		elif flag == 1:
-			if  agreement == False:
+			if  ask:
 				self.output( self, [
 					"",
 					"\x1b[1;38;5;214mWarnings\x1b[0m",
@@ -629,7 +646,8 @@ class Main( Utility, RequestRequired ):
 					"responsible for anything that happens",
 					"to the account used"
 				])
-				self.tryAgain( "Ignore and next [Y/n]", next=self.signin, other=self.main, agreement=True, flag=1 )
+				self.tryAgain( "Ignore and next [Y/n]", next=self.signin, other=self.main, ask=True, flag=1 )
+				return
 			if  not isinstance( username, str ):
 				self.output( self, [ "",
 					"Username account required for login",
@@ -695,14 +713,27 @@ class Main( Utility, RequestRequired ):
 			try:
 				signin = self.thread( "Trying to SignIn your account", lambda: self.kanashi.signin( username, password, cookies, csrftoken, browser ) )
 				if  signin.success:
-					print( f"Success: {signin.success}" )
+					self.active = self.kanashi.active
+					self.output( self, "Successfully logged in as \x1b[1;38;5;189m{}\x1b[0m".format( signin.signin.fullname if signin.signin.fullname else signin.signin.username ) )
+					save = self.input( "Save login info [Y/n]", default=[ "Y", "y", "N", "n" ] )
+					if save.upper() == "Y":
+						self.configSave()
+					self.main()
 				elif signin.two_factor:
 					print( f"TwoFactor: {signin.two_factor}" )
+					
 				elif signin.checkpoint:
 					print( f"Checkpoint: {signin.checkpoint}" )
+					self.previous( self.close, ">>>" )
 				else:
-					print( f"Unhandled: {signin}" )
-					exit()
+					self.output( self, [
+						"",
+						"There was an error logging in",
+						"This usually happens due to some unhandled",
+						"things like, setting cookies and information",
+						"after login"
+					])
+					self.previous( self.close, ">>>" )
 			except Exception as e:
 				self.emit( e )
 				if  isinstance( e, UserError ) or \
@@ -715,8 +746,8 @@ class Main( Utility, RequestRequired ):
 						"csrftoken": csrftoken,
 						"cookies": cookies,
 						"browser": browser,
-						"agreement": True,
-						"flag": flag
+						"flag": flag,
+						"ask": False
 					}
 					if  isinstance( e, PasswordError ):
 						del params['password']
@@ -730,10 +761,9 @@ class Main( Utility, RequestRequired ):
 						return
 				if  isinstance( e, AuthError ):
 					pass
-				self.tryAgain( next=self.signin, other=self.main, agreement=True, flag=flag )
+				self.tryAgain( next=self.signin, other=self.main, ask=False, flag=flag )
 		else:
 			raise TypeError( "Unsupported login method" )
-			
 	
 	#[Main.support()]: None
 	def support( self ):

@@ -30,18 +30,19 @@ from time import sleep
 from kanashi.error import *
 from kanashi.object import Object
 from kanashi.profile import Profile
-from kanashi.request import Request
+from kanashi.request import Request, RequestRequired
 from kanashi.utility import Cookie, String
 
 
 #[kanashi.client.Client]
-class Client:
+class Client( RequestRequired ):
 	
 	# Instagram URL Targets
 	URL = "https://www.instagram.com/{}"
 	URL_API = "https://www.instagram.com/query/"
 	URL_GRAPHQL = "https://www.instagram.com/graphql/query/"
 	
+	#[Client( Request request, Mixed **kwargs )]: None
 	def __init__( self, request=None, **kwargs ):
 		
 		"""
@@ -59,9 +60,6 @@ class Client:
 			request = Request()
 		
 		# Instances of class from Request
-		self.cookies = request.cookies
-		self.headers = request.headers
-		self.session = request.session
 		self.request = request
 		
 		# Instagram user info for signin.
@@ -113,7 +111,7 @@ class Client:
 					"followed_by",
 					"following",
 					"incoming_request",
-					"is_besties",
+					"is_bestie",
 					"is_blocking_reel",
 					"is_eligible_to_subscribe",
 					"is_feed_favorite",
@@ -296,9 +294,11 @@ class Client:
 			"verify": False,
 			"signin": {
 				"id": None,
+				"fullname": None,
 				"username": username,
 				"password": password,
-				"csrftoken": csrftoken
+				"csrftoken": csrftoken,
+				"sessionid": None
 			},
 			"result": None
 		})
@@ -314,20 +314,40 @@ class Client:
 			else:
 				raise ValueError( "Invalid cookie, value must be Dict|Str|Object, {} passed".format( type( cookies ).__name__ ) )
 			try:
-				result.set({
-					"remember": True,
-					"success": True,
-					"signin": {
-						"id": cookies['ds_user_id'],
-						"csrftoken": cookies['csrftoken']
-					}
-				})
+				id = cookies['ds_user_id']
+				csrftoken = cookies['csrftoken']
+				sessionid = cookies['sessionid']
 			except KeyError as e:
-				if  str( e ) == "csrftoken":
-					message = "No Csrftoken in cookie"
+				raise SignInError( "Invalid cookie, there is no \"{}\" in the cookie".format( str( e ) ), prev=e )
+			
+			# Update request headers.
+			self.headers.update({
+				"Origin": "https://www.instagram.com",
+				"Referer": "https://www.instagram.com/accounts/login/",
+				"X-CSRFToken": result.signin.csrftoken
+			})
+			
+			# Trying to check if cookies is valid.
+			request = self.get( "https://www.instagram.com" )
+			cookies = request.cookies.dict()
+			status = request.status_code
+			if  status != 200:
+				if  "ds_user_id" not in cookies or \
+					"sessionid" not in cookies or \
+					"csrftoken" not in cookies:
+					result.set({
+						"remember": True,
+						"success": True,
+						"signin": {
+							"id": id,
+							"csrftoken": csrftoken,
+							"sessionid": sessionid
+						}
+					})
 				else:
-					message = "Ds User ID not found in cookie"
-				raise SignInError( message, prev=e )
+					raise SignInError( "Cookies are invalid or have expired" )
+			else:
+				raise SignInError( "There was an error remembering the user" )
 		else:
 			if  not isinstance( username, str ):
 				if  not isinstance( self.username, str ):
@@ -379,7 +399,8 @@ class Client:
 								"success": True,
 								"signin": {
 									"id": response['userId'],
-									"csrftoken": signin.cookies['csrftoken']
+									"csrftoken": signin.cookies['csrftoken'],
+									"sessionid": signin.cookies['sessionid']
 								}
 							})
 						except KeyError as e:
@@ -397,65 +418,36 @@ class Client:
 		
 		# If the user has actually successfully logged in.
 		if  result.success:
-			if  result.remember:
-				if  not isinstance( browser, str ):
-					browser = self.headers['User-Agent']
+			if  not isinstance( browser, str ):
+				browser = self.headers['User-Agent']
 			
 			# Encode password if is available.
 			password = "hex[b64]\"{}\"".format( String.encode( password ) ) if password else None
-			
-			# Update request headers.
-			self.headers.update({ "User-Agent": browser })
-			
-			# Trying to get user info.
-			profile = self.profile( id=result.signin.id )
-			headers = [
-				{
-					**dict( self.headers ),
-					**{
-						"X-CSRFToken": self.request.response.cookies['csrftoken'],
-						"Cookie": Cookie.string( self.cookies )
-					}
-				},
-				{
-					**dict( self.request.response.headers ),
-					**{
-						"X-CSRFToken": self.request.response.cookies['csrftoken'],
-						"Cookie": Cookie.string( self.request.response.cookies )
-					}
-				}
-			]
-			cookies = [
-				dict( self.cookies ),
-				dict( self.request.response.cookies )
-			]
-			if  "sessionid" not in cookies[0] and \
-				"sessionid" in cookies[1]:
-				cookies[0]['sessionid'] = cookies[1]['sessionid']
-			else:
-				cookies[0]['sessionid'] = ""
 			result.set({
 				"signin": {
-					"id": profile.id,
-					"username": profile.username
+					"id": result.id,
+					"username": result.username
 				},
 				"result": {
-					"id": profile.id,
-					"fullname": profile.fullname,
-					"username": profile.username,
+					"id": result.id,
+					"fullname": result.fullname,
+					"username": result.username,
 					"password": password,
 					"session": {
 						"browser": browser,
 						"cookies": {
-							**cookies[0],
-							**cookies[1]
+							**dict( self.cookies ),
+							**dict( self.request.response.cookies )
 						},
-						"headers": headers[0],
-						"response": {
-							"headers": headers[1]
+						"headers": {
+							**dict( self.headers ),
+							**{
+								"X-CSRFToken": self.request.response.cookies['csrftoken'],
+								"Cookie": Cookie.string( self.cookies )
+							}
 						},
-						"csrftoken": cookies[0]['csrftoken'],
-						"sessionid": cookies[0]['sessionid']
+						"csrftoken": result.signin.csrftoken,
+						"sessionid": result.signin.sessionid
 					}
 				}
 			})

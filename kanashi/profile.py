@@ -33,151 +33,128 @@ from kanashi.utility import File
 class ProfileProperties:
 	
 	@property
-	def besties( self ):
-		return self.isBesties
+	def bestie( self ):
+		return self.isBestie
 	
 	@property
 	def biography( self ):
-		return self.avoider( "biography" )
+		return self.profile.biography
 	
 	@property
 	def biographyFormat( self ):
-		if  entity := self.avoider( "biography_with_entities" ):
-			return entity.raw_text.replace( "\n", "\x0a\x20\x20\x20\x20" )
+		return self.biographyRawText.replace( "\n", "\x0a\x20\x20\x20\x20" )
 	
 	@property
 	def biographyEntities( self ):
-		return self.avoider( "biography_with_entities", Object({ "entities": [] }) )
+		return self.profile.biography_with_entities.entities
 	
 	@property
 	def biographyEntitiesUser( self ):
 		users = []
-		if  entities := self.biographyEntities.entities:
-			for entity in entities:
-				if user := entity.user:
-					users.append( user.username )
+		entities = self.biographyEntities
+		for enitity in entities:
+			if user := entity.user:
+				users.append( user.username )
 		return users
 	
 	@property
 	def biographyEntitiesUserFormat( self ):
-		if  users := self.biographyEntitiesUser:
-			return "-\x20@".format( "\x0a\x20\x20\x20\x20-\x20@".join( users ) )
+		return "-\x20@".format( "\x0a\x20\x20\x20\x20-\x20@".join( self.biographyEntitiesUser ) )
 	
 	@property
 	def biographyEntitiesHashtag( self ):
 		hashtags = []
-		if  entities := self.biographyEntities.entities:
-			for entity in entities:
-				if hashtag := entity.hashtag:
-					hashtags.append( hashtag.name )
+		entities = self.biographyEntities
+		for entity in entities:
+			if hashtag := entity.hashtag:
+				hashtags.append( hashtag.name )
 		return hashtags
 	
 	@property
 	def biographyEntitiesHashtagFormat( self ):
-		if  hashtags := self.biographyEntitiesHashtag:
-			return "-\x20#{}".format( "\x0a\x20\x20\x20\x20-\x20#".join( hashtags ) )
+		return "-\x20#{}".format( "\x0a\x20\x20\x20\x20-\x20#".join( self.biographyEntitiesHashtag ) )
 	
 	@property
 	def biographyRawText( self ):
-		if  entity := self.avoider( "biography_with_entities" ):
-			return entity.raw_text
+		if  self.profile.biography_with_entities.raw_text == None:
+			self.profile.biography_with_entities.raw_text = ""
+		return self.profile.biography_with_entities.raw_text
 	
 	@property
 	def blockedByViewer( self ):
-		return self.avoider( "blocked_by_viewer" )
+		return self.profile.blocked_by_viewer
 	
 	@property
 	def categoryName( self ):
-		return self.avoider( "category_name" )
+		return self.profile.category_name
 	
 	@property
 	def countEdgeFelixVideoTimeline( self ):
-		if  edge := self.avoider( "edge_felix_video_timeline", 0 ):
-			return edge.count
+		return self.profile.edge_felix_video_timeline.count
 	
 	@property
 	def countEdgeFollow( self ):
-		if  edge := self.avoider( "edge_follow", 0 ):
-			return edge.count
+		return self.profile.edge_follow.count
 	
 	@property
 	def countEdgeFollowedBy( self ):
-		if  edge := self.avoider( "edge_followed_by", 0 ):
-			return edge.count
+		return self.profile.edge_followed_by.count
 	
 	@property
 	def countEdgeMediaCollections( self ):
-		if  edge := self.avoider( "edge_mutual_followed_by", 0 ):
-			return edge.count
+		return self.profile.edge_mutual_followed_by.count
 	
 	@property
 	def countEdgeMutualFollowedBy( self ):
-		if  edge := self.avoider( "edge_mutual_followed_by", 0 ):
-			return edge.count
+		return self.profile.edge_mutual_followed_by.count
 	
 	@property
 	def countEdgeOwnerToTimelineMedia( self ):
-		if  edge := self.avoider( "edge_owner_to_timeline_media", 0 ):
-			return edge.count
+		return self.profile.edge_owner_to_timeline_media.count
 	
 	@property
 	def countEdgeSavedMedia( self ):
-		if  edge := self.avoider( "edge_saved_media", 0 ):
-			return edge.count
+		return self.profile.edge_saved_media.count
 	
 	@property
 	def edgeFelixVideoTimeline( self ):
-		if  edge := self.avoider( "edge_felix_video_timeline" ):
-			return edge.edges
-		return []
+		return self.profile.edge_felix_video_timeline.edges
 	
 	@property
 	def edgeFollow( self ):
-		if  edge := self.avoider( "edge_follow" ):
-			return edge.edges
-		return []
+		return self.profile.edge_follow.edges
 	
 	@property
 	def edgeFollowedBy( self ):
-		if  edge := self.avoider( "edge_followed_by" ):
-			return edge.edges
-		return []
+		return self.profile.edge_followed_by.edges
 	
 	@property
 	def edgeMediaCollections( self ):
-		if  edge := self.avoider( "edge_media_collections" ):
-			return edge.edges
-		return []
+		return self.profile.edge_media_collections.edges
 	
 	@property
 	def edgeMutualFollowedBy( self ):
-		if  edge := self.avoider( "edge_mutual_followed_by" ):
-			return edge.edges
-		return []
+		return self.profile.edge_mutual_followed_by.edges
 	
 	@property
 	def edgeOwnerToTimelineMedia( self ):
-		if  edge := self.avoider( "edge_owner_to_timeline_media" ):
-			return edge.edges
-		return []
+		return self.profile.edge_owner_to_timeline_media.edges
 	
 	@property
 	def edgeSavedMedia( self ):
-		if  edge := self.avoider( "edge_saved_media" ):
-			return edge.edges
-		return []
+		return self.profile.edge_saved_media.edges
 	
 	@property
 	def followedByViewer( self ):
-		return self.avoider( "followed_by_viewer" )
+		return self.profile.followed_by_viewer
 	
 	@property
 	def followsViewer( self ):
-		return self.avoider( "follows_viewer" )
+		return self.profile.follows_viewer
 	
 	@property
 	def fullname( self ):
-		return self.avoider( "full_name" )
+		return self.profile.full_name
 	
 	@property
 	def fullnameFormat( self ):
@@ -193,55 +170,55 @@ class ProfileProperties:
 	
 	@property
 	def hasBlockedViewer( self ):
-		return self.avoider( "has_blocked_viewer" )
+		return self.profile.has_blocked_viewer
 	
 	@property
 	def id( self ):
-		return self.avoider( "id" )
+		return self.profile.id
 	
 	@property
-	def isBesties( self ):
-		return self.avoider( "is_besties" )
+	def isBestie( self ):
+		return self.profile.is_bestie
 	
 	@property
 	def isBlockingReel( self ):
-		return self.avoider( "is_blocking_reel" )
+		return self.profile.is_blocking_reel
 	
 	@property
 	def isBusinessAccount( self ):
-		return self.avoider( "is_business_account" )
+		return self.profile.is_business_account
 	
 	@property
 	def isEligibleToSubscribe( self ):
-		return self.avoider( "is_eligible_to_subscribe" )
+		return self.profile.is_eligible_to_subscribe
 	
 	@property
 	def isEmbedsDisabled( self ):
-		return self.avoider( "is_embeds_disabled" )
+		return self.profile.is_embeds_disabled
 	
 	@property
 	def isFeedFavorite( self ):
-		return self.avoider( "is_feed_favorite" )
+		return self.profile.is_feed_favorite
 	
 	@property
 	def isGuardianOfViewer( self ):
-		return self.avoider( "is_guardian_of_viewer" )
+		return self.profile.is_guardian_of_viewer
 	
 	@property
 	def isSupervisedByViewer( self ):
-		return self.avoider( "is_supervised_by_viewer" )
+		return self.profile.is_supervised_by_viewer
 	
 	@property
 	def isJoinedRecently( self ):
-		return self.avoider( "is_joined_recently" )
+		return self.profile.is_joined_recently
 	
 	@property
 	def isMutingNotes( self ):
-		return self.avoider( "is_muting_profile" )
+		return self.profile.is_muting_profile
 	
 	@property
 	def isMutingReel( self ):
-		return self.avoider( "is_muting_reel" )
+		return self.profile.is_muting_reel
 	
 	@property
 	def isMySelf( self ):
@@ -253,35 +230,35 @@ class ProfileProperties:
 	
 	@property
 	def isPrivateAccount( self ):
-		return self.avoider( "is_private" )
+		return self.profile.is_private
 	
 	@property
 	def isProfessionalAccount( self ):
-		return self.avoider( "is_professional_account" )
+		return self.profile.is_professional_account
 	
 	@property
 	def isSupervisedUser( self ):
-		return self.avoider( "is_supervised_user" )
+		return self.profile.is_supervised_user
 	
 	@property
 	def isVerified( self ):
-		return self.avoider( "is_verified" )
+		return self.profile.is_verified
 	
 	@property
 	def muting( self ):
-		return self.avoider( "muting" )
+		return self.profile.muting
 	
 	@property
 	def profilePicture( self ):
-		return self.avoider( "rofile_pic_url" )
+		return self.profile.rofile_pic_url
 	
 	@property
 	def profilePictureHD( self ):
-		return self.avoider( "profile_pic_url_hd" )
+		return self.profile.profile_pic_url_hd
 	
 	@property
 	def pronouns( self ):
-		return self.avoider( "pronouns" )
+		return self.profile.pronouns
 	
 	@property
 	def pronounsFormat( self ):
@@ -291,19 +268,19 @@ class ProfileProperties:
 	
 	@property
 	def requestedByViewer( self ):
-		return self.avoider( "requested_by_viewer" )
+		return self.profile.requested_by_viewer
 	
 	@property
 	def restrictedByViewer( self ):
-		return self.avoider( "restricted_by_viewer" )
+		return self.profile.restricted_by_viewer
 	
 	@property
 	def subscribed( self ):
-		return self.avoider( "subscribed" )
+		return self.profile.subscribed
 	
 	@property
 	def username( self ):
-		return self.avoider( "username" )
+		return self.profile.username
 	
 
 #[kanashi.profile.Profile]
@@ -335,9 +312,13 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		self.parent = super()
 		self.parent.__init__( request )
 	
-	#[ProfileProperties.__getitem__( String key )]: Mixed
+	#[Profile.__getitem__( String key )]: Mixed
 	def __getitem__( self, key ):
-		return self.avoider( key )
+		return self.profile[key]
+	
+	#[Profile.__setitem__( String key, Mixed value )]: Mixed
+	def __setitem__( self, key, value ):
+		return self.profile.set({ key: value })
 	
 	#[Profile.prints]: List
 	@property
@@ -368,7 +349,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			"restrict",
 			"muting",
 			"",
-			"besties",
+			"bestie",
 			"favorite",
 			"",
 			"edges",
@@ -464,12 +445,12 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 							prints[idx] = "- You did not restrict this user"
 					else:
 						prints[idx] = "- Restrict is not available for own profile"
-				case "besties":
+				case "bestie":
 					if  self.isNotMySelf:
-						if  self.isBesties:
-							prints[idx] = "- This user is your besties"
+						if  self.isBestie:
+							prints[idx] = "- This user is your bestie"
 						else:
-							prints[idx] = "- This user is not your besties"
+							prints[idx] = "- This user is not your bestie"
 					else:
 						prints[idx] = "- Bestie is not available for own profile"
 				case "favorite":
@@ -526,36 +507,20 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			pass
 		return prints
 	
-	#[Profile.avoider( String key, Mixed default )]: Mixed
-	def avoider( self, key, default=None ):
+	#[Profile.bestie()]: Object
+	def bestie( self ):
 		
 		"""
-		Drop profile info wthout raise KeyError
-		
-		:params String key
-		:params Mixed default
-		
-		:return Mixed
-		"""
-		
-		if  self.profile.isset( key ):
-			return self.profile[key]
-		return default
-	
-	#[Profile.besties()]: Object
-	def besties( self ):
-		
-		"""
-		Make besties or unbesties user.
+		Make bestie or unbestie user.
 		
 		:return Object
-			Besties result representation
-		:raises BestiesError
+			Bestie result representation
+		:raises BestieError
 			...
 		"""
 		
 		if  self.isMySelf:
-			raise BestiesError( "Unable to set yourself as a besties" )
+			raise BestieError( "Unable to set yourself as a bestie" )
 		if self.followedByViewer:
 			self.headers.update({
 				"Accept-Encoding": "gzip, deflate, br",
@@ -568,25 +533,25 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 				"remove": [],
 				"source": "profile"
 			}
-			if self.isBesties:
-				action = "Remove Besties"
+			if self.isBestie:
+				action = "Remove Bestie"
 				data['remove'].append( self.id )
 			else:
-				action = "Adding Besties"
+				action = "Adding Bestie"
 				data['add'].append( self.id )
 			request = self.request.post( "https://www.instagram.com/api/v1/friendships/set_besties/", json=data )
 			status = request.status_code
 			if status == 200:
 				response = request.json()
 				if "friendship_statuses" in response:
-					self.profile.is_besties = False if self.isBesties else True
+					self.profile.is_bestie = False if self.isBestie else True
 					return Object( response['friendship_statuses'] )
 				else:
-					raise BestiesError( response['message'] if "message" in response and response['message'] else f"Something wrong when {action} the {self.username}" )
+					raise BestieError( response['message'] if "message" in response and response['message'] else f"Something wrong when {action} the {self.username}" )
 			else:
 				self.throws( action, status )
 		else:
-			raise BestiesError( "Can't set user as besties before following" )
+			raise BestieError( "Can't set user as bestie before following" )
 	
 	#[Profile.block()]: Object
 	def block( self ):
@@ -723,12 +688,12 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			response = request.json()
 			if  "friendship_status" in response:
 				follow = response['friendship_status']
-				self.profile.requested_by_viewer = follow['outgoing_request']
+				self.profile.requested_by_viewer = follow['incoming_request']
 				self.profile.followed_by_viewer = follow['following']
 				self.profile.is_private = follow['is_private']
 				return Object({
 					"id": self.id,
-					"private": self.isPrivate,
+					"private": self.isPrivateAccount,
 					"username": self.username,
 					"following": self.followedByViewer,
 					"requested": self.requestedByViewer
