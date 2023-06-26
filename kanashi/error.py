@@ -73,8 +73,8 @@ class AuthError( Error ):
 	"""
 	
 
-#[kanashi.error.BestiesError]
-class BestiesError( Error ):
+#[kanashi.error.BestieError]
+class BestieError( Error ):
 	pass
 	
 
@@ -95,6 +95,31 @@ class FollowError( Error ):
 	Raise when there is an error while
 	following or unfollowing
 	"""
+	
+
+#[kanashi.error.LikeError]
+class LikeError( Error ):
+	pass
+	
+
+#[kanashi.error.CommentError]
+class CommentError( Error ):
+	pass
+	
+
+#[kanashi.error.RemoveError]
+class RemoveError( Error ):
+	pass
+	
+
+#[kanashi.error.MediaError]
+class MediaError( Error ):
+	pass
+	
+
+#[kanashi.error.MediaNotFoundError]
+class MediaNotFoundError( Error ):
+	pass
 	
 
 #[kanashi.error.ReportError]
@@ -166,6 +191,14 @@ class RequestError( Error ):
 	
 	"""
 	Raise when there is an error during request
+	"""
+	
+
+#[kanashi.error.RequestAuthError]
+class RequestAuthError( AuthError, RequestError ):
+	
+	"""
+	Raise when login authentication is required.
 	"""
 	
 
