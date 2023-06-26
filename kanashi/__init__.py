@@ -27,6 +27,7 @@ from kanashi.error import *
 from kanashi.endpoint import *
 from kanashi.kanashi import Kanashi
 from kanashi.main import Main
+from kanashi.media import Media, MediaCollection
 from kanashi.object import Object
 from kanashi.profile import Profile
 from kanashi.readonly import Readonly
