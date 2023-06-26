@@ -26,7 +26,7 @@ from kanashi.error import AuthError, BlockError, FavoriteError, FollowError, Rep
 from kanashi.object import Object
 from kanashi.readonly import Readonly
 from kanashi.request import RequestRequired
-from kanashi.utility import File
+from kanashi.utility import File, String
 
 
 #[kanashi.profile.ProfilePriperties]
@@ -42,7 +42,7 @@ class ProfileProperties:
 	
 	@property
 	def biographyFormat( self ):
-		return self.biographyRawText.replace( "\n", "\x0a\x20\x20\x20\x20" )
+		return "\x20\x20{}".format( self.biographyRawText.replace( "\n", "\x0a\x20\x20\x20\x20\x20\x20" ) )
 	
 	@property
 	def biographyEntities( self ):
@@ -52,21 +52,21 @@ class ProfileProperties:
 	def biographyEntitiesUser( self ):
 		users = []
 		entities = self.biographyEntities
-		for enitity in entities:
-			if user := entity.user:
+		for entity in entities:
+			if  user := entity.user:
 				users.append( user.username )
 		return users
 	
 	@property
 	def biographyEntitiesUserFormat( self ):
-		return "-\x20@".format( "\x0a\x20\x20\x20\x20-\x20@".join( self.biographyEntitiesUser ) )
+		return "-\x20@{}".format( "\x0a\x20\x20\x20\x20-\x20@".join( self.biographyEntitiesUser ) )
 	
 	@property
 	def biographyEntitiesHashtag( self ):
 		hashtags = []
 		entities = self.biographyEntities
 		for entity in entities:
-			if hashtag := entity.hashtag:
+			if  hashtag := entity.hashtag:
 				hashtags.append( hashtag.name )
 		return hashtags
 	
@@ -165,7 +165,7 @@ class ProfileProperties:
 			pass
 		name.append( f"({self.username})" )
 		if  self.isVerified:
-			name.append( "√" )
+			name.append( "\x1b[1;36m√\x1b[0m" )
 		return "\x20".join( name )
 	
 	@property
@@ -286,6 +286,10 @@ class ProfileProperties:
 #[kanashi.profile.Profile]
 class Profile( ProfileProperties, Readonly, RequestRequired ):
 	
+	#[Profile.ATTRIBUTES]
+	ATTRIBUTES = [
+	]
+	
 	#[Profile( Object viewer, Request request, Dict profile )]: None
 	def __init__( self, viewer, request, profile ):
 		
@@ -361,18 +365,18 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			val = prints[idx]
 			match val:
 				case "id":
-					prints[idx] = f"ID {self.id}"
+					prints[idx] = f"ID|PK {self.id}"
 				case "fullname":
 					prints[idx] = f"Fullname \x1b[1;37m{self.fullname}\x1b[0m"
 				case "username":
 					prints[idx] = f"Username \x1b[4m\x1b[1;38;5;189m{self.username}\x1b[0m"
 				case "pronouns":
-					prints[idx] = "\x0a\x20\x20\x20\x20....".join([ "- Pronouns", self.pronounsFormat if self.pronounsFormat else "None" ])
+					prints[idx] = "\x0a\x20\x20\x20\x20\x20\x20..\x20".join([ "- Pronouns", self.pronounsFormat if self.pronounsFormat else "None" ])
 				case "category":
 					if  self.isProfessionalAccount:
-						prints[idx] = "\x0a\x20\x20\x20\x20....".join([ "- Category", self.categoryName if self.categoryName else "None" ])
+						prints[idx] = "\x0a\x20\x20\x20\x20\x20\x20..\x20".join([ "- Category", self.categoryName if self.categoryName else "None" ])
 					else:
-						del prints[idx]
+						prints[idx] = "\x0a\x20\x20\x20\x20\x20\x20..\x20".join([ "- Category", "Not a Professional Account" ])
 				case "account":
 					account = []
 					if  self.isPrivateAccount:
@@ -382,20 +386,20 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 						if  self.isBusinessAccount:
 							account.append( "Business" )
 						if  self.isProfessionalAccount:
-							account.append( "Professional" )
-					prints[idx] = "\x0a\x20\x20\x20\x20....".join([ "- Account", "/".join( account ) ])
+							account.append( "\x20Professional" )
+					prints[idx] = "\x0a\x20\x20\x20\x20\x20\x20..\x20".join([ "- Account", "/".join( account ) ])
 				case "website":
 					prints[idx] = [ "- Website" ]
-					if self['bio_links']:
-						if "title" in self['bio_links'][0]:
+					if  self['bio_links']:
+						if  "title" in self['bio_links'][0]:
 							prints[idx].append( "Title {}".format( self['bio_links']['title'] ) )
 						prints[idx].append( self['bio_links'][0]['link_type'].capitalize() )
 						prints[idx].append( "\x1b[1;38;5;81m{}\x1b[0m".format( self['bio_links'][0]['url'] ) )
 					else:
 						prints[idx].append( "None" )
-					prints[idx] = "\x0a\x20\x20\x20\x20....".join( prints[idx] )
+					prints[idx] = "\x0a\x20\x20\x20\x20\x20\x20..\x20".join( prints[idx] )
 				case "biography":
-					if  self.biography != "":
+					if  self.biography:
 						prints[idx] = "\x0a\x20\x20\x20\x20".join([
 							"----------------------------------------",
 							"- Biography",
@@ -521,7 +525,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		
 		if  self.isMySelf:
 			raise BestieError( "Unable to set yourself as a bestie" )
-		if self.followedByViewer:
+		if  self.followedByViewer:
 			self.headers.update({
 				"Accept-Encoding": "gzip, deflate, br",
 				"Content-Type": "application/json",
@@ -533,7 +537,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 				"remove": [],
 				"source": "profile"
 			}
-			if self.isBestie:
+			if  self.isBestie:
 				action = "Remove Bestie"
 				data['remove'].append( self.id )
 			else:
@@ -541,9 +545,9 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 				data['add'].append( self.id )
 			request = self.request.post( "https://www.instagram.com/api/v1/friendships/set_besties/", json=data )
 			status = request.status_code
-			if status == 200:
+			if  status == 200:
 				response = request.json()
-				if "friendship_statuses" in response:
+				if  "friendship_statuses" in response:
 					self.profile.is_bestie = False if self.isBestie else True
 					return Object( response['friendship_statuses'] )
 				else:
@@ -624,7 +628,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 				"Referer": "https://www.instagram.com/{}/".format( self.username )
 			})
 			data = { "source": "profile" }
-			if self.isFeedFavorite:
+			if  self.isFeedFavorite:
 				action = "Remove favorite"
 				data['remove'] = [ self.id ]
 			else:
@@ -727,7 +731,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			...
 		"""
 		
-		if self.isMySelf:
+		if  self.isMySelf:
 			raise RestrictError( "Unable to restrict or unrestrict yourself" )
 		self.headers.update({
 			"Accept-Encoding": "gzip, deflate, br",
@@ -735,7 +739,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			"Origin": "https://www.instagram.com",
 			"Referer": "https://www.instagram.com/{}/".format( self.username )
 		})
-		if self.restrictedByViewer:
+		if  self.restrictedByViewer:
 			action = "Restrict"
 			target = "https://www.instagram.com/api/v1/web/restrict_action/restrict/"
 		else:
@@ -759,8 +763,8 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			self.throws( action, status )
 		pass
 	
-	#[Profile.profilePictureSave()]: Object
-	def profilePictureSave( self ):
+	#[Profile.profilePictureSave( String name k)]: Object
+	def profilePictureSave( self, name=None ):
 		
 		"""
 		Download profile picture user.
@@ -769,7 +773,11 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			Download result represent
 		"""
 		
-		pass
+		if not isinstance( name, str ):
+			if random:
+				name = String.random( 32 )
+			else:
+				name = "{} ({})".format( self.fullname, self.username )
 	
 	#[Profile.throws( String action, int status )]: None
 	def throws( self, action, status ):
@@ -792,8 +800,6 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		"""
 		
 		match status:
-			case 401:
-				raise AuthError( f"Failed to {action}, because the credential is invalid, status 401" )
 			case 404:
 				raise UserNotFoundError( f"Target \"{self.username}\" user not found" )
 			case _:
