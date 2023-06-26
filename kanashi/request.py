@@ -340,14 +340,14 @@ class Request( Readonly ):
 		try:
 			self.response = self.session.request( method, url=url, **kwargs )
 			self.historySave()
-			if self.response.status_code == 401:
-				raise RequestAuthError( "Login authentication is required" )
-			return self.response
 		except Exception as e:
 			raise RequestError(**{
 				"message": "There was an error sending the request",
 				"prev": self.error( e )
 			})
+		if self.response.status_code == 401:
+			raise RequestAuthError( "Login authentication is required" )
+		return self.response
 	
 
 #[kanashi.request.RequestRequired]
