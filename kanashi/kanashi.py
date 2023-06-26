@@ -37,15 +37,15 @@ class Kanashi( Readonly ):
 	def __init__( self, active=None, client=None, config=None ):
 		
 		# Resolve if Client active is not available.
-		if not isinstance( active, Object ):
+		if  not isinstance( active, Object ):
 			active = self.__create()
 		
 		# Resolve if Client instance is not available.
-		if not isinstance( client, Client ):
+		if  not isinstance( client, Client ):
 			client = Client()
 		
 		# Resolve if Config instance is not available.
-		if not isinstance( config, Config ):
+		if  not isinstance( config, Config ):
 			config = Config()
 			try:
 				config.load()
@@ -178,7 +178,7 @@ class Kanashi( Readonly ):
 			
 			# Set account as default login.
 			self.active.set( signin.result )
-			self.settings.signin.active = signin.result.username
+			self.settings.signin.active = signin.result.username if signin.result.username else signin.result.id
 			self.settings.signin.switch[signin.result.username] = signin.result.copy()
 			self.setupable()
 		
@@ -210,7 +210,7 @@ class Kanashi( Readonly ):
 					"csrftoken": user.session.csrftoken
 				})
 				self.config.save()
-			except AuthError as e:
+			except RequestAuthError as e:
 				if  user.username == self.active.username:
 					self.active = None
 					self.active = self.__create()
