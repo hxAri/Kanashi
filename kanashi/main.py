@@ -240,20 +240,6 @@ class Main( Utility, RequestRequired ):
 	#[Main.main()]: None
 	def main( self ):
 		
-		return self.profile(
-			profile=Profile(
-				request=self.request,
-				profile={
-					**self.request.history[-2]['response']['content']['graphql']['user'],
-					**self.request.history[-1]['response']['content']
-				},
-				viewer=Object({
-					"id": self.active.id,
-					"username": self.active.username
-				})
-			)
-		)
-		
 		outputs = []
 		options = []
 		
@@ -486,6 +472,14 @@ class Main( Utility, RequestRequired ):
 							"Unrequest User"
 						]
 					},
+					"remove": {
+						"action": lambda: self.removeFollower( profile ),
+						"filter": profile.followsViewer,
+						"output": "Remove Follower",
+						"prints": [
+							"Remove this follower from list"
+						],
+					},
 					"report": {
 						"avoid": True,
 						"action": lambda: self.report( profile ),
@@ -588,6 +582,12 @@ class Main( Utility, RequestRequired ):
 						self.tryAgain( next=data['action'], other=lambda: self.profile( profile=profile ) )
 					else:
 						self.previous( lambda: self.profile( profile=profile ), ">>>" )
+	
+	#[Main.removeFollower( Profile profile )]: None
+	def removeFollower( self, profile ):
+		if  not isinstance( profile, Profile ):
+			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
+		pass
 	
 	#[Main.report( Profile profile )]: None
 	def report( self, profile ):
