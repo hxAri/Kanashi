@@ -56,7 +56,7 @@ class Client( RequestRequired ):
 		:return None
 		"""
 		
-		if not isinstance( request, Request ):
+		if  not isinstance( request, Request ):
 			request = Request()
 		
 		# Instances of class from Request
@@ -126,16 +126,13 @@ class Client( RequestRequired ):
 					"subscribed"
 				]
 				for key in dropkeys:
-					if key in response:
+					if  key in response:
 						results[key] = response[key]
 				return results
-			case 401:
-				raise AuthError( "Failed to get user info, because the credential is invalid, status 401", throw=self )
 			case 404:
 				raise UserNotFoundError( f"Target \"{username}\" user not found" )
 			case _:
 				raise UserError( f"An error occurred while fetching the user [{status}]" )
-		
 	
 	#[Client.logout()]: Object
 	def logout( self ):
@@ -147,6 +144,25 @@ class Client( RequestRequired ):
 			Representation of logout results
 		"""
 		
+		pass
+	
+	#[Client.mediaById( Int id )]: Media
+	def mediaById( self, id ):
+		if not isinstance( id, int ):
+			if match( r"^\d+$", f"{id}" ) is None:
+				raise ValueError( "Invalid id prameter, value must be type int or valid numeric" )
+		
+		# Update request headers.
+		self.headers.update({
+			"Origin": "https://www.instagram.com",
+			"Referer": "https://www.instagram.com/explore/"
+		})
+		
+		# Trying to get media by id.
+		request = self.request.get( f"https://www.instagram.com/api/v1/media/{id}/info/" )
+		print( request )
+	
+	def mediaByUrl( self, url ):
 		pass
 	
 	#[Client.profile( String username, Int id, Bool cache, Bool friendship )]: Profile
@@ -197,8 +213,6 @@ class Client( RequestRequired ):
 						return self.profile( username=profile['user']['username'] )
 					else:
 						raise UserError( f"Target \"{id}\" user found but user data not available" )
-				case 401:
-					raise AuthError( "Failed to get user info, because the credential is invalid, status 401", throw=self )
 				case 404:
 					raise UserNotFoundError( f"Target \"{id}\" user not found" )
 				case _:
@@ -208,7 +222,7 @@ class Client( RequestRequired ):
 		elif isinstance( username, str ):
 			
 			# If cache is allowed.
-			if cache:
+			if  cache:
 				find = findall( r"^r\:([^\n]+)$", username )
 				pass
 			
@@ -228,7 +242,7 @@ class Client( RequestRequired ):
 					if  "graphql" in response:
 						profile = response['graphql']['user']
 					if  profile:
-						if friendship:
+						if  friendship:
 							sleep( 1.2 )
 							friendship = self.friendship( profile['id'], profile['username'] )
 							profile = {
@@ -245,8 +259,6 @@ class Client( RequestRequired ):
 						)
 					else:
 						raise UserError( f"Target \"{username}\" user found but user data not available" )
-				case 401:
-					raise AuthError( "Failed to get user info, because the credential is invalid, status 401", throw=self )
 				case 404:
 					raise UserNotFoundError( f"Target \"{username}\" user not found" )
 				case _:
@@ -336,11 +348,11 @@ class Client( RequestRequired ):
 				if  "ds_user_id" in cookies or \
 					"sessionid" in cookies or \
 					"csrftoken" in cookies:
-					if "user" in response:
-						if isinstance( response['user'], dict ):
-							if "username" in response['user']:
+					if  "user" in response:
+						if  isinstance( response['user'], dict ):
+							if  "username" in response['user']:
 								username = response['user']['username']
-							if "full_name" in response['user']:
+							if  "full_name" in response['user']:
 								result.set({ "signin": { "fullname": reponse['user']['full_name'] } })
 					result.set({
 						"remember": True,
@@ -461,4 +473,8 @@ class Client( RequestRequired ):
 			})
 			
 		return result
+	
+	#[Client.verify()]: Object
+	def verify( self ):
+		pass
 	
