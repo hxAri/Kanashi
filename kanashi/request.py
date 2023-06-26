@@ -26,7 +26,7 @@ from datetime import datetime, timedelta
 from re import match
 from requests import Session
 
-from kanashi.error import RequestError, RequestDownloadError
+from kanashi.error import RequestError, RequestAuthError, RequestDownloadError
 from kanashi.object import Object
 from kanashi.readonly import Readonly
 from kanashi.utility.file import File
@@ -335,11 +335,13 @@ class Request( Readonly ):
 		self.previous = self.response
 		self.response = None
 		
-		#if  "timeout" not in kwargs:
-		#	kwargs['timeout'] = self.timeout
+		if  "timeout" not in kwargs:
+			kwargs['timeout'] = self.timeout
 		try:
 			self.response = self.session.request( method, url=url, **kwargs )
 			self.historySave()
+			if self.response.status_code == 401:
+				raise RequestAuthError( "Login authentication is required" )
 			return self.response
 		except Exception as e:
 			raise RequestError(**{
