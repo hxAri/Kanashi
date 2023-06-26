@@ -182,7 +182,7 @@ class Main( Utility, RequestRequired ):
 	def favorite( self, profile ):
 		if  not isinstance( profile, Profile ):
 			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
-		if profile.isFeedFavorite:
+		if  profile.isFeedFavorite:
 			action = "Remove favorite"
 		else:
 			action = "Make favorite"
@@ -240,13 +240,12 @@ class Main( Utility, RequestRequired ):
 	#[Main.main()]: None
 	def main( self ):
 		
-		"""
 		return self.profile(
 			profile=Profile(
 				request=self.request,
 				profile={
-					**self.request.history[0]['content']['graphql']['user'],
-					**self.request.history[1]['content']
+					**self.request.history[-2]['response']['content']['graphql']['user'],
+					**self.request.history[-1]['response']['content']
 				},
 				viewer=Object({
 					"id": self.active.id,
@@ -254,7 +253,6 @@ class Main( Utility, RequestRequired ):
 				})
 			)
 		)
-		"""
 		
 		outputs = []
 		options = []
@@ -422,11 +420,13 @@ class Main( Utility, RequestRequired ):
 					profile = self.thread( f"Retrieve user info {username}", lambda: self.kanashi.client.profile( username=username, friendship=True ) )
 				except Exception as e:
 					self.emit( e )
-					if  isinstance( e, AuthError ):
+					if  isinstance( e, AuthError ) or \
+						isinstance( e, RequestAuthError ):
 						pass
 					if  isinstance( e, UserError ):
 						self.tryAgain( next=self.profile, other=self.main )
-					if  isinstance( e, RequestError ):
+					if  isinstance( e, RequestError ) and not \
+						isinstance( e, RequestAuthError ):
 						self.tryAgain( next=self.profile, other=self.main, username=username )
 					else:
 						self.previous( self.main, ">>>" )
@@ -511,6 +511,7 @@ class Main( Utility, RequestRequired ):
 					},
 					"follows": {
 						"action": lambda: self.follows( profile ),
+						"filter": profile.isPrivateAccount and profile.followedByViewer or profile.isPrivateAccount is False or profile.isMySelf,
 						"output": "Profile Follows",
 						"prints": [
 							"Gets user followers, following or mutuals"
@@ -525,9 +526,17 @@ class Main( Utility, RequestRequired ):
 					},
 					"medias": {
 						"action": lambda: self.medias( profile=profile ),
+						"filter": profile.isPrivateAccount and profile.followedByViewer or profile.isPrivateAccount is False or profile.isMySelf,
 						"output": "Profile Media",
 						"prints": [
 							"Gets media posts, reels, saveds, etc"
+						]
+					},
+					"picture": {
+						"action": lambda: 0,
+						"output": "Profile Picture",
+						"prints": [
+							"Download profile picture"
 						]
 					},
 					"export": {
@@ -561,6 +570,9 @@ class Main( Utility, RequestRequired ):
 								output = output[1 if action['filter'] else 0]
 							else:
 								continue
+						elif "filter" in action:
+							if  action['filter'] is False:
+								continue
 						outputs.append( output )
 					options.append( option )
 					if  "prints" in action:
@@ -572,7 +584,7 @@ class Main( Utility, RequestRequired ):
 				except ProfileError as e:
 					self.emit( e.prev )
 					data = e.data
-					if "action" in data and callable( data['action'] ):
+					if  "action" in data and callable( data['action'] ):
 						self.tryAgain( next=data['action'], other=lambda: self.profile( profile=profile ) )
 					else:
 						self.previous( lambda: self.profile( profile=profile ), ">>>" )
@@ -695,11 +707,16 @@ class Main( Utility, RequestRequired ):
 			request = self.request.previously( "5m" )
 			if  len( request ) >= 1:
 				for history in request:
-					if  history['target'] == "https://www.instagram.com/accounts/login/ajax/" and \
-						"two_factor_required" in history['content'] and \
-						"two_factor_info" in history['content']:
-						return
-				outputs = [
+					if  history['target'] == "https://www.instagram.com/accounts/login/ajax/":
+						response = history['response']['content']
+						if  "two_factor_required" in response and \
+							"two_factor_info" in response:
+							
+							return
+						pass
+					pass
+				output = [
+					"",
 					"There is no history of login requests",
 					"that provide two-factor verification data responses"
 				]
@@ -720,17 +737,17 @@ class Main( Utility, RequestRequired ):
 						"provides a feature to save login info, you can",
 						"also log out at any time"
 					]
-					if signin.remember:
+					if  signin.remember:
 						output = [ "", "Your login information is still valid", *output ]
 					self.active = self.kanashi.active
 					self.output( self, output )
 					save = self.input( "Save login info [Y/n]", default=[ "Y", "y", "N", "n" ] )
-					if save.upper() == "Y":
+					if  save.upper() == "Y":
 						self.configSave()
 					self.main()
 				elif signin.two_factor:
 					print( f"TwoFactor: {signin.two_factor}" )
-					
+					self.previous( self.close, ">>>" )
 				elif signin.checkpoint:
 					print( f"Checkpoint: {signin.checkpoint}" )
 					self.previous( self.close, ">>>" )
@@ -746,7 +763,8 @@ class Main( Utility, RequestRequired ):
 			except Exception as e:
 				self.emit( e )
 				if  isinstance( e, UserError ) or \
-					isinstance( e, RequestError ):
+					isinstance( e, RequestError ) and not \
+					isinstance( e, RequestAuthError ):
 					params = {
 						"next": self.signin,
 						"other": self.main,
@@ -763,12 +781,14 @@ class Main( Utility, RequestRequired ):
 					if  isinstance( e, UserNotFoundError ):
 						del params['username']
 						del params['password']
-					if  isinstance( e, RequestError ) or \
+					if  isinstance( e, RequestError ) and not \
+						isinstance( e, RequestAuthError ) or \
 						isinstance( e, PasswordError ) or \
 						isinstance( e, UserNotFoundError ):
 						self.tryAgain( **params )
 						return
-				if  isinstance( e, AuthError ):
+				if  isinstance( e, AuthError ) or \
+					isinstance( e, RequestAuthError ):
 					pass
 				self.tryAgain( next=self.signin, other=self.main, ask=False, flag=flag )
 		else:
@@ -818,14 +838,17 @@ class Main( Utility, RequestRequired ):
 						self.tryAgain( next=self.configSave, other=self.main )
 					else:
 						self.emit( e )
-						if  isinstance( e, RequestError ):
+						if  isinstance( e, RequestError ) and not \
+							isinstance( e, RequestAuthError ):
 							self.tryAgain( next=self.switch, other=self.main, select=select, ask=False )
 						else:
 							self.input( ">>>", default="" )
-							if  isinstance( e, AuthError ):
+							if  isinstance( e, AuthError ) or \
+								isinstance( e, RequestAuthError ):
 								self.close( self )
 							else:
 								self.switch( ask=False )
+				pass
 			else:
 				self.main()
 		else:
