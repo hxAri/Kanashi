@@ -22,6 +22,7 @@
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
 
+from kanashi.config import Config
 from kanashi.error import AuthError, BlockError, FavoriteError, FollowError, ReportError, RestrictError, UserError, UserNotFoundError
 from kanashi.object import Object
 from kanashi.readonly import Readonly
@@ -49,7 +50,7 @@ class ProfileProperties:
 		return self.profile.biography_with_entities.entities
 	
 	@property
-	def biographyEntitiesUser( self ):
+	def biographyEntityUsers( self ):
 		users = []
 		entities = self.biographyEntities
 		for entity in entities:
@@ -58,11 +59,11 @@ class ProfileProperties:
 		return users
 	
 	@property
-	def biographyEntitiesUserFormat( self ):
-		return "-\x20@{}".format( "\x0a\x20\x20\x20\x20-\x20@".join( self.biographyEntitiesUser ) )
+	def biographyEntityUsersFormat( self ):
+		return "-\x20@{}".format( "\x0a\x20\x20\x20\x20-\x20@".join( self.biographyEntityUsers ) )
 	
 	@property
-	def biographyEntitiesHashtag( self ):
+	def biographyEntityHashtags( self ):
 		hashtags = []
 		entities = self.biographyEntities
 		for entity in entities:
@@ -71,8 +72,8 @@ class ProfileProperties:
 		return hashtags
 	
 	@property
-	def biographyEntitiesHashtagFormat( self ):
-		return "-\x20#{}".format( "\x0a\x20\x20\x20\x20-\x20#".join( self.biographyEntitiesHashtag ) )
+	def biographyEntityHashtagsFormat( self ):
+		return "-\x20#{}".format( "\x0a\x20\x20\x20\x20-\x20#".join( self.biographyEntityHashtags ) )
 	
 	@property
 	def biographyRawText( self ):
@@ -267,6 +268,10 @@ class ProfileProperties:
 		return ""
 	
 	@property
+	def requestedFollow( self ):
+		return self.profile.incoming_request
+	
+	@property
 	def requestedByViewer( self ):
 		return self.profile.requested_by_viewer
 	
@@ -369,7 +374,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 				case "fullname":
 					prints[idx] = f"Fullname \x1b[1;37m{self.fullname}\x1b[0m"
 				case "username":
-					prints[idx] = f"Username \x1b[4m\x1b[1;38;5;189m{self.username}\x1b[0m"
+					prints[idx] = f"Username \x1b[1;38;5;189m{self.username}\x1b[0m"
 				case "pronouns":
 					prints[idx] = "\x0a\x20\x20\x20\x20\x20\x20..\x20".join([ "- Pronouns", self.pronounsFormat if self.pronounsFormat else "None" ])
 				case "category":
@@ -410,11 +415,11 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 							"----------------------------------------",
 							"- Biography Entitity Users",
 							"----------------------------------------",
-							"{}".format( self.biographyEntitiesUserFormat ),
+							"{}".format( self.biographyEntityUsersFormat if self.biographyEntityUsers else "- None" ),
 							"----------------------------------------",
 							"- Biography Entitity Hashtags",
 							"----------------------------------------",
-							"{}".format( self.biographyEntitiesHashtagFormat ),
+							"{}".format( self.biographyEntityHashtagsFormat if self.biographyEntityHashtags else "- None" ),
 							"----------------------------------------"
 						])
 					else:
@@ -472,6 +477,8 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 						follow = []
 						if  self.followsViewer:
 							follow.append( "- This user is following your account" )
+						elif self.requestedFollow:
+							follow.append( "- This user is requested follow your account" )
 						else:
 							follow.append( "- This user is not following your account" )
 						if  self.followedByViewer:
@@ -485,7 +492,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 					prints[idx] = "\x0a\x20\x20\x20\x20".join([
 						"----------------------------------------",
 						"┌───────┬───────┬────────┬─────────────┐",
-						"│ Posts │ Reels │ Saveds │ Collections │",
+						"│ Posts │ Felix │ Saveds │ Collections │",
 						"├───────┼───────┼────────┼─────────────┤",
 						"│ {} │ {} │ {} │ {} │",
 						"└───────┴───────┴────────┴─────────────┘",
@@ -599,12 +606,47 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		else:
 			self.throws( action, status )
 	
+	#[Profile.confirm( Bool follow )]:
+	def confirm( follow ):
+		
+		"""
+		Confirm or ignore request follow from user.
+		"""
+		
+		if not self.requestedFollow:
+			raise ProfileError( "This user does not sent request to follow your account" )
+		else:
+			pass
+	
 	#[Profile.export( String fname )]: None
 	def export( self, fname=None ):
+		
+		"""
+		Export profile info.
+		
+		:params String fname
+			File name to save
+			By default, Kanashī will save it in
+			the ~/onsaved/exports/profile/ folder. To change
+			it, please add a slash (/) before the filename,
+			e.g /sdcard/path/filename without the file extension .json
+		
+		:return None
+		:raise ProfileError
+			When failed export profile info
+		"""
+		
 		if  not isinstance( fname, str ):
 			fname = self.username
-		fdata = self.profile.dict()
-		pass
+		fdata = self.profile.json()
+		if fname[0] != "/":
+			fname = Config.ONSAVED['export']['profile'].format( fname )
+		else:
+			fname = "{}.json".format( fname )
+		try:
+			File.write( fname, fdata )
+		except Exception as e:
+			raise ProfileError( "Failed to export profile info", prev=e )
 	
 	#[Profile.favorite()]: Object
 	def favorite( self ):
@@ -692,7 +734,9 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			response = request.json()
 			if  "friendship_status" in response:
 				follow = response['friendship_status']
-				self.profile.requested_by_viewer = follow['incoming_request']
+				self.profile.requested_by_viewer = follow['outgoing_request']
+				self.profile.outgoing_request = follow['outgoing_request']
+				self.profile.incoming_request = follow['incoming_request']
 				self.profile.followed_by_viewer = follow['following']
 				self.profile.is_private = follow['is_private']
 				return Object({
@@ -706,6 +750,18 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 				raise FollowError( response['message'] if "message" in response and response['message'] else f"Something wrong when {action} the {self.username}" )
 		else:
 			self.throws( action, status )
+	
+	#[Profile.remove()]: Object
+	def remove( self ):
+		
+		"""
+		Remove user from followers.
+		"""
+		
+		if not self.followsViewer:
+			raise ProfileError( "This user does not following your account" )
+		else:
+			pass
 	
 	#[Profile.report( Dict|Object options )]: Object
 	def report( self, options ):
