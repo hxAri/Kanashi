@@ -90,13 +90,25 @@ class Client( RequestRequired ):
 			raise CsrftokenError( "Csrftoken prelogin is not available" )
 		pass
 	
-	#[Client.friendship( Int id, String username )]: Object
-	def friendship( self, id, username ):
+	#[Client.friendship( Int id )]: Object
+	def friendship( self, id ):
+		
+		"""
+		Get user friendship info.
+		
+		:params Int id
+			User id
+		
+		return Object
+			Representation of friendship results
+		"""
+		
+		self.sleep()
 		
 		# Update request headers.
 		self.headers.update( **{
 			"Origin": "https://www.instagram.com",
-			"Referer": f"https://www.instagram.com/{username}/"
+			"Referer": "https://www.instagram.com/"
 		})
 		
 		# Trying to restrieve user friendship.
@@ -104,35 +116,38 @@ class Client( RequestRequired ):
 		status = request.status_code
 		match status:
 			case 200:
-				results = Object({})
 				response = request.json()
-				dropkeys = [
-					"blocking",
-					"followed_by",
-					"following",
-					"incoming_request",
-					"is_bestie",
-					"is_blocking_reel",
-					"is_eligible_to_subscribe",
-					"is_feed_favorite",
-					"is_guardian_of_viewer",
-					"is_muting_notes",
-					"is_muting_reel",
-					"is_private",
-					"is_restricted",
-					"is_supervised_by_viewer",
-					"muting",
-					"outgoing_request",
-					"subscribed"
-				]
-				for key in dropkeys:
-					if  key in response:
-						results[key] = response[key]
-				return results
+				if  "status" in response and response['status'] == "ok":
+					results = Object({})
+					dropkeys = [
+						"blocking",
+						"followed_by",
+						"following",
+						"incoming_request",
+						"is_bestie",
+						"is_blocking_reel",
+						"is_eligible_to_subscribe",
+						"is_feed_favorite",
+						"is_guardian_of_viewer",
+						"is_muting_notes",
+						"is_muting_reel",
+						"is_private",
+						"is_restricted",
+						"is_supervised_by_viewer",
+						"muting",
+						"outgoing_request",
+						"subscribed"
+					]
+					for key in dropkeys:
+						if  key in response:
+							results[key] = response[key]
+					return results
+				else:
+					raise FriendshipError( response['message'] if "message" in response and response['message'] else "There was an error when getting friendship info" )
 			case 404:
-				raise UserNotFoundError( f"Target \"{username}\" user not found" )
+				raise UserNotFoundError( f"Target \"{id}\" user not found" )
 			case _:
-				raise UserError( f"An error occurred while fetching the user [{status}]" )
+				raise FriendshipError( f"An error occurred while fetching the friendship [{status}]" )
 	
 	#[Client.logout()]: Object
 	def logout( self ):
@@ -148,8 +163,8 @@ class Client( RequestRequired ):
 	
 	#[Client.mediaById( Int id )]: Media
 	def mediaById( self, id ):
-		if not isinstance( id, int ):
-			if match( r"^\d+$", f"{id}" ) is None:
+		if  not isinstance( id, int ):
+			if  match( r"^\d+$", f"{id}" ) is None:
 				raise ValueError( "Invalid id prameter, value must be type int or valid numeric" )
 		
 		# Update request headers.
@@ -165,36 +180,52 @@ class Client( RequestRequired ):
 	def mediaByUrl( self, url ):
 		pass
 	
-	#[Client.profile( String username, Int id, Bool cache, Bool friendship )]: Profile
-	def profile( self, username=None, id=None, cache=False, friendship=False ):
+	#[Client.profile( Int id, String url, String username )]: Profile
+	def profile( self, id=None, url=None, username=None ):
 		
 		"""
-		Return user profile information.
+		Return user profile information by id|url|username
 		
-		:params String username
-			Retrieve user profile by username
 		:params Int id
-			Retrieve user profile by user id
-		:params Bool cache
-			Retrieve users from the previous government
-		:params Bool frindship
-			Include retrieve user friendship
+			Get profile info by id
+		:params String url
+			Get profile info by url string
+		:params String username
+			Get profile info by username
 		
 		:return Profile
 			Information about the user profile
-		:raises AuthError
-			When an error occurs while fetching data
+		:raises TypeError
+			When the id is invalid numeric string
+			When the url is invalid url string
 		:raises UserError
-			When user profile is not available
+			When the user data does not available
+			When there are unexpected error found
 		:raises UserNotFoundError
-			When the username is not found
+			When the user not found
 		:raises ValueError
-			When username and id are empty
+			When the id|url|username is empty
 		"""
 		
-		# Retrieve user information using id
-		if  isinstance( id, int ) or \
-			isinstance( id, str ):
+		#[profileById( Int id )]: Dict
+		def profileById( self, id ):
+			
+			"""
+			Get user info by id.
+			
+			:params Int id
+				User id profile
+			
+			:return Dict
+				Profile info
+			:raises UserError
+				When the user data does not available
+				When there are unexpected error found
+			:raises UserNotFoundError
+				When the user not found
+			"""
+			
+			self.sleep()
 			
 			# Update request headers.
 			self.headers.update({
@@ -203,28 +234,40 @@ class Client( RequestRequired ):
 			})
 			
 			# Trying to retrieve user info.
-			request = self.request.get( f"https://i.instagram.com/api/v1/users/{id}/info/" )
+			request = self.request.get( f"https://i.instagram.com/api/v1/users/{id}/info/?profile_picture=true" )
 			status = request.status_code
 			match status:
 				case 200:
-					profile = request.json()
-					if  profile['user']['username'] != "":
-						sleep( 1.6 )
-						return self.profile( username=profile['user']['username'] )
+					response = request.json()
+					if  "user" in response and response['user'] and \
+						"username" in response['user'] and response['user']['username']:
+						return response['user']
 					else:
 						raise UserError( f"Target \"{id}\" user found but user data not available" )
 				case 404:
 					raise UserNotFoundError( f"Target \"{id}\" user not found" )
 				case _:
 					raise UserError( f"An error occurred while fetching the user [{status}]" )
+		
+		#[profileByUsername( String username )]: Dict
+		def profileByUsername( self, username ):
 			
-		# Retrieve user information using username.
-		elif isinstance( username, str ):
+			"""
+			Get user info by username.
 			
-			# If cache is allowed.
-			if  cache:
-				find = findall( r"^r\:([^\n]+)$", username )
-				pass
+			:params String username
+				Username profile
+			
+			:return Dict
+				Profile info
+			:raises UserError
+				When the user data does not available
+				When there are unexpected error found
+			:raises UserNotFoundError
+				When the user not found
+			"""
+			
+			self.sleep()
 			
 			# Update request headers.
 			self.headers.update({
@@ -240,32 +283,59 @@ class Client( RequestRequired ):
 					response = request.json()
 					profile = None
 					if  "graphql" in response:
-						profile = response['graphql']['user']
-					if  profile:
-						if  friendship:
-							sleep( 1.2 )
-							friendship = self.friendship( profile['id'], profile['username'] )
-							profile = {
-								**profile,
-								**friendship.dict()
-							}
-						return Profile(
-							request=self.request,
-							profile=profile,
-							viewer=Object({
-								"id": self.id,
-								"username": self.username
-							})
-						)
+						return response['graphql']['user']
 					else:
 						raise UserError( f"Target \"{username}\" user found but user data not available" )
 				case 404:
 					raise UserNotFoundError( f"Target \"{username}\" user not found" )
 				case _:
 					raise UserError( f"An error occurred while fetching the user [{status}]" )
+		
+		if  not isinstance( id, int ) and \
+			not isinstance( id, str ) and \
+			not isinstance( url, str ) and \
+			not isinstance( username, str ):
+			raise ValueError( "id|url|username required" )
+		
+		if  isinstance( id, str ):
+			if  not match( r"^[1-9][0-9]{10,12}", id ):
+				raise TypeError( "Invalid id value, id must be int or valid numeric string" )
+			id = int( id )
+			username = None
+		if  isinstance( id, int ):
+			profile = profileById( self, id )
+			profile = {
+				**profile,
+				**profileByUsername( self, profile['username'] )
+			}
+		if  isinstance( url, str ):
+			if  valid := match( r"^https?\:/{2}(?:www\.)instagram\.com\/(?P<username>[a-zA-Z0-9_\.]{1,30})\/{0,1}(?:\?[^\n]+)?$", url ):
+				username = valid.group( "username" )
+			else:
+				raise TypeError( "Invalid url parameter, value must be valid profle url string" )
+		if  isinstance( username, str ):
+			profile = profileByUsername( self, username )
+			profile = {
+				**profile,
+				**profileById( self, profile['id'] )
+			}
+		if  self.id != profile['id']:
+			friendship = self.friendship( profile['id'] )
+			friendship.dict()
 		else:
-			raise ValueError( "Username or ID cannot be empty" )
-		pass
+			friendship = {}
+		
+		return Profile(
+			request=self.request,
+			profile={
+				**profile,
+				**friendship
+			},
+			viewer=Object({
+				"id": self.id,
+				"username": self.username
+			})
+		)
 	
 	#[Client.signin( String username, String password, String csrftoken, Object|String|Dict cookies, String browser )]: Object
 	def signin( self, username, password, csrftoken=None, cookies=None, browser=None ):
@@ -473,6 +543,25 @@ class Client( RequestRequired ):
 			})
 			
 		return result
+	
+	#[Client.sleep( Int delay )]: None
+	def sleep( self, delay=1.6 ):
+		
+		"""
+		Delay for avoid SPAM or Block from request.
+		
+		:params Int delay
+			Time to sleep, delay must be >=1.4s
+		
+		:return None
+		:raises ValueError
+			When delay is less than one or equal one
+		"""
+		
+		if  delay >= 1.4:
+			sleep( delay )
+		else:
+			raise ValueError( "Delay must be greater or equals >=1.4s" )
 	
 	#[Client.verify()]: Object
 	def verify( self ):
