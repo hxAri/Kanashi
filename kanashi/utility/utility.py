@@ -61,15 +61,16 @@ class Utility:
 				"colorize": "\x1b[1;38;5;61m{}{}"
 			},
 			"define": {
-				"pattern": r"(?P<define>(?:@|\$)[a-zA-Z0-9_-]+)",
+				"handler": lambda match: re.sub( r"(\.|\-){1,}", lambda m: "\x1b[1;38;5;69m{}\x1b[1;38;5;111m".format( m.group() ), match.group( 0 ) ),
+				"pattern": r"(?P<define>(?:@|\$)[a-zA-Z0-9_\-\.]+)",
 				"colorize": "\x1b[1;38;5;111m{}{}"
 			},
 			"symbol": {
-				"pattern": r"(?P<symbol>\\|\:|\*|-|\+|/|&|%|=|\;|,|\.|\?|\!|\||<|>)",
+				"pattern": r"(?P<symbol>\\|\:|\*|-|\+|/|&|%|=|\;|,|\.|\?|\!|\||<|>|\~){1,}",
 				"colorize": "\x1b[1;38;5;69m{}{}"
 			},
 			"bracket": {
-				"pattern": r"(?P<bracket>\{|\}|\[|\]|\(|\))",
+				"pattern": r"(?P<bracket>\{|\}|\[|\]|\(|\)){1,}",
 				"colorize": "\x1b[1;38;5;214m{}{}"
 			},
 			"boolean": {
@@ -81,9 +82,9 @@ class Utility:
 				"colorize": "\x1b[1;38;5;213m{}{}"
 			},
 			"version": {
+				"handler": lambda match: re.sub( r"([\d\.]+)", lambda m: "\x1b[1;38;5;190m{}\x1b[1;38;5;112m".format( m.group() ), match.group( 0 ) ),
 				"pattern": r"(?P<version>\b[vV][\d\.]+\b)",
-				"colorize": "\x1b[1;38;5;112m{}{}",
-				"handler": lambda match: re.sub( r"([\d\.]+)", lambda m: "\x1b[1;38;5;190m{}\x1b[1;38;5;112m".format( m.group() ), match.group( 0 ) )
+				"colorize": "\x1b[1;38;5;112m{}{}"
 			},
 			"kanashi": {
 				"pattern": r"(?P<kanashi>\b(?:[kK]anash[i|ī])\b)",
@@ -94,9 +95,9 @@ class Utility:
 				"colorize": "\x1b[1;38;5;250m{}{}"
 			},
 			"string": {
+				"handler": lambda match: re.sub( r"(?<!\\)(\\\"|\\\'|\\`|\\r|\\t|\\n|\\s)", lambda m: "\x1b[1;38;5;208m{}\x1b[1;38;5;220m".format( m.group() ), match.group( 0 ) ),
 				"pattern": r"(?P<string>(?<!\\)(\".*?(?<!\\)\"|\'.*?(?<!\\)\'|`.*?(?<!\\)`))",
-				"colorize": "\x1b[1;38;5;220m{}{}",
-				"handler": lambda match: re.sub( r"(?<!\\)(\\\"|\\\'|\\`|\\r|\\t|\\n|\\s)", lambda m: "\x1b[1;38;5;208m{}\x1b[1;38;5;220m".format( m.group() ), match.group( 0 ) )
+				"colorize": "\x1b[1;38;5;220m{}{}"
 			}
 		}
 		if not isinstance( base, str ):
@@ -292,7 +293,10 @@ class Utility:
 	
 	#[Utility.open( String target )]:
 	def open( self, target ):
-		system( "xdg-open {}".format( target ) )
+		try:
+			system( "xdg-open {}".format( target ) )
+		except BaseException:
+			pass
 	
 	#[Utility.output( Object refer, Dict|List|String message, Bool line )]:
 	def output( self, refer, message, line=False ):
@@ -421,7 +425,7 @@ class Utility:
 			task = Thread( target=target, args=args, kwargs=kwargs )
 			named = type( self ).__name__
 			strings = "\x7b\x30\x7d\x7b\x31\x7d".format( "\x20" *4, strings )
-			sys.stdout.write( "\x7b\x31\x7d\x2e\x74\x68\x72\x65\x61\x64\x0a\x7b\x30\x7d\x7b\x31\x7d\x2e\x61\x6c\x69\x76\x65\x0a".format( "\x20" *2, named ) )
+			sys.stdout.write( self.colorize( "\x7b\x31\x7d\x2e\x74\x68\x72\x65\x61\x64\x0a\x7b\x30\x7d\x7b\x31\x7d\x2e\x61\x6c\x69\x76\x65\x0a".format( "\x20" *2, named ) ) )
 			for e in strings:
 				sys.stdout.write( e )
 				sys.stdout.flush()
@@ -434,6 +438,7 @@ class Utility:
 					print( "\x0d\x7b\x7d\x20\x1b[1;33m\x7b\x7d".format( self.colorize( strings ), i ), end="" )
 					sleep( 00000.1 )
 			print( "\x0d\x0a" )
+			sleep( 00000.1 )
 			self.clear()
 		except EOFError as e:
 			self.close( e, "\x46\x6f\x72\x63\x65\x20\x63\x6c\x6f\x73\x65" )
