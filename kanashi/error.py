@@ -73,23 +73,28 @@ class AuthError( Error ):
 	"""
 	
 
+#[kanashi.error.FriendshipError]
+class FriendshipError( Error ):
+	pass
+	
+
 #[kanashi.error.BestieError]
-class BestieError( Error ):
+class BestieError( FriendshipError ):
 	pass
 	
 
 #[kanashi.error.BlockError]
-class BlockError( Error ):
+class BlockError( FriendshipError ):
 	pass
 	
 
 #[kanashi.error.FavoriteError]
-class FavoriteError( Error ):
+class FavoriteError( FriendshipError ):
 	pass
 	
 
 #[kanashi.error.FollowError]
-class FollowError( Error ):
+class FollowError( FriendshipError ):
 	
 	"""
 	Raise when there is an error while
@@ -128,7 +133,7 @@ class ReportError( Error ):
 	
 
 #[kanashi.error.RestrictError]
-class RestrictError( Error ):
+class RestrictError( FriendshipError ):
 	pass
 	
 
