@@ -128,8 +128,8 @@ class Request( Readonly ):
 			return False
 		return True
 	
-	#[Request.save( String url, String name, **kwargs )]: Bool
-	def save( self, url, name, **kwargs ):
+	#[Request.save( String url, String name, String fmode, **kwargs )]: Bool
+	def save( self, url, name, fmode="wb", **kwargs ):
 		
 		"""
 		Download content from url.
@@ -138,6 +138,8 @@ class Request( Readonly ):
 			The target url of the content
 		:params String name
 			Content/ Filename
+		:params String fmode
+			File open mode
 		:params Mixed **kwargs
 			Request options
 		
@@ -156,7 +158,7 @@ class Request( Readonly ):
 			raise e
 		if  result.status_code == 200:
 			try:
-				File.write( name, result.content, "wb" )
+				File.write( name, result.content, fmode )
 			except Exception as e:
 				raise RequestDownloadError( f"Failed write file \"{name}\"", prev=e )
 			return True 
@@ -259,9 +261,9 @@ class Request( Readonly ):
 		"""
 		
 		current = datetime.now()
-		if not isinstance( time, str ):
+		if  not isinstance( time, str ):
 			raise ValueError( "Invalid time parameter, value must be type str, {} passed".format( type( time ).__name__ ) )
-		if valid := match( r"^(?P<diff>[1-9][0-9]*)(?P<unit>s|m|h|d|w|M|y)$", time ):
+		if  valid := match( r"^(?P<diff>[1-9][0-9]*)(?P<unit>s|m|h|d|w|M|y)$", time ):
 			diff = int( valid.group( "diff" ) )
 			unit = valid.group( "unit" )
 			data = []
@@ -280,7 +282,7 @@ class Request( Readonly ):
 					delta = timedelta( days=diff * 365 )
 			for history in self.history:
 				timestamp = datetime.fromtimestamp( history['unixtime'] )
-				if timestamp >= current - delta:
+				if  timestamp >= current - delta:
 					data.append( history )
 			return data
 		else:
@@ -345,7 +347,7 @@ class Request( Readonly ):
 				"message": "There was an error sending the request",
 				"prev": self.error( e )
 			})
-		if self.response.status_code == 401:
+		if  self.response.status_code == 401:
 			raise RequestAuthError( "Login authentication is required" )
 		return self.response
 	
@@ -380,12 +382,12 @@ class RequestRequired:
 	
 	#[RequestRequired.__setattr__( String name, Mixed value )]: None
 	def __setattr__( self, name, value ):
-		if name == "request":
-			if isinstance( value, Request ):
+		if  name == "request":
+			if  isinstance( value, Request ):
 				self.__dict__[name] = value
 				self.__setup__( value )
 				return
-		if isinstance( self, Readonly ):
+		if  isinstance( self, Readonly ):
 			Readonly.__setattr__( self, name, value )
 		else:
 			self.__dict__[name] = value
