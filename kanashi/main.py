@@ -23,10 +23,12 @@
 # not for SPAM.
 
 from random import choice
+from re import match
 
 from kanashi.config import Config, ConfigError
 from kanashi.error import *
 from kanashi.kanashi import Kanashi
+from kanashi.media import Media, MediaCollection
 from kanashi.object import Object
 from kanashi.profile import Profile
 from kanashi.request import RequestRequired
@@ -174,9 +176,59 @@ class Main( Utility, RequestRequired ):
 			self.close( e, "Operation cannot be continued" )
 		pass
 	
+	#[Main.confirm( Profile profile )]: None
+	def confirm( self, profile ):
+		if  not isinstance( profile, Profile ):
+			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
+	
+	#[Main.download( String url )]: None
+	def download( self, url ):
+		if  not isinstance( url, str ):
+			raise ValueError( "Invalid url parameter, value must be type str, {} passed".format( type( url ).__name__ ) )
+		pass
+	
 	#[Main.explore()]: None
 	def explore( self ):
 		pass
+	
+	#[Main.export( Profile profile, String profilename, Media media, String medianame, Int mediatype )]: None
+	def export( self, profile=None, profilename=None, media=None, medianame=None, mediatype=None ):
+		if  not isinstance( profile, Profile ) and \
+			not isinstance( media, Media ):
+			raise TypeError( "No data needs to be saved" )
+		try:
+			if  isinstance( profile, Profile ):
+				if  not isinstance( profilename, str ):
+					self.output( self, [
+						"",
+						"By default, Kanashī will save it in",
+						"the ~/onsaved/exports/profile/ folder.",
+						"To change it, please add a slash before",
+						"the filename and without the .json",
+						"",
+						"e.g /sdcard/path/filename"
+					])
+					profilename = self.input( label := "~/{}".format( Config.ONSAVED['export']['profile'].format( profile.username ) ), default=profile.username )
+				self.thread( f"Exporting profile info {profile.username}", lambda: profile.export( profilename ) )
+				self.output( self, "Exported into {}".format( profilename if profilename[0] == "/" else label ) )
+				if  isinstance( media, Media ):
+					self.tryAgain( "Next save media [Y/n]", next=self.export( media=media, medianame=medianame, mediatype=mediatype ), other=lambda: self.profile( profile=profile ) )
+				else:
+					self.previous( lambda: self.profile( profile=profile ), ">>>" )
+			if  isinstance( media, Media ):
+				pass
+		except Exception as e:
+			self.emit( e )
+			self.tryAgain( **{
+				"next": lambda: self.export( **{
+					"media": media,
+					"medianame": medianame,
+					"mediatype": mediatype,
+					"profile": profile,
+					"profilename": profilename
+				}),
+				"other": self.close
+			})
 	
 	#[Main.favorite( Profile profile )]: None
 	def favorite( self, profile ):
@@ -228,10 +280,6 @@ class Main( Utility, RequestRequired ):
 				output = f"Successfully unfollow {profile.username}"
 			self.output( self, output )
 			self.previous( lambda: self.profile( profile=profile ), ">>>" )
-	
-	#[Main.download()]: None
-	def download( self ):
-		pass
 	
 	#[Main.logout()]: None
 	def logout( self ):
@@ -388,6 +436,12 @@ class Main( Utility, RequestRequired ):
 		option = self.input( None, number=True, default=[ idx +1 for idx in range( len( options ) ) ] )
 		actions[options[( option -1 )]]['action']()
 	
+	#[Main.picture( Profile profile, String fname, Bool random )]: None
+	def picture( self, profile, fname=None, random=False ):
+		if  not isinstance( profile, Profile ):
+			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
+		profile.profilePictureSave()
+	
 	#[Main.profile( String username, Profile profile )]: None
 	def profile( self, username=None, profile=None ):
 		if  not isinstance( username, str ) and \
@@ -403,7 +457,7 @@ class Main( Utility, RequestRequired ):
 		else:
 			if  not isinstance( profile, Profile ):
 				try:
-					profile = self.thread( f"Retrieve user info {username}", lambda: self.kanashi.client.profile( username=username, friendship=True ) )
+					profile = self.thread( f"Retrieve user info {username}", lambda: self.kanashi.client.profile( username=username ) )
 				except Exception as e:
 					self.emit( e )
 					if  isinstance( e, AuthError ) or \
@@ -424,98 +478,124 @@ class Main( Utility, RequestRequired ):
 				actions = {
 					"block": {
 						"avoid": True,
-						"action": lambda: self.block( profile ),
+						"action": lambda: self.block( profile=profile ),
 						"filter": profile.blockedByViewer,
-						"prints": [
-							"Block or unblok this user"
-						],
 						"output": [
 							"Block User",
 							"Unblock User"
+						],
+						"prints": [
+							"Block or unblok this user"
 						]
 					},
 					"bestie": {
 						"avoid": True,
 						"follow": True,
-						"action": lambda: self.bestie( profile ),
+						"action": lambda: self.bestie( profile=profile ),
 						"filter": profile.isBestie,
-						"prints": [
-							"Make or remove this user as bestie"
-						],
 						"output": [
 							"Make Bestie",
 							"Remove Bestie"
+						],
+						"prints": [
+							"Make or remove this user as bestie"
+						]
+					},
+					"confirm": {
+						"avoid": True,
+						"action": lambda: self.confirm( profile=profile ),
+						"filter": profile.requestedFollow,
+						"output": "Confirm Request",
+						"prints": [
+							"Confirm or ignore request follow from this user"
 						]
 					},
 					"favorite": {
 						"avoid": True,
 						"follow": True,
-						"action": lambda: self.favorite( profile ),
+						"action": lambda: self.favorite( profile=profile ),
 						"filter": profile.isFeedFavorite,
-						"prints": [
-							"Make or remove this user from favorite"
-						],
 						"output": [
 							"Make Favorite",
 							"Remove Favorite"
+						],
+						"prints": [
+							"Make or remove this user from favorite"
 						]
 					},
 					"follow": {
 						"avoid": True,
-						"action": lambda: self.follow( profile ),
-						"prints": [
-							"Follow, unfollow or cancel request follow"
-						],
+						"action": lambda: self.follow( profile=profile ),
 						"output": [
 							"Follow User",
 							"Unfollow User",
 							"Unrequest User"
+						],
+						"prints": [
+							"Follow, unfollow or cancel request follow"
 						]
 					},
 					"remove": {
-						"action": lambda: self.removeFollower( profile ),
+						"avoid": True,
+						"action": lambda: self.remove( profile=profile ),
 						"filter": profile.followsViewer,
 						"output": "Remove Follower",
 						"prints": [
-							"Remove this follower from list"
-						],
+							"Remove this user from follower list"
+						]
 					},
 					"report": {
 						"avoid": True,
-						"action": lambda: self.report( profile ),
-						"prints": [ "Report this user profile" ],
-						"output": "Report User"
+						"action": lambda: self.report( profile=profile ),
+						"output": "Report User",
+						"prints": [
+							"Report this user profile"
+						]
 					},
 					"muting": {
 						"avoid": True,
-						"action": lambda: self.muting( profile ),
+						"follow": True,
+						"action": lambda: self.muting( profile=profile ),
 						"filter": profile.muting,
-						"prints": [ "Mute posts, stories, and notes" ],
-						"output": "Mute User"
+						"output": "Mute User",
+						"prints": [
+							"Mute posts and stories from this user"
+						]
 					},
 					"restrict": {
 						"avoid": True,
-						"action": lambda: self.restrict( profile ),
+						"action": lambda: self.restrict( profile=profile ),
 						"filter": profile.restrictedByViewer,
-						"prints": [ "Restrict or unrestrict this user" ],
 						"output": [
 							"Restrict User",
 							"Unrestrict User"
+						],
+						"prints": [
+							"Restrict or unrestrict this user"
 						]
 					},
 					"follows": {
-						"action": lambda: self.follows( profile ),
+						"action": lambda: self.follows( profile=profile ),
 						"filter": profile.isPrivateAccount and profile.followedByViewer or profile.isPrivateAccount is False or profile.isMySelf,
 						"output": "Profile Follows",
 						"prints": [
-							"Gets user followers, following or mutuals"
+							"Gets user followers and following"
+						]
+					},
+					"mutuals": {
+						"avoid": True,
+						"action": lambda: self.mutuals( profile=profile ),
+						"output": "Profile Mutuals",
+						"prints": [
+							"Get mutual users from this user"
 						]
 					},
 					"suggest": {
+						"avoid": True,
 						"action": lambda: self.suggest( profile=profile ),
 						"output": "Profile Suggest",
 						"prints": [
-							"Gests suggested user profiles"
+							"Gests suggested user from this user"
 						]
 					},
 					"medias": {
@@ -527,7 +607,7 @@ class Main( Utility, RequestRequired ):
 						]
 					},
 					"picture": {
-						"action": lambda: 0,
+						"action": lambda: self.picture( profile=profile ),
 						"output": "Profile Picture",
 						"prints": [
 							"Download profile picture"
@@ -538,7 +618,7 @@ class Main( Utility, RequestRequired ):
 						"output": "Export Profile",
 						"prints": [
 							"Save profile info as json file"
-						],
+						]
 					},
 					"main": {
 						"action": self.main,
@@ -583,8 +663,8 @@ class Main( Utility, RequestRequired ):
 					else:
 						self.previous( lambda: self.profile( profile=profile ), ">>>" )
 	
-	#[Main.removeFollower( Profile profile )]: None
-	def removeFollower( self, profile ):
+	#[Main.remove( Profile profile )]: None
+	def remove( self, profile ):
 		if  not isinstance( profile, Profile ):
 			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
 		pass
