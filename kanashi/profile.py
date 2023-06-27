@@ -255,7 +255,25 @@ class ProfileProperties:
 	
 	@property
 	def profilePictureHD( self ):
+		if  self.profile.isset( "hd_profile_pic_url_info" ):
+			return self.profile.hd_profile_pic_url_info.url
+		elif  self.profile.isset( "hd_profile_pic_versions" ):
+			return self.profile.hd_profile_pic_versions[-1].url
 		return self.profile.profile_pic_url_hd
+	
+	@property
+	def profilePictureHDResolution( self ):
+		if  self.profile.isset( "hd_profile_pic_url_info" ):
+			return "{}x{}".format(
+				self.profile.hd_profile_pic_url_info.width,
+				self.profile.hd_profile_pic_url_info.height
+			)
+		elif  self.profile.isset( "hd_profile_pic_versions" ):
+			return "{}x{}".format(
+				self.profile.hd_profile_pic_versions[-1].width,
+				self.profile.hd_profile_pic_versions[-1].height
+			)
+		return "320x320"
 	
 	@property
 	def pronouns( self ):
@@ -295,8 +313,8 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 	ATTRIBUTES = [
 	]
 	
-	#[Profile( Object viewer, Request request, Dict profile )]: None
-	def __init__( self, viewer, request, profile ):
+	#[Profile( Object viewer, Request request, Dict profile, Mixed **kwargs )]: None
+	def __init__( self, viewer, request, profile, **kwargs ):
 		
 		"""
 		Construct method of class Profile.
@@ -317,9 +335,12 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		# Save profile user info.
 		self.profile = Object( profile )
 		
-		# Instance of parent class.
-		self.parent = super()
-		self.parent.__init__( request )
+		# Instance of class Parent.
+		self.__parent__ = super()
+		self.__parent__.__init__( request )
+		
+		# Inherited methods from clients if available.
+		self.__methods__ = kwargs.pop( "methods", {} )
 	
 	#[Profile.__getitem__( String key )]: Mixed
 	def __getitem__( self, key ):
@@ -332,6 +353,11 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 	#[Profile.prints]: List
 	@property
 	def prints( self ):
+		
+		"""
+		Don't call this when you get profile info with id.
+		This is only usage for Main class from kanashi.main.Main
+		"""
 		
 		# General information to be displayed.
 		# The empty string will be used for the new line.
@@ -375,6 +401,8 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 					prints[idx] = f"Fullname \x1b[1;37m{self.fullname}\x1b[0m"
 				case "username":
 					prints[idx] = f"Username \x1b[1;38;5;189m{self.username}\x1b[0m"
+					if  self.isVerified:
+						prints[idx] += "\x20\x1b[1;36m√\x1b[0m"
 				case "pronouns":
 					prints[idx] = "\x0a\x20\x20\x20\x20\x20\x20..\x20".join([ "- Pronouns", self.pronounsFormat if self.pronounsFormat else "None" ])
 				case "category":
@@ -610,11 +638,13 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 	def confirm( follow ):
 		
 		"""
-		Confirm or ignore request follow from user.
+		Confirm/ aprove or ignore request follow from user.
 		"""
 		
-		if not self.requestedFollow:
+		if  not self.requestedFollow:
 			raise ProfileError( "This user does not sent request to follow your account" )
+		elif self.isMySelf:
+			raise ProfileError( "Unable to aprove or ignore request follow for yourself" )
 		else:
 			pass
 	
@@ -639,7 +669,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		if  not isinstance( fname, str ):
 			fname = self.username
 		fdata = self.profile.json()
-		if fname[0] != "/":
+		if  fname[0] != "/":
 			fname = Config.ONSAVED['export']['profile'].format( fname )
 		else:
 			fname = "{}.json".format( fname )
@@ -758,8 +788,10 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		Remove user from followers.
 		"""
 		
-		if not self.followsViewer:
+		if  not self.followsViewer:
 			raise ProfileError( "This user does not following your account" )
+		elif self.isMySelf:
+			raise ProfileError( "Unable to remove yourself from follower" )
 		else:
 			pass
 	
@@ -819,8 +851,8 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			self.throws( action, status )
 		pass
 	
-	#[Profile.profilePictureSave( String name k)]: Object
-	def profilePictureSave( self, name=None ):
+	#[Profile.profilePictureSave( String name, Bool random )]: Object
+	def profilePictureSave( self, name=None, random=False ):
 		
 		"""
 		Download profile picture user.
@@ -829,11 +861,23 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			Download result represent
 		"""
 		
-		if not isinstance( name, str ):
-			if random:
+		if  not isinstance( name, str ):
+			if  random:
 				name = String.random( 32 )
+				name += "-{}".format( self.profilePictureHDResolution )
 			else:
-				name = "{} ({})".format( self.fullname, self.username )
+				name = "{} ({}) {}".format( self.fullname, self.username, self.profilePictureHDResolution )
+		if  name[0] != "/":
+			fname = Config.ONSAVED['media']['profile'].format( name )
+		else:
+			fname = "{}.json".format( name )
+		self.request.save( url := self.profilePictureHD, fname, fmode="wb" )
+		return Object({
+			"url": url,
+			"fmode": "wb",
+			"fname": name,
+			"saved": fname
+		})
 	
 	#[Profile.throws( String action, int status )]: None
 	def throws( self, action, status ):
