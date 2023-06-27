@@ -75,6 +75,21 @@ class Config:
 		"\"LICENSE\" document for more details."
 	]
 	
+	# Kanashī media stored.
+	ONSAVED = {
+		"media": {
+			"profile": "onsaved/media/profile/picture/{}.jpg"
+		},
+		"export": {
+			"media": {
+				"post": "onsaved/exports/media/post/{}.json",
+				"reel": "onsaved/exports/media/reel/{}.json"
+			},
+			"global": "onsaved/exports/global/{}.json",
+			"profile": "onsaved/exports/profile/{}.json"
+		}
+	}
+	
 	# Kanashī Reporistory.
 	REPOSITORY = "https://github.com/hxAri/Kanashi"
 	
