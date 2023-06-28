@@ -56,7 +56,7 @@ class Object:
 	def __getitem__( self, key ):
 		if  key in self.__data__:
 			return self.__data__[key]
-		raise KeyError( "\"{}\" object has no item \"{}\"".format( type( self ).__name__ ), key )
+		raise KeyError( "\"{}\" object has no item \"{}\"".format( type( self ).__name__, key ) )
 	
 	#[Object.__setitem__( String key, Mixed value )]: None
 	def __setitem__( self, key, value ):
