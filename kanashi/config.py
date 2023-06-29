@@ -21,6 +21,7 @@
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
+#
 
 from kanashi.error import ConfigError
 from kanashi.object import Object
@@ -76,9 +77,9 @@ class Config:
 	]
 	
 	# Kanashī media stored.
-	ONSAVED = {
+	ONSAVED = Object({
 		"media": {
-			"profile": "onsaved/media/profile/picture/{}.jpg"
+			"profile": "onsaved/medias/profile/picture/{}.jpg"
 		},
 		"export": {
 			"media": {
@@ -88,7 +89,7 @@ class Config:
 			"global": "onsaved/exports/global/{}.json",
 			"profile": "onsaved/exports/profile/{}.json"
 		}
-	}
+	})
 	
 	# Kanashī Reporistory.
 	REPOSITORY = "https://github.com/hxAri/Kanashi"
