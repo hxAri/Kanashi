@@ -21,6 +21,7 @@
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
+#
 
 #[kanashi.error.Throwable]
 class Throwable( Exception ):
@@ -90,6 +91,11 @@ class BlockError( FriendshipError ):
 
 #[kanashi.error.FavoriteError]
 class FavoriteError( FriendshipError ):
+	pass
+	
+
+#[kanashi.error.ClientError]
+class ClientError( Error ):
 	pass
 	
 
