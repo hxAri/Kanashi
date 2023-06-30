@@ -42,6 +42,10 @@ class Object:
 		# Inject data.
 		self.set( data )
 	
+	#[Object.__contains__( String name )]: Bool
+	def __contains__( self, name ):
+		return name in self.__data__
+	
 	#[Object.__getattr__( self, name )]: Mixed
 	def __getattr__( self, name ):
 		if  name in self.__dict__:
@@ -50,7 +54,6 @@ class Object:
 			return self.__data__[name]
 	
 	#[Object.__setattr__( String name, Mixed value )]: None
-	
 	
 	#[Object.__getitem__( String key )]: Mixed
 	def __getitem__( self, key ):
@@ -107,7 +110,7 @@ class Object:
 	
 	#[Object.__repr__()]: String
 	def __repr__( self ):
-		return "Object({}\x20{})".format( type( self ).__name__, self.json() )
+		return "{}[=Object]{}".format( type( self ).__name__, self.json() )
 	
 	#[Object.__str__()]: String
 	def __str__( self ):
@@ -152,12 +155,7 @@ class Object:
 	
 	#[Object.isset( String key )]: Bool
 	def isset( self, key ):
-		try:
-			if  self.__data__[key]:
-				pass
-			return True
-		except KeyError:
-			return False
+		return self.__contains__( key )
 	
 	#[Object.unset( String key )]: None
 	def unset( self, key ):
