@@ -21,10 +21,12 @@
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
+#
 
 from random import choice
 from re import match
 
+from kanashi.client import logged
 from kanashi.config import Config, ConfigError
 from kanashi.error import *
 from kanashi.kanashi import Kanashi
@@ -32,13 +34,13 @@ from kanashi.media import Media, MediaCollection
 from kanashi.object import Object
 from kanashi.profile import Profile
 from kanashi.request import RequestRequired
-from kanashi.utility import Utility
+from kanashi.utility import Utility, typedef
 
 
-#[kanashi.runtime.main.Main]
-class Main( Utility, RequestRequired ):
+#[kanashi.main.Actions]
+class Actions:
 	
-	#[Main()]: None
+	#[Actions()]: None
 	def __init__( self ):
 		
 		# Instance of class Config.
@@ -48,17 +50,23 @@ class Main( Utility, RequestRequired ):
 		# Instance of class Kanashi.
 		self.kanashi = Kanashi( config=self.config )
 		
+		# Instance of class Client.
+		self.client = self.kanashi.client
+		
 		# Represent user active.
 		self.active = self.kanashi.active
 		
 		# Object represent configuration.
 		self.settings = self.config.settings
 		
+		# Visited profiles.
+		self.profiles = {}
+		
 		# Call constructor RequestRequired.
 		self.parent = super()
 		self.parent.__init__( self.kanashi.request )
 	
-	#[Main.about()]: None
+	#[Actions.about()]: None
 	def about( self ):
 		display = [ "helpers", "version", "license" ]
 		displayLength = len( display )
@@ -96,15 +104,150 @@ class Main( Utility, RequestRequired ):
 			if  index < displayLength -1:
 				outputs.append( "\x20" )
 			pass
-		self.output( self, [ *self.outputs, *outputs ] )
+		self.output( self.about, [ *self.outputs, *outputs ] )
 		self.previous( self.main, ">>>" )
 	
-	#[Main.bestie( Profile profile, Bool ask )]: None
+	#[Actions.action( String label, Dict actions, List prints, Bool info )]: Function|Method
+	def action( self, label=None, actions={}, prints=[], info=True ):
+		
+		"""
+		actions={
+			"option": {
+				"action": lambda: ...,
+					Function|Method action
+				"filter": bool,
+					Filter if option is allowed
+				"allows": bool,
+					Filter if option is not allowed
+				"signin": {
+					"require": bool,
+						Filter if option must be signin
+					"inclufe": bool
+						Filter if option must Even though the user has logged in
+				},
+				"output": List|String,
+					When value is list, filter must be available
+				"prints": List|String
+					Output descriptions, this is optional
+					When the value is String, it will transform to list
+			}
+		}
+		"""
+		
+		outputs = []
+		options = []
+		
+		# Default println outputs.
+		self.outputs = [
+			"",
+			"Kanashī v{}\x1b[0m".format( Config.VERSION ),
+			"",
+			"Author {}".format( Config.AUTHOR ),
+			"Github \x1b[1m\x1b[4;37m{}\x1b[0m".format( Config.GITHUB ),
+			"Issues \x1b[1m\x1b[4;37m{}\x1b[0m".format( Config.ISSUES ),
+			""
+		]
+		
+		if  not isinstance( prints, list ): prints = [prints]
+		if  self.authenticated:
+			self.outputs = [
+				*self.outputs[0:2],
+				"Logged as \x1b[1;38;5;189m{}\x1b[0m".format( self.active.fullname if self.active.fullname else self.active.username ),
+				*self.outputs[2:]
+			]
+		
+		for index, option in enumerate( actions ):
+			action = actions[option]
+			if  "action" not in action:
+				continue
+			else:
+				if  not callable( action['action'] ): continue
+			if  "allows" in action and not action['allows']: continue
+			if  "follow" in action and not action['follow']: continue
+			if  "signin" in action:
+				if  isinstance( action['signin'], dict ):
+					if  self.authenticated:
+						if  action['signin']['require'] is False or \
+							action['signin']['require'] is True and \
+							action['signin']['include'] is False:
+							continue
+					else:
+						if  action['signin']['require'] is True:
+							continue
+				else:
+					if  self.authenticated and not action['signin'] or \
+						not self.authenticated and not action['signin']:
+						continue
+			if  "output" in action:
+				if  isinstance( action['output'], list ):
+					if  "filter" in action:
+						if  isinstance( action['filter'], list ):
+							for i in range( len( action['filter'] ) ):
+								if  action['filter'][i] is True:
+									action['output'] = action['output'][i]
+									break
+							if  isinstance( action['output'], list ):
+								action['output'] = action['output'][0]
+						else:
+							action['output'] = action['output'][bool( action['filter'] )]
+				elif "filter" in action:
+					if  not action['filter']:
+						continue
+			else:
+				continue
+			options.append( option )
+			outputs.append( action['output'] )
+			if  "prints" in action:
+				if  not isinstance( action['prints'], list ):
+					action['prints'] = [action['prints']]
+				outputs.append( action['prints'] )
+		
+		if  info:
+			params = [ *self.outputs, *prints, outputs ]
+		else:
+			params = [ *prints, outputs ]
+		self.output( self.action, params )
+		option = self.input( label, number=True, default=[ idx +1 for idx in range( len( options ) ) ] )
+		return actions[options[option -1 ]]['action']
+	
+	#[Actions.approve( Object|Profile user, Bool approve )]: None
+	@logged
+	def approve( self, user, approve=None ):
+		if  not isinstance( user, Object ) and \
+			not isinstance( user, Profile ):
+			raise ValueError( "Invalid profile parameter, value must be type Object|Profile, {} passed".format( type( user ).__name__ ) )
+		if  typedef( approve, bool, False ):
+			self.output( self.approve, "For next action please confirm" )
+			approve = self.input( "Approve [Y/n]", default=[ True, "Y", "y", "N", "n", "\\" ] )
+			match approve.upper():
+				case "\\":
+					if  typedef( user, Profile ):
+						self.profile( profile=profile )
+					else:
+						self.main()
+				case "N":
+					self.approve( user=user, approve=False )
+				case _:
+					self.approve( user=user, approve=True )
+		action = "Approve request"
+		if  not approve:
+			action = "Ignore request"
+		request = self.client.approve( id=user.id, approve=approve )
+		print( request )
+	pass
+	
+	#[Actions.authenticated<kanashi.client.Client.authenticated>]: Bool
+	@property
+	def authenticated( self ):
+		return self.kanashi.isActive
+	
+	#[Actions.bestie( Profile profile, Bool ask )]: None
+	@logged
 	def bestie( self, profile, ask=True ):
 		if  not isinstance( profile, Profile ):
 			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
 		if  profile.isBestie and ask:
-			self.output( self, f"You want to remove {profile.username} from your bestie?" )
+			self.output( self.bestie, f"You want to remove {profile.username} from your bestie?" )
 			self.tryAgain( f"Keep remove {profile.username} as bestie [Y/n]", lambda: self.bestie( profile, ask=False ), lambda: self.profile( profile=profile ) )
 		else:
 			if  profile.isBestie:
@@ -117,7 +260,8 @@ class Main( Utility, RequestRequired ):
 			except Exception as e:
 				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.bestie( profile, ask=ask ) } )
 	
-	#[Main.block( Profile profile, Bool ask )]: None
+	#[Actions.block( Profile profile, Bool ask )]: None
+	@logged
 	def block( self, profile, ask=True ):
 		if  not isinstance( profile, Profile ):
 			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
@@ -138,23 +282,23 @@ class Main( Utility, RequestRequired ):
 				"They won’t be notifed that you blocked them."
 			]
 		if  ask == True:
-			self.output( self, output )
+			self.output( self.block, output )
 			self.tryAgain( f"Ignore and next {action} [Y/n]", lambda: self.block( profile, ask=False ), lambda: self.profile( profile=profile ) )
 		else:
 			try:
 				block = self.thread( f"Trying to {action.lower()} {profile.username}", lambda: profile.block() )
 			except Exception as e:
 				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.block( profile, ask=ask ) } )
-			self.output( self, "Successfully {} {}".format( action, profile.username ) )
+			self.output( self.block, "Successfully {} {}".format( action, profile.username ) )
 			self.previous( lambda: self.profile( profile=profile ), ">>>" )
 	
-	#[Main.clean()]: None
+	#[Actions.clean()]: None
 	def clean( self ):
 		self.thread( "Clear request records", self.request.clean )
-		self.output( self, "The request log has been cleaned up" )
+		self.output( self.clean, "The request log has been cleaned up" )
 		self.previous( self.main, ">>>" )
 	
-	#[Main.configLoad()]: None
+	#[Actions.configLoad()]: None
 	def configLoad( self ):
 		try:
 			self.thread( "Reading configuration file", self.config.load )
@@ -165,7 +309,7 @@ class Main( Utility, RequestRequired ):
 			self.close( e, "Operation cannot be continued" )
 		pass
 	
-	#[Main.configSave()]: None
+	#[Actions.configSave()]: None
 	def configSave( self ):
 		try:
 			self.thread( "Saving configuration file", self.config.save )
@@ -176,22 +320,22 @@ class Main( Utility, RequestRequired ):
 			self.close( e, "Operation cannot be continued" )
 		pass
 	
-	#[Main.confirm( Profile profile )]: None
-	def confirm( self, profile ):
-		if  not isinstance( profile, Profile ):
-			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
+	#[Actions.direct()]: None
+	def direct( self ):
+		self.client.direct()
 	
-	#[Main.download( String url )]: None
+	#[Actions.download( String url )]: None
 	def download( self, url ):
 		if  not isinstance( url, str ):
 			raise ValueError( "Invalid url parameter, value must be type str, {} passed".format( type( url ).__name__ ) )
 		pass
 	
-	#[Main.explore()]: None
+	#[Actions.explore()]: None
+	@logged
 	def explore( self ):
 		pass
 	
-	#[Main.export( Profile profile, String profilename, Media media, String medianame, Int mediatype )]: None
+	#[Actions.export( Profile profile, String profilename, Media media, String medianame, Int mediatype )]: None
 	def export( self, profile=None, profilename=None, media=None, medianame=None, mediatype=None ):
 		if  not isinstance( profile, Profile ) and \
 			not isinstance( media, Media ):
@@ -199,7 +343,7 @@ class Main( Utility, RequestRequired ):
 		try:
 			if  isinstance( profile, Profile ):
 				if  not isinstance( profilename, str ):
-					self.output( self, [
+					self.output( self.export, [
 						"",
 						"By default, Kanashī will save it in",
 						"the ~/onsaved/exports/profile/ folder.",
@@ -208,9 +352,9 @@ class Main( Utility, RequestRequired ):
 						"",
 						"e.g /sdcard/path/filename"
 					])
-					profilename = self.input( label := "~/{}".format( Config.ONSAVED['export']['profile'].format( profile.username ) ), default=profile.username )
+					profilename = self.input( label := "~/{}".format( Config.ONSAVED.export.profile.format( profile.username ) ), default=profile.username )
 				self.thread( f"Exporting profile info {profile.username}", lambda: profile.export( profilename ) )
-				self.output( self, "Exported into {}".format( profilename if profilename[0] == "/" else label ) )
+				self.output( self.export, "Exported into {}".format( profilename if profilename[0] == "/" else label ) )
 				if  isinstance( media, Media ):
 					self.tryAgain( "Next save media [Y/n]", next=self.export( media=media, medianame=medianame, mediatype=mediatype ), other=lambda: self.profile( profile=profile ) )
 				else:
@@ -230,7 +374,8 @@ class Main( Utility, RequestRequired ):
 				"other": self.close
 			})
 	
-	#[Main.favorite( Profile profile )]: None
+	#[Actions.favorite( Profile profile )]: None
+	@logged
 	def favorite( self, profile ):
 		if  not isinstance( profile, Profile ):
 			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
@@ -238,13 +383,15 @@ class Main( Utility, RequestRequired ):
 			action = "Remove favorite"
 		else:
 			action = "Make favorite"
-		favorite = self.thread( f"Trying to {action} {profile.username}", lambda: profile.favorite() )
 		try:
-			print( favorite )
+			favorite = self.thread( f"Trying to {action} {profile.username}", lambda: profile.favorite() )
 		except Exception as e:
 			raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.favorite( profile ) } )
+		self.output( self.favorite, "Successfully {} {}".format( action, profile.username ) )
+		self.previous( lambda: self.profile( profile=profile ), ">>>" )
 	
-	#[Main.follow( Profile profile, Bool ask )]: None
+	#[Actions.follow( Profile profile, Bool ask )]: None
+	@logged
 	def follow( self, profile, ask=True ):
 		if  not isinstance( profile, Profile ):
 			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
@@ -257,7 +404,7 @@ class Main( Utility, RequestRequired ):
 					"If you change your mind, you'll have to",
 					"request to follow {} again".format( profile.username )
 				]
-			self.output( self, output )
+			self.output( self.follow, output )
 			self.tryAgain( f"Unfollow {profile.username} [Y/n]", lambda: self.follow( profile, ask=False ), lambda: self.profile( profile=profile ) )
 		else:
 			action = "Follow"
@@ -278,409 +425,134 @@ class Main( Utility, RequestRequired ):
 				]
 			else:
 				output = f"Successfully unfollow {profile.username}"
-			self.output( self, output )
+			self.output( self.follow, output )
 			self.previous( lambda: self.profile( profile=profile ), ">>>" )
 	
-	#[Main.logout()]: None
+	#[Actions.inbox()]: None
+	@logged
+	def inbox( self ):
+		self.client.inbox()
+	
+	#[Actions.logout()]: None
+	@logged
 	def logout( self ):
 		pass
 	
-	#[Main.main()]: None
+	#[Actions.main()]: None
 	def main( self ):
-		
-		outputs = []
-		options = []
-		
-		# Default main menu actions.
-		actions = {
-			"profile": {
-				"signin": True,
-				"action": self.profile,
-				"output": "Visit Profile",
-				"prints": [
-					"Visit profile account"
-				]
-			},
-			"search": {
-				"signin": True,
-				"action": self.search,
-				"output": "Search Anything",
-				"prints": [
-					"Search posts, users, hashtags and more"
-				]
-			},
-			"explore": {
-				"signin": True,
-				"action": self.explore,
-				"output": "Explore Media",
-				"prints": [
-					"Explore recommended media"
-				]
-			},
-			"signin": {
-				"signin": {
-					"require": False,
-					"include": False
+		pass
+	
+	#[Actions.pending( List<Object> pending )]: None
+	@logged
+	def pending( self, pending=None ):
+		if  not isinstance( pending, list ):
+			try:
+				pending = self.thread( "Trying to get pending request follow", lambda: self.client.pending() )
+				for i, v in enumerate( pending ):
+					pending[i] = Object( v )
+			except Exception as e:
+				self.emit( e )
+				if  not isinstance( e, RequestAuthError ):
+					self.tryAgain( next=self.pending, other=self.main )
+					return
+		users = []
+		for user in pending:
+			users.append( user.username )
+		self.output( self.pending, [
+			"",
+			"Select a user for the action,",
+			"type iteration index or username",
+			"",
+			[ "@{}".format( user ) for user in users ]
+		])
+		select = self.input( None, default=[ "\\", *users, *[ str( i +1 ) for i in range( len( users ) ) ] ] )
+		if  select != "\\":
+			try:
+				idx = int( select )
+				user = users[( idx -1 )]
+			except ValueError:
+				user = select
+			for u in pending:
+				if  u.username == user:
+					user = u
+					break
+			if  not user.isset( "id" ):
+				user.id = user.pk
+			prints = [ "", "Please select action for @{}".format( user.username ), "" ]
+			action = self.action( info=False, prints=prints, actions={
+				"profile": {
+					"action": lambda: self.profile( username=user.username ),
+					"output": "Visit Profile",
+					"prints": "Visit profile account"
 				},
-				"action": self.signin,
-				"output": "SignIn Account",
-				"prints": [
-					"SignIn with password or cookies"
-				]
-			},
-			"logout": {
-				"signin": True,
-				"action": self.logout,
-				"output": "Logout Account",
-				"prints": [
-					"Logout Instagram account"
-				]
-			},
-			"download": {
-				"action": self.download,
-				"output": "Download Media",
-				"prints": [
-					"Download Instagram media"
-				]
-			},
-			"switch": {
-				"action": self.switch,
-				"output": "Switch Account",
-				"prints": [
-					"Switch to another saved accounts"
-				]
-			},
-			"setting": {
-				"action": self.setting,
-				"output": "Kanashī Settings",
-				"prints": [
-					"Kanashī configuration settings"
-				]
-			},
-			"support": {
-				"action": self.support,
-				"output": "Support Project",
-				"prints": [
-					"When this program is useful for you"
-				]
-			},
-			"clean": {
-				"action": self.clean,
-				"output": "Clear Response",
-				"prints": [
-					"Clear the entire request record"
-				]
-			},
-			"about": {
-				"action": self.about,
-				"output": "About Kanashī",
-				"prints": [
-					"e.g Authors, Version, License, etc"
-				]
-			},
-			"exit": {
-				"action": lambda: self.exit( self, "Finish" ),
-				"output": "Exit",
-				"prints": [
-					"Close the program",
-					"Always use CTRL+D for shortcut"
-				]
-			}
-		}
-		
-		# Default println outputs.
-		self.outputs = [
-			"",
-			"Kanashī v{}\x1b[0m".format( Config.VERSION ),
-			"",
-			"Author {}".format( Config.AUTHOR ),
-			"Github \x1b[1m\x1b[4;37m{}\x1b[0m".format( Config.GITHUB ),
-			"Issues \x1b[1m\x1b[4;37m{}\x1b[0m".format( Config.ISSUES ),
-			""
-		]
-		
-		if  self.kanashi.isActive:
-			self.outputs = [
-				*self.outputs[0:2],
-				"Logged as \x1b[1;38;5;189m{}\x1b[0m".format( self.active.fullname if self.active.fullname else self.active.username ),
-				*self.outputs[2:]
-			]
-		
-		for index, option in enumerate( actions ):
-			index += 1
-			values = actions[option]
-			append = False
-			if  "signin" in values:
-				if  isinstance( values['signin'], dict ):
-					if  self.kanashi.isActive:
-						if  values['signin']['require'] or \
-							values['signin']['require'] == False and \
-							values['signin']['include'] == True:
-							append = True
-					else:
-						if  values['signin']['require'] == False:
-							append = True
-				else:
-					if  self.kanashi.isActive and values['signin'] or \
-						self.kanashi.isActive == False and values['signin'] == False:
-						append = True
-			else:
-				append = True
-			if  append:
-				options.append( option )
-				outputs.append( values['output'] )
-				if  "prints" in values:
-					outputs.append( values['prints'] )
-		
-		self.output( self, [ *self.outputs, outputs ] )
-		option = self.input( None, number=True, default=[ idx +1 for idx in range( len( options ) ) ] )
-		actions[options[( option -1 )]]['action']()
+				"approve": {
+					"action": lambda: self.approve( user=user, approve=True ),
+					"output": "Approve Request",
+					"prints": "Approve request follow"
+				},
+				"ignore": {
+					"action": lambda: self.approve( user=user, approve=False ),
+					"output": "Ignore Request",
+					"prints": "Ignore request follow"
+				},
+				"cancel": {
+					"action": self.main,
+					"output": "Cancel"
+				}
+			})
+			action()
+		else:
+			self.main()
 	
 	#[Main.picture( Profile profile, String fname, Bool random )]: None
 	def picture( self, profile, fname=None, random=False ):
 		if  not isinstance( profile, Profile ):
 			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
-		profile.profilePictureSave()
-	
-	#[Main.profile( String username, Profile profile )]: None
-	def profile( self, username=None, profile=None ):
-		if  not isinstance( username, str ) and \
-			not isinstance( profile, Profile ):
-			self.output( self, [ "",
-				"This tool is not used for illegal purposes",
-				"like, data theft and so on, please use it",
-				"properly",
+		if  profile['has_anonymous_profile_picture']:
+			self.output( self.picture, "User has no profile picture" )
+			self.previous( lambda: self.profile( profile=profile ), ">>>" )
+		if  not isinstance( fname, str ) or not random:
+			self.output( self.picture, [
 				"",
-				"Enter the user profile username"
+				"By default Kanashī will save the profile photo",
+				"in the ~/onsaved/medias/profile/ folder to",
+				"change it please prefix the slash before the",
+				"file name and don’t give the file extension",
+				"",
+				"e.g /sdcard/path/fo/filename"
 			])
-			self.profile( self.input( "Username", default=self.active.username ) )
-		else:
-			if  not isinstance( profile, Profile ):
-				try:
-					profile = self.thread( f"Retrieve user info {username}", lambda: self.kanashi.client.profile( username=username ) )
-				except Exception as e:
-					self.emit( e )
-					if  isinstance( e, AuthError ) or \
-						isinstance( e, RequestAuthError ):
-						pass
-					if  isinstance( e, UserError ):
-						self.tryAgain( next=self.profile, other=self.main )
-					if  isinstance( e, RequestError ) and not \
-						isinstance( e, RequestAuthError ):
-						self.tryAgain( next=self.profile, other=self.main, username=username )
-					else:
-						self.previous( self.main, ">>>" )
-					return
-				self.profile( profile=profile )
-			else:
-				options = []
-				outputs = []
-				actions = {
-					"block": {
-						"avoid": True,
-						"action": lambda: self.block( profile=profile ),
-						"filter": profile.blockedByViewer,
-						"output": [
-							"Block User",
-							"Unblock User"
-						],
-						"prints": [
-							"Block or unblok this user"
-						]
-					},
-					"bestie": {
-						"avoid": True,
-						"follow": True,
-						"action": lambda: self.bestie( profile=profile ),
-						"filter": profile.isBestie,
-						"output": [
-							"Make Bestie",
-							"Remove Bestie"
-						],
-						"prints": [
-							"Make or remove this user as bestie"
-						]
-					},
-					"confirm": {
-						"avoid": True,
-						"action": lambda: self.confirm( profile=profile ),
-						"filter": profile.requestedFollow,
-						"output": "Confirm Request",
-						"prints": [
-							"Confirm or ignore request follow from this user"
-						]
-					},
-					"favorite": {
-						"avoid": True,
-						"follow": True,
-						"action": lambda: self.favorite( profile=profile ),
-						"filter": profile.isFeedFavorite,
-						"output": [
-							"Make Favorite",
-							"Remove Favorite"
-						],
-						"prints": [
-							"Make or remove this user from favorite"
-						]
-					},
-					"follow": {
-						"avoid": True,
-						"action": lambda: self.follow( profile=profile ),
-						"output": [
-							"Follow User",
-							"Unfollow User",
-							"Unrequest User"
-						],
-						"prints": [
-							"Follow, unfollow or cancel request follow"
-						]
-					},
-					"remove": {
-						"avoid": True,
-						"action": lambda: self.remove( profile=profile ),
-						"filter": profile.followsViewer,
-						"output": "Remove Follower",
-						"prints": [
-							"Remove this user from follower list"
-						]
-					},
-					"report": {
-						"avoid": True,
-						"action": lambda: self.report( profile=profile ),
-						"output": "Report User",
-						"prints": [
-							"Report this user profile"
-						]
-					},
-					"muting": {
-						"avoid": True,
-						"follow": True,
-						"action": lambda: self.muting( profile=profile ),
-						"filter": profile.muting,
-						"output": "Mute User",
-						"prints": [
-							"Mute posts and stories from this user"
-						]
-					},
-					"restrict": {
-						"avoid": True,
-						"action": lambda: self.restrict( profile=profile ),
-						"filter": profile.restrictedByViewer,
-						"output": [
-							"Restrict User",
-							"Unrestrict User"
-						],
-						"prints": [
-							"Restrict or unrestrict this user"
-						]
-					},
-					"follows": {
-						"action": lambda: self.follows( profile=profile ),
-						"filter": profile.isPrivateAccount and profile.followedByViewer or profile.isPrivateAccount is False or profile.isMySelf,
-						"output": "Profile Follows",
-						"prints": [
-							"Gets user followers and following"
-						]
-					},
-					"mutuals": {
-						"avoid": True,
-						"action": lambda: self.mutuals( profile=profile ),
-						"output": "Profile Mutuals",
-						"prints": [
-							"Get mutual users from this user"
-						]
-					},
-					"suggest": {
-						"avoid": True,
-						"action": lambda: self.suggest( profile=profile ),
-						"output": "Profile Suggest",
-						"prints": [
-							"Gests suggested user from this user"
-						]
-					},
-					"medias": {
-						"action": lambda: self.medias( profile=profile ),
-						"filter": profile.isPrivateAccount and profile.followedByViewer or profile.isPrivateAccount is False or profile.isMySelf,
-						"output": "Profile Media",
-						"prints": [
-							"Gets media posts, reels, saveds, etc"
-						]
-					},
-					"picture": {
-						"action": lambda: self.picture( profile=profile ),
-						"output": "Profile Picture",
-						"prints": [
-							"Download profile picture"
-						]
-					},
-					"export": {
-						"action": lambda: self.export( profile=profile ),
-						"output": "Export Profile",
-						"prints": [
-							"Save profile info as json file"
-						]
-					},
-					"main": {
-						"action": self.main,
-						"output": "Back to Main"
-					}
-				}
-				for i, option in enumerate( actions ):
-					action = actions[option]
-					if  "avoid" in action and action['avoid'] and profile.isMySelf or \
-						 "follow" in action and action['follow'] and not profile.followedByViewer:
-							continue
-					if  "output" in action:
-						output = action['output']
-						if  isinstance( output, list ):
-							if  option == "follow":
-								if  profile.followedByViewer:
-									output = output[1]
-								elif profile.requestedByViewer:
-									output = output[2]
-								else:
-									output = output[0]
-							elif "filter" in action:
-								output = output[1 if action['filter'] else 0]
-							else:
-								continue
-						elif "filter" in action:
-							if  action['filter'] is False:
-								continue
-						outputs.append( output )
-					options.append( option )
-					if  "prints" in action:
-						outputs.append( action['prints'] )
-				try:
-					self.output( self, [ *profile.prints, outputs ] )
-					option = self.input( "Select", number=True, default=[ idx +1 for idx in range( len( options ) ) ] )
-					actions[options[( option -1 )]]['action']()
-				except ProfileError as e:
-					self.emit( e.prev )
-					data = e.data
-					if  "action" in data and callable( data['action'] ):
-						self.tryAgain( next=data['action'], other=lambda: self.profile( profile=profile ) )
-					else:
-						self.previous( lambda: self.profile( profile=profile ), ">>>" )
+			default = "{} ({}) {}".format( profile.fullname, profile.username, profile.profilePictureHDResolution )
+			fname = self.input( label := "~/{}".format( Config.ONSAVED.media.profile.format( default ) ), default=default )
+			save = self.thread( "Saving profile picture {}".format( profile.username ), lambda: profile.profilePictureSave() )
+			self.output( self.picture, "Saved on {}".format( fname ) )
+			self.previous( lambda: self.profile( profile=profile ) )
 	
-	#[Main.remove( Profile profile )]: None
+	#[Actions.profile( String username, Profile profile )]: None
+	@logged
+	def profile( self, username=None, profile=None ):
+		pass
+	
+	#[Actions.remove( Profile profile )]: None
+	@logged
 	def remove( self, profile ):
 		if  not isinstance( profile, Profile ):
 			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
 		pass
 	
-	#[Main.report( Profile profile )]: None
+	#[Actions.report( Profile profile )]: None
+	@logged
 	def report( self, profile ):
 		if  not isinstance( profile, Profile ):
 			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
 		pass
 	
-	#[Main.restrict( Profile profile, Bool ask )]: None
+	#[Actions.restrict( Profile profile, Bool ask )]: None
+	@logged
 	def restrict( self, profile, ask=True ):
 		if  not isinstance( profile, Profile ):
 			raise ValueError( "Invalid profile parameter, value must be type Profile, {} passed".format( type( profile ).__name__ ) )
 		if  profile.restrictedByViewer == False and ask == True:
-			self.output( self, [
+			self.output( self.restrict, [
 				"",
 				"Are you having a problem with {}?".format( profile.fullname ),
 				"",
@@ -704,21 +576,32 @@ class Main( Utility, RequestRequired ):
 				restrict = self.thread( f"Trying to {action} {profile.username}", lambda: profile.restrict() )
 			except Exception as e:
 				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.restrict( profile, ask=ask ) } )
-			self.output( self, "Successfully {} {}".format( action, profile.username ) )
+			self.output( self.restrict, "Successfully {} {}".format( action, profile.username ) )
 			self.previous( lambda: self.profile( profile=profile ), ">>>" )
 	
-	#[Main.search()]: None
+	#[Actions.search()]: None
+	@logged
 	def search( self ):
 		pass
 	
-	#[Main.setting()]: None
+	#[Actions.setting()]: None
 	def setting( self ):
 		pass
 	
-	#[Main.signin( String username, String password, Dict|Object|String cookies, String browser, Bool ask, Int flag )]: None
-	def signin( self, username=None, password=None, csrftoken=None, cookies=None, browser=None, ask=True, flag=0 ):
+	#[Actions.signin( String username, String password, Dict|Object|String cookies, String browser, Object|Dict two_factor, Object|Dict verify Bool ask, Int flag )]: None
+	def signin( self, 
+			username=None, 
+			password=None, 
+			csrftoken=None, 
+			cookies=None, 
+			browser=None, 
+			two_factor=None, 
+			verify=None, 
+			ask=True, 
+			flag=0 
+		):
 		if  flag == 0:
-			self.output( self, [
+			self.output( self.signin, [
 				"",
 				"Please select the signin method", [
 					"SignIn Manually",
@@ -730,7 +613,7 @@ class Main( Utility, RequestRequired ):
 			self.signin( flag=self.input( "Method", number=True, default=[ 1, 2, 3, 4 ] ) )
 		elif flag == 1:
 			if  ask:
-				self.output( self, [
+				self.output( self.signin, [
 					"",
 					"\x1b[1;38;5;214mWarnings\x1b[0m",
 					"Reconsider not using the main account to",
@@ -741,13 +624,13 @@ class Main( Utility, RequestRequired ):
 				self.tryAgain( "Ignore and next [Y/n]", next=self.signin, other=self.main, ask=True, flag=1 )
 				return
 			if  not isinstance( username, str ):
-				self.output( self, [ "",
+				self.output( self.signin, [ "",
 					"Username account required for login",
 					"Please enter your account username"
 				])
 				username = self.input( "Username" )
 			if  not isinstance( password, str ):
-				self.output( self, [ "",
+				self.output( self.signin, [ "",
 					"Password account required for login",
 					"Please enter the password carefully"
 				])
@@ -756,7 +639,7 @@ class Main( Utility, RequestRequired ):
 		elif flag == 2:
 			if  not isinstance( cookies, str ) or \
 				not isinstance( browser, str ):
-				self.output( self, [
+				self.output( self.signin, [
 					"",
 					"If you are afraid that your account will be",
 					"suspended from Instagram because logging in",
@@ -784,26 +667,63 @@ class Main( Utility, RequestRequired ):
 				browser = self.input( "Browser", default=choice( self.settings.browser.default ) )
 			self.signin( username, password, cookies, csrftoken, browser, True, 5 )
 		elif flag == 3:
-			request = self.request.previously( "5m" )
-			if  len( request ) >= 1:
-				for history in request:
-					if  history['target'] == "https://www.instagram.com/accounts/login/ajax/":
-						response = history['response']['content']
-						if  "two_factor_required" in response and \
-							"two_factor_info" in response:
-							
-							return
-						pass
+			if  typedef( two_factor, dict ) or \
+				typedef( two_factor, Object ):
+				if  "cookies" not in two_factor:
 					pass
-				output = [
-					"",
-					"There is no history of login requests",
-					"that provide two-factor verification data responses"
-				]
+				if  "headers" not in two_factor:
+					pass
+				if  "info" not in two_factor:
+					pass
 			else:
-				outputs = "There is no request history"
-			self.output( self, outputs )
-			self.previous( self.signin, ">>>" )
+				return self.signin( username=username, password=password, browser=browser, two_factor={}, verify=verify, flag=3 )
+			if  typedef( verify, dict, False ) and \
+				typedef( verify, Object, False ):
+				return self.signin( username=username, password=password, browser=browser, two_factor=two_factor, verify={}, flag=3 )
+			if  "method" not in verify:
+				handle = lambda method: self.signin(
+					username=username,
+					password=password,
+					browser=browser,
+					two_factor=two_factor,
+					verify={
+						"method": method
+					},
+					flag=3
+				)
+				action = self.action( **{
+					"info": False,
+					"prints": [
+						"",
+						"This method may not necessarily work, but it's",
+						"also a good idea if you try to verify this",
+						"",
+						"Also make sure you have set your User-Agent with",
+						"your own browser, don't use random",
+						""
+					],
+					"actions": {
+						"sent": {
+							"action": lambda: handle( 0 ),
+							"output": "Verify with code sent"
+						},
+						"backup": {
+							"action": lambda: handle( 1 ),
+							"output": "Verify with backup code",
+							"prints": [
+								"Verify 2 factor verification with code backup",
+								"Use these when you can't access your device"
+							]
+						},
+						"cancel": {
+							"action": lambda: self.close( self.signin, "Close" ),
+							"output": "Cancel verify"
+						}
+					}
+				})
+				return action()
+			if  "code" not in verify:
+				pass
 		elif flag == 4:
 			self.main()
 		elif flag == 5:
@@ -820,26 +740,44 @@ class Main( Utility, RequestRequired ):
 					if  signin.remember:
 						output = [ "", "Your login information is still valid", *output ]
 					self.active = self.kanashi.active
-					self.output( self, output )
+					self.output( self.signin, output )
 					save = self.input( "Save login info [Y/n]", default=[ "Y", "y", "N", "n" ] )
 					if  save.upper() == "Y":
 						self.configSave()
 					self.main()
 				elif signin.two_factor:
-					print( f"TwoFactor: {signin.two_factor}" )
-					self.previous( self.close, ">>>" )
+					output = [
+						"",
+						"Oops! It looks like your account has active",
+						"two-factor security that needs to be verified",
+						""
+					]
+					self.output( self.signin, output )
+					self.tryAgain( **{
+						"label": "Vefify 2FA [Y/n]",
+						"other": lambda: self.close( self.signin, "Close" ),
+						"next": lambda: self.signin(
+							username=username,
+							password=password,
+							browser=browser,
+							two_factor=signin.wo_factor,
+							flag=3
+						)
+					})
 				elif signin.checkpoint:
 					print( f"Checkpoint: {signin.checkpoint}" )
-					self.previous( self.close, ">>>" )
+					self.previous( lambda: self.close( self.signin, "Force close" ), ">>>" )
 				else:
-					self.output( self, [
+					self.output( self.signin, [
 						"",
 						"There was an error logging in",
 						"This usually happens due to some unhandled",
 						"things like, setting cookies and information",
-						"after login"
+						"after login",
+						"",
+						"Please report this issue"
 					])
-					self.previous( self.close, ">>>" )
+					self.previous( lambda: self.close( self.signin, "Force close" ), ">>>" )
 			except Exception as e:
 				self.emit( e )
 				if  isinstance( e, UserError ) or \
@@ -874,14 +812,14 @@ class Main( Utility, RequestRequired ):
 		else:
 			raise TypeError( "Unsupported login method" )
 	
-	#[Main.support()]: None
+	#[Actions.support()]: None
 	def support( self ):
 		pass
 	
-	#[Main.switch( Int|String select, Bool ask )]: None
+	#[Actions.switch( Int|String select, Bool ask )]: None
 	def switch( self, select=None, ask=True ):
 		if  ask and self.kanashi.isActive:
-			self.output( self, [ "",
+			self.output( self.switch, [ "",
 				"You have logged in as {}".format( self.active.fullname ),
 				"You can choose an account that has logged",
 				"in before or log in to another account"
@@ -891,7 +829,7 @@ class Main( Utility, RequestRequired ):
 			users = self.settings.signin.switch.keys()
 			if  not isinstance( select, int ) and \
 				not isinstance( select, str ):
-				self.output( self, [ "",
+				self.output( self.switch, [ "",
 					"Please select an account by filling in the",
 					"account number or username, fill in the",
 					"back slash to return",
@@ -908,13 +846,13 @@ class Main( Utility, RequestRequired ):
 						user = select
 					#self.kanashi.switch( self.settings.signin.switch[user] )
 					self.thread( "Update login information", lambda: self.kanashi.switch( self.settings.signin.switch[user] ) )
-					self.output( self, f"You are logged as \x1b[1;38;5;189m{self.kanashi.active.username}\x1b[0m" )
+					self.output( self.switch, f"You are logged as \x1b[1;38;5;189m{self.kanashi.active.username}\x1b[0m" )
 					self.active = self.kanashi.active
 					self.previous( self.main, ">>>" )
 				except Exception as e:
 					if  isinstance( e, ConfigError ):
 						self.active = self.kanashi.active
-						self.output( self, "Something wrong when update config" )
+						self.output( self.switch, "Something wrong when update config" )
 						self.tryAgain( next=self.configSave, other=self.main )
 					else:
 						self.emit( e )
@@ -932,10 +870,295 @@ class Main( Utility, RequestRequired ):
 			else:
 				self.main()
 		else:
-			self.output( self, [
+			self.output( self.switch, [
 				"No account saved in this device",
 				"Want to add a new account or login?"
 			])
 			self.tryAgain( "Add new account [Y/n]", next=self.signin, other=self.main )
 	
+
+#[kanashi.main.Main]
+class Main( Actions, Utility, RequestRequired ):
+	
+	#[Main.main()]: None
+	def main( self ):
+		
+		action = self.action( actions={
+			"profile": {
+				"signin": True,
+				"action": self.profile,
+				"output": "Visit Profile",
+				"prints": "Visit profile account"
+			},
+			"search": {
+				"signin": True,
+				"action": self.search,
+				"output": "Search Anything",
+				"prints": "Search posts, users, hashtags and more"
+			},
+			"direct": {
+				"signin": True,
+				"action": self.direct,
+				"output": "Direct Inbox",
+				"prints": "Display direct inbox messages"
+			},
+			"inbox": {
+				"signin": True,
+				"action": self.inbox,
+				"output": "News Inbox",
+				"prints": "Display news inbox or notifications"
+			},
+			"pending": {
+				"signin": True,
+				"action": self.pending,
+				"output": "Follow Pending",
+				"prints": "Approve or ignore follow requests"
+			},
+			"explore": {
+				"signin": True,
+				"action": self.explore,
+				"output": "Explore Media",
+				"prints": "Explore recommended media"
+			},
+			"signin": {
+				"signin": {
+					"require": False,
+					"include": False
+				},
+				"action": self.signin,
+				"output": "SignIn Account",
+				"prints": "SignIn with password or cookies"
+			},
+			"logout": {
+				"signin": True,
+				"action": self.logout,
+				"output": "Logout Account",
+				"prints": "Logout Instagram account"
+			},
+			"download": {
+				"signin": True,
+				"action": self.download,
+				"output": "Download Media",
+				"prints": "Download Instagram media"
+			},
+			"switch": {
+				"action": self.switch,
+				"allows": self.settings.signin.switch.len() >= 2 and self.authenticated or self.settings.signin.switch.len() >= 1 and not self.authenticated,
+				"output": "Switch Account",
+				"prints": [
+					"Switch to another saved accounts"
+				]
+			},
+			"setting": {
+				"action": self.setting,
+				"output": "Kanashī Settings",
+				"prints": "Kanashī configuration settings"
+			},
+			"support": {
+				"action": self.support,
+				"output": "Support Project",
+				"prints": "When this program is useful for you"
+			},
+			"clean": {
+				"action": self.clean,
+				"output": "Clear Response",
+				"prints": "Clear the entire request record"
+			},
+			"about": {
+				"action": self.about,
+				"output": "About Kanashī",
+				"prints": "e.g Authors, Version, License, etc"
+			},
+			"exit": {
+				"action": lambda: self.exit( self.main, "Finish" ),
+				"output": "Exit",
+				"prints": [
+					"Close the program",
+					"Always use CTRL+D for shortcut"
+				]
+			}
+		})
+		action()
+	
+	#[Main.profile( String username, Profile profile )]: None
+	@logged
+	def profile( self, username=None, profile=None ):
+		if  not isinstance( username, str ) and \
+			not isinstance( profile, Profile ):
+			self.output( self.profile, [ "",
+				"This tool is not used for illegal purposes",
+				"like, data theft and so on, please use it",
+				"properly",
+				"",
+				"Enter the user profile username"
+			])
+			self.profile( self.input( "Username", default=self.active.username ) )
+		else:
+			if  not isinstance( profile, Profile ):
+				try:
+					username = username.lower()
+					if not username in self.profiles:
+						profile = self.thread( f"Retrieve user info {username}", lambda: self.kanashi.client.profile( username=username ) )
+						self.profiles[username] = profile
+					else:
+						profile = self.profiles[username]
+				except Exception as e:
+					self.emit( e )
+					if  isinstance( e, AuthError ) or \
+						isinstance( e, RequestAuthError ):
+						pass
+					if  isinstance( e, UserError ):
+						self.tryAgain( next=self.profile, other=self.main )
+					if  isinstance( e, RequestError ) and not \
+						isinstance( e, RequestAuthError ):
+						self.tryAgain( next=self.profile, other=self.main, username=username )
+					else:
+						self.previous( self.main, ">>>" )
+					return
+				self.profile( profile=profile )
+			else:
+				action = self.action( prints=profile.prints, info=False, actions={
+					"block": {
+						"signin": True,
+						"action": lambda: self.block( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"filter": profile.blockedByViewer,
+						"output": [
+							"Block User",
+							"Unblock User"
+						],
+						"prints": "Block or unblok this user"
+					},
+					"bestie": {
+						"follow": True,
+						"signin": True,
+						"action": lambda: self.bestie( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"filter": profile.isBestie,
+						"output": [
+							"Make Bestie",
+							"Remove Bestie"
+						],
+						"prints": "Make or remove this user as bestie"
+					},
+					"confirm": {
+						"signin": True,
+						"action": lambda: self.confirm( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"filter": profile.requestedFollow,
+						"output": "Confirm Request",
+						"prints": "Confirm or ignore request follow from user"
+					},
+					"favorite": {
+						"follow": True,
+						"signin": True,
+						"action": lambda: self.favorite( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"filter": profile.isFeedFavorite,
+						"output": [
+							"Make Favorite",
+							"Remove Favorite"
+						],
+						"prints": "Make or remove this user from favorite"
+					},
+					"follow": {
+						"signin": True,
+						"action": lambda: self.follow( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"filter": [
+							not profile.followedByViewer and not profile.requestedByViewer,
+							profile.followedByViewer,
+							profile.requestedByViewer
+						],
+						"output": [
+							"Follow User",
+							"Unfollow User",
+							"Unrequest User"
+						],
+						"prints": "Follow, unfollow or cancel request follow"
+					},
+					"remove": {
+						"signin": True,
+						"action": lambda: self.remove( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"filter": profile.followsViewer,
+						"output": "Remove Follower",
+						"prints": "Remove this user from follower list"
+					},
+					"report": {
+						"signin": True,
+						"action": lambda: self.report( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"output": "Report User",
+						"prints": "Report this user profile"
+					},
+					"muting": {
+						"follow": True,
+						"action": lambda: self.muting( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"output": "Mute User",
+						"prints": "Mute posts and stories from this user"
+					},
+					"restrict": {
+						"signin": True,
+						"action": lambda: self.restrict( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"filter": profile.restrictedByViewer,
+						"output": [
+							"Restrict User",
+							"Unrestrict User"
+						],
+						"prints": "Restrict or unrestrict this user"
+					},
+					"follows": {
+						"signin": True,
+						"action": lambda: self.follows( profile=profile ),
+						"filter": profile.isPrivateAccount and profile.followedByViewer or profile.isPrivateAccount is False or profile.isMySelf,
+						"output": "Profile Follows",
+						"prints": "Gets user followers and following"
+					},
+					"mutuals": {
+						"signin": True,
+						"action": lambda: self.mutuals( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"output": "Profile Mutuals",
+						"prints": "Get mutual users from this user"
+					},
+					"suggest": {
+						"signin": True,
+						"action": lambda: self.suggest( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"output": "Profile Suggest",
+						"prints": "Gests suggested user from this user"
+					},
+					"medias": {
+						"signin": True,
+						"action": lambda: self.medias( profile=profile ),
+						"filter": profile.isPrivateAccount and profile.followedByViewer or profile.isPrivateAccount is False or profile.isMySelf,
+						"output": "Profile Media",
+						"prints": "Gets media posts, reels, saveds, etc"
+					},
+					"picture": {
+						"signin": True,
+						"action": lambda: self.picture( profile=profile ),
+						"output": "Profile Picture",
+						"prints": "Download profile picture"
+					},
+					"export": {
+						"signin": True,
+						"action": lambda: self.export( profile=profile ),
+						"output": "Export Profile",
+						"prints": "Save profile info as json file"
+					},
+					"main": {
+						"action": self.main,
+						"output": "Back to Main"
+					}
+				})
+				try:
+					action()
+				except ProfileError as e:
+					self.emit( e.prev )
+			pass
+		pass
 	
