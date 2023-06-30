@@ -9,7 +9,7 @@ Kanashī is an independent open source project without any organizational involv
 Because this is an open source project, the creators and developers of this project will not tolerate or be held responsible if it happens to any Instagram account that is used to log in or any user profiles that you collect information through this program.
 
 ## History
-Kanashī itself is a translation of the word from Japan which means Sadness, I built this program for the sadness that I have experienced so far, if you are wondering why that is? Don't ask! Just use this program if you are interested, no need to think about anyone's sadness or even me.
+Kanashī itself is a translation of the word from Japan **悲しい** which means Sadness, I built this program for the sadness that I have experienced so far, if you are wondering why that is? Don't ask! Just use this program if you are interested, no need to think about anyone's sadness or even me.
 
 ## Features
 * Login with Password and Cookies
