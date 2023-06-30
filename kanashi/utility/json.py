@@ -26,6 +26,8 @@
 from json import dumps, loads
 from json import JSONDecodeError as JSONError
 
+from kanashi.utility.common import typedef
+
 
 #[kanashi.utility.json.JSON]
 class JSON:
@@ -38,6 +40,8 @@ class JSON:
 	#[Json.encode( Mixed values )]
 	@staticmethod
 	def encode( values ):
+		if typedef( values, "Object" ):
+			return values.json()
 		return( dumps( values, indent=4 ) )
 		
 	#[Json.isSerializable( Mixed values )]

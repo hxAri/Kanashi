@@ -21,11 +21,14 @@
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
+#
 
+from kanashi.utility.common import droper, typedef, typeof
 from kanashi.utility.cookie import Cookie
 from kanashi.utility.file import File
 from kanashi.utility.json import JSON, JSONError
 from kanashi.utility.path import Path
 from kanashi.utility.string import Binary, String
 from kanashi.utility.thread import Thread
+from kanashi.utility.tree import tree
 from kanashi.utility.utility import Utility

@@ -21,6 +21,7 @@
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
+#
 
 import re
 import sys
@@ -430,7 +431,7 @@ class Utility:
 				sys.stdout.write( e )
 				sys.stdout.flush()
 				if  e != "\x20":
-					sleep( 00000.1 )
+					#sleep( 00000.1 )
 					pass
 			task.start()
 			while task.is_alive():
@@ -438,7 +439,7 @@ class Utility:
 					print( "\x0d\x7b\x7d\x20\x1b[1;33m\x7b\x7d".format( self.colorize( strings ), i ), end="" )
 					sleep( 00000.1 )
 			print( "\x0d\x0a" )
-			sleep( 00000.1 )
+			#sleep( 00000.1 )
 			self.clear()
 		except EOFError as e:
 			self.close( e, "\x46\x6f\x72\x63\x65\x20\x63\x6c\x6f\x73\x65" )
