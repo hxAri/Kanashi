@@ -21,6 +21,7 @@
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
+#
 
 
 #[kanashi.media.MediaCollection]
@@ -40,7 +41,7 @@ class MediaCollection:
 			When invalid media parameter
 		"""
 		
-		if not isinstance( medias, list ):
+		if  not isinstance( medias, list ):
 			raise ValueError( "Invalid media parameter, value must be type list, {} passed".format( type( media ).__name__ ) )
 		self.__index__ = 0
 		self.__media__ = []
@@ -70,9 +71,9 @@ class MediaCollection:
 	
 	#[MediaCollection.seek( Int index )]: None
 	def seek( self, index ):
-		if index < 0:
+		if  index < 0:
 			raise IndexError()
-		if index > self.length:
+		if  index > self.length:
 			raise IndexError()
 	
 	#[MediaCollection.length]: Int
