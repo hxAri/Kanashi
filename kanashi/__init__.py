@@ -21,15 +21,16 @@
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
+#
 
-from kanashi.client import Client
+from kanashi.client import Client, logged
 from kanashi.error import *
 from kanashi.endpoint import *
 from kanashi.kanashi import Kanashi
 from kanashi.main import Main
 from kanashi.media import Media, MediaCollection
 from kanashi.object import Object
-from kanashi.profile import Profile
+from kanashi.profile import Profile, avoidForMySelf
 from kanashi.readonly import Readonly
 from kanashi.request import Request, RequestDownloadError, RequestError, RequestRequired
 from kanashi.utility import *
