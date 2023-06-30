@@ -21,6 +21,7 @@
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
+#
 
 from kanashi.client import Client
 from kanashi.config import Config, ConfigError
@@ -119,23 +120,10 @@ class Kanashi( Readonly ):
 				self.setupable()
 		pass
 	
-	#[Kanashi.setupable()]: None
-	def setupable( self ):
-		try:
-			self.headers.update( **self.active.session.headers.dict() )
-			self.headers.update({ "User-Agent": self.active.session.browser })
-			cookies = self.active.session.cookies.dict()
-			for i, cookie in enumerate( cookies ):
-				Cookie.set( self.cookies, cookie, cookies[cookie] )
-			self.client.id = self.active.id
-			self.client.username = self.active.username
-			self.client.password = self.active.password
-		except AttributeError:
-			pass
-		except IndexError:
-			pass
-		except KeyError:
-			pass
+	#[Kanashi.authenticated<kanashi.client.Client.authenticated>]: Bool
+	@property
+	def authenticated( self ):
+		return self.client.authenticated
 	
 	#[Kanashi.isActive]: Bool
 	@property
@@ -155,7 +143,8 @@ class Kanashi( Readonly ):
 			self.active.session.csrftoken and \
 			self.active.session.sessionid is not None and \
 			self.active.session.cookies.len() and \
-			self.active.session.headers.len():
+			self.active.session.headers.len() and \
+			self.authenticated:
 			return True
 		return False
 	
@@ -167,7 +156,25 @@ class Kanashi( Readonly ):
 		self.active = self.__create()
 		pass
 	
-	#[Kanashi.signin<kanashi.client.Client.sigin>]: Object
+	#[Kanashi.setupable()]: None
+	def setupable( self ):
+		try:
+			self.headers.update( **self.active.session.headers.dict() )
+			self.headers.update({ "User-Agent": self.active.session.browser })
+			cookies = self.active.session.cookies.dict()
+			for i, cookie in enumerate( cookies ):
+				Cookie.set( self.cookies, cookie, cookies[cookie] )
+			self.client.id = self.active.id
+			self.client.username = self.active.username
+			self.client.password = self.active.password
+		except AttributeError:
+			pass
+		except IndexError:
+			pass
+		except KeyError:
+			pass
+	
+	#[Kanashi.signin<kanashi.client.Client.signin>]: Object
 	def signin( self, username, password, csrftoken=None, cookies=None, browser=None ):
 		
 		# Trying to login.
