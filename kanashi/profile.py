@@ -21,14 +21,24 @@
 # tool we as Coders and Developers are not responsible for anything that
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
+#
 
 from kanashi.config import Config
 from kanashi.error import AuthError, BlockError, FavoriteError, FollowError, ReportError, RestrictError, UserError, UserNotFoundError
 from kanashi.object import Object
 from kanashi.readonly import Readonly
 from kanashi.request import RequestRequired
-from kanashi.utility import File, String
+from kanashi.utility import File, String, tree, typedef, typeof
 
+
+#[kanashi.profile.avoidForMySelf]
+def avoidForMySelf( handle ):
+	def avoid( self ):
+		if  self.isMySelf:
+			raise ProfileError( "This action is not intended for self" )
+		return handle( self )
+	return avoid
+	
 
 #[kanashi.profile.ProfilePriperties]
 class ProfileProperties:
@@ -39,7 +49,7 @@ class ProfileProperties:
 	
 	@property
 	def biography( self ):
-		return self.profile.biography
+		return self.__profile__.biography
 	
 	@property
 	def biographyFormat( self ):
@@ -47,13 +57,14 @@ class ProfileProperties:
 	
 	@property
 	def biographyEntities( self ):
-		return self.profile.biography_with_entities.entities
+		return self.__profile__.biography_with_entities.entities
 	
 	@property
 	def biographyEntityUsers( self ):
 		users = []
 		entities = self.biographyEntities
 		for entity in entities:
+			if  not entity.isset( "user" ): continue
 			if  user := entity.user:
 				users.append( user.username )
 		return users
@@ -67,6 +78,7 @@ class ProfileProperties:
 		hashtags = []
 		entities = self.biographyEntities
 		for entity in entities:
+			if  not entity.isset( "hashtag" ): continue
 			if  hashtag := entity.hashtag:
 				hashtags.append( hashtag.name )
 		return hashtags
@@ -77,85 +89,85 @@ class ProfileProperties:
 	
 	@property
 	def biographyRawText( self ):
-		if  self.profile.biography_with_entities.raw_text == None:
-			self.profile.biography_with_entities.raw_text = ""
-		return self.profile.biography_with_entities.raw_text
+		if  self.__profile__.biography_with_entities.raw_text == None:
+			self.__profile__.biography_with_entities.raw_text = ""
+		return self.__profile__.biography_with_entities.raw_text
 	
 	@property
 	def blockedByViewer( self ):
-		return self.profile.blocked_by_viewer
+		return self.__profile__.blocked_by_viewer
 	
 	@property
 	def categoryName( self ):
-		return self.profile.category_name
+		return self.__profile__.category_name
 	
 	@property
 	def countEdgeFelixVideoTimeline( self ):
-		return self.profile.edge_felix_video_timeline.count
+		return self.__profile__.edge_felix_video_timeline.count
 	
 	@property
 	def countEdgeFollow( self ):
-		return self.profile.edge_follow.count
+		return self.__profile__.edge_follow.count
 	
 	@property
 	def countEdgeFollowedBy( self ):
-		return self.profile.edge_followed_by.count
+		return self.__profile__.edge_followed_by.count
 	
 	@property
 	def countEdgeMediaCollections( self ):
-		return self.profile.edge_mutual_followed_by.count
+		return self.__profile__.edge_mutual_followed_by.count
 	
 	@property
 	def countEdgeMutualFollowedBy( self ):
-		return self.profile.edge_mutual_followed_by.count
+		return self.__profile__.edge_mutual_followed_by.count
 	
 	@property
 	def countEdgeOwnerToTimelineMedia( self ):
-		return self.profile.edge_owner_to_timeline_media.count
+		return self.__profile__.edge_owner_to_timeline_media.count
 	
 	@property
 	def countEdgeSavedMedia( self ):
-		return self.profile.edge_saved_media.count
+		return self.__profile__.edge_saved_media.count
 	
 	@property
 	def edgeFelixVideoTimeline( self ):
-		return self.profile.edge_felix_video_timeline.edges
+		return self.__profile__.edge_felix_video_timeline.edges
 	
 	@property
 	def edgeFollow( self ):
-		return self.profile.edge_follow.edges
+		return self.__profile__.edge_follow.edges
 	
 	@property
 	def edgeFollowedBy( self ):
-		return self.profile.edge_followed_by.edges
+		return self.__profile__.edge_followed_by.edges
 	
 	@property
 	def edgeMediaCollections( self ):
-		return self.profile.edge_media_collections.edges
+		return self.__profile__.edge_media_collections.edges
 	
 	@property
 	def edgeMutualFollowedBy( self ):
-		return self.profile.edge_mutual_followed_by.edges
+		return self.__profile__.edge_mutual_followed_by.edges
 	
 	@property
 	def edgeOwnerToTimelineMedia( self ):
-		return self.profile.edge_owner_to_timeline_media.edges
+		return self.__profile__.edge_owner_to_timeline_media.edges
 	
 	@property
 	def edgeSavedMedia( self ):
-		return self.profile.edge_saved_media.edges
+		return self.__profile__.edge_saved_media.edges
 	
 	@property
 	def followedByViewer( self ):
-		return self.profile.followed_by_viewer
+		return self.__profile__.followed_by_viewer
 	
 	@property
 	def followsViewer( self ):
-		return self.profile.follows_viewer
+		return self.__profile__.follows_viewer
 	
 	@property
 	def fullname( self ):
-		return self.profile.full_name
+		return self.__profile__.full_name
 	
 	@property
 	def fullnameFormat( self ):
@@ -171,221 +183,274 @@ class ProfileProperties:
 	
 	@property
 	def hasBlockedViewer( self ):
-		return self.profile.has_blocked_viewer
+		return self.__profile__.has_blocked_viewer
 	
 	@property
 	def id( self ):
-		return self.profile.id
+		return self.__profile__.id
 	
 	@property
 	def isBestie( self ):
-		return self.profile.is_bestie
+		return self.__profile__.is_bestie
 	
 	@property
 	def isBlockingReel( self ):
-		return self.profile.is_blocking_reel
+		return self.__profile__.is_blocking_reel
 	
 	@property
 	def isBusinessAccount( self ):
-		return self.profile.is_business_account
+		return self.__profile__.is_business_account
 	
 	@property
 	def isEligibleToSubscribe( self ):
-		return self.profile.is_eligible_to_subscribe
+		return self.__profile__.is_eligible_to_subscribe
 	
 	@property
 	def isEmbedsDisabled( self ):
-		return self.profile.is_embeds_disabled
+		return self.__profile__.is_embeds_disabled
 	
 	@property
 	def isFeedFavorite( self ):
-		return self.profile.is_feed_favorite
+		return self.__profile__.is_feed_favorite
 	
 	@property
 	def isGuardianOfViewer( self ):
-		return self.profile.is_guardian_of_viewer
+		return self.__profile__.is_guardian_of_viewer
 	
 	@property
 	def isSupervisedByViewer( self ):
-		return self.profile.is_supervised_by_viewer
+		return self.__profile__.is_supervised_by_viewer
 	
 	@property
 	def isJoinedRecently( self ):
-		return self.profile.is_joined_recently
+		return self.__profile__.is_joined_recently
 	
 	@property
 	def isMutingNotes( self ):
-		return self.profile.is_muting_profile
+		return self.__profile__.is_muting_notes
 	
 	@property
 	def isMutingReel( self ):
-		return self.profile.is_muting_reel
+		return self.__profile__.is_muting_reel
 	
 	@property
 	def isMySelf( self ):
-		return self.profile.id == self.viewer.id
+		return self.__profile__.id == self.__viewer__.id
 	
 	@property
 	def isNotMySelf( self ):
-		return self.profile.id != self.viewer.id
+		return self.__profile__.id != self.__viewer__.id
 	
 	@property
 	def isPrivateAccount( self ):
-		return self.profile.is_private
+		return self.__profile__.is_private
 	
 	@property
 	def isProfessionalAccount( self ):
-		return self.profile.is_professional_account
+		return self.__profile__.is_professional_account
 	
 	@property
 	def isSupervisedUser( self ):
-		return self.profile.is_supervised_user
+		return self.__profile__.is_supervised_user
 	
 	@property
 	def isVerified( self ):
-		return self.profile.is_verified
+		return self.__profile__.is_verified
 	
 	@property
 	def muting( self ):
-		return self.profile.muting
-	
-	@property
-	def profilePicture( self ):
-		return self.profile.rofile_pic_url
-	
-	@property
-	def profilePictureHD( self ):
-		if  self.profile.isset( "hd_profile_pic_url_info" ):
-			return self.profile.hd_profile_pic_url_info.url
-		elif  self.profile.isset( "hd_profile_pic_versions" ):
-			return self.profile.hd_profile_pic_versions[-1].url
-		return self.profile.profile_pic_url_hd
-	
-	@property
-	def profilePictureHDResolution( self ):
-		if  self.profile.isset( "hd_profile_pic_url_info" ):
-			return "{}x{}".format(
-				self.profile.hd_profile_pic_url_info.width,
-				self.profile.hd_profile_pic_url_info.height
-			)
-		elif  self.profile.isset( "hd_profile_pic_versions" ):
-			return "{}x{}".format(
-				self.profile.hd_profile_pic_versions[-1].width,
-				self.profile.hd_profile_pic_versions[-1].height
-			)
-		return "320x320"
-	
-	@property
-	def pronouns( self ):
-		return self.profile.pronouns
-	
-	@property
-	def pronounsFormat( self ):
-		if  self.pronouns:
-			return "/".join( self.pronouns )
-		return ""
-	
-	@property
-	def requestedFollow( self ):
-		return self.profile.incoming_request
-	
-	@property
-	def requestedByViewer( self ):
-		return self.profile.requested_by_viewer
-	
-	@property
-	def restrictedByViewer( self ):
-		return self.profile.restricted_by_viewer
-	
-	@property
-	def subscribed( self ):
-		return self.profile.subscribed
-	
-	@property
-	def username( self ):
-		return self.profile.username
-	
-
-#[kanashi.profile.Profile]
-class Profile( ProfileProperties, Readonly, RequestRequired ):
-	
-	#[Profile.ATTRIBUTES]
-	ATTRIBUTES = [
-	]
-	
-	#[Profile( Object viewer, Request request, Dict profile, Mixed **kwargs )]: None
-	def __init__( self, viewer, request, profile, **kwargs ):
-		
-		"""
-		Construct method of class Profile.
-		
-		:params Object viewer
-			Object represent user active
-		:params Request request
-			Object instance of request
-		:params Dict profile
-			User profile
-		
-		:return None
-		"""
-		
-		# Viewer login information.
-		self.viewer = viewer
-		
-		# Save profile user info.
-		self.profile = Object( profile )
-		
-		# Instance of class Parent.
-		self.__parent__ = super()
-		self.__parent__.__init__( request )
-		
-		# Inherited methods from clients if available.
-		self.__methods__ = kwargs.pop( "methods", {} )
-	
-	#[Profile.__getitem__( String key )]: Mixed
-	def __getitem__( self, key ):
-		return self.profile[key]
-	
-	#[Profile.__setitem__( String key, Mixed value )]: Mixed
-	def __setitem__( self, key, value ):
-		return self.profile.set({ key: value })
+		return self.__profile__.muting
 	
 	#[Profile.prints]: List
 	@property
 	def prints( self ):
 		
 		"""
-		Don't call this when you get profile info with id.
-		This is only usage for Main class from kanashi.main.Main
+		This is only usage for Actions|Main class from
+		kanashi.main.Actions and kanashi.main.Main
+		"""
+		
+		display = [ "", {} ]
+		
+		# General information to be displayed.
+		prints = [
+			"id",
+			"self",
+			"account",
+			"username",
+			"fullname",
+			"pronouns",
+			"category",
+			"websites",
+			"statuses",
+			"entities",
+			"contexts"
+		]
+		
+		for line in prints:
+			match line:
+				case "id":
+					value = self.id
+				case "self":
+					value = self.isMySelf
+				case "account":
+					account = []
+					if  self.isPrivateAccount:
+						account.append( "Private" )
+					else:
+						account.append( "Public" )
+						if  self.isBusinessAccount:
+							account.append( "Business" )
+						if  self.isProfessionalAccount:
+							account.append( "Professional" )
+					value = "/".join( account )
+				case "username":
+					value = "\x1b[1;38;5;189m\x7b\x7d\x1b[0m".format( self.username )
+				case "fullname":
+					value = "\x1b[1;37m\x7b\x7d\x1b[0m".format( self.fullname )
+					if  self.isVerified:
+						value += "\x20\x1b[1;38;5;195m\u221a\x1b[0m"
+				case "pronouns":
+					value = self.pronounsFormat if self.pronounsFormat else None
+				case "category":
+					if  self.isProfessionalAccount:
+						value = self.categoryName
+				case "websites":
+					if  self['bio_links']:
+						link = {}
+						if  "title" in self['bio_links'][0]:
+							link['Title'] = self['bio_links']['title']
+						link['Type'] = self['bio_links'][0]['link_type'].capitalize()
+						link['Url'] = "\x1b[1;38;5;81m{}\x1b[0m".format( self['bio_links'][0]['url'] )
+						value = link
+				case "statuses":
+					if  self.isNotMySelf:
+						value = {
+							"Block": {
+								"Blocked by owner": self.hasBlockedViewer,
+								"Blocked by viewer": self.blockedByViewer
+							},
+							"Follow": {
+								"Followed by owner": self.followsViewer,
+								"Requested by owner": self.requestedFollow,
+								"Followed by viewer": self.followedByViewer,
+								"Requested by viewer": self.requestedByViewer
+							},
+							"Muting": {
+								"Notes": self.isMutingNotes,
+								"Reel": self.isMutingReel,
+							},
+							"Bestie": self.isBestie,
+							"Favorite": self.isFeedFavorite,
+							"Restrict": self.restrictedByViewer
+						}
+					else:
+						value = "Unavailable"
+				case "entities":
+					value = {
+						"Users": {
+							"Count": len( self.biographyEntityUsers ),
+							"List": [ "@{}".format( user ) for user in self.biographyEntityUsers ]
+						},
+						"Hashtags": {
+							"Count": len( self.biographyEntityHashtags ),
+							"List": [ "#{}".format( hashtag ) for hashtag in self.biographyEntityHashtags ]
+						}
+					}
+				case "contexts":
+					if  self.isNotMySelf:
+						value = {
+							"Linkeds": [ "@{}".format( user.username ) for user in self['profile_context_links_with_user_ids'] ],
+							"Facepiles": [ "@{}".format( user.username ) for user in self['profile_context_facepile_users'] ]
+						}
+				case _:
+					value = "Unavailable"
+			try:
+				display[1][line.capitalize()] = value
+				del value
+			except NameError:
+				continue
+		
+		biography = []
+		for i in range( 0, len( self.biography if self.biography else "" ), 36 ):
+			biography.append( "\x20\x20{}".format( self.biography[i:i+36].replace( "\n", "\x0a\x20\x20\x20\x20\x20\x20" ) ) )
+		if  len( biography ) == 0:
+			biography = [ "None" ]
+		display.append( "\x0a\x20\x20\x20\x20".join([
+			"----------------------------------------",
+			"- Biography",
+			"----------------------------------------",
+			*biography,
+			"----------------------------------------"
+		]))
+		
+		edges = "\x0a\x20\x20\x20\x20".join([
+			"",
+			"┌───────┬───────┬────────┬─────────────┐",
+			"│ Posts │ Felix │ Saveds │ Collections │",
+			"├───────┼───────┼────────┼─────────────┤",
+			"│ {} │ {} │ {} │ {} │",
+			"└───────┴───────┴────────┴─────────────┘",
+			"----------------------------------------",
+			"┌─────────────┬─────────────┬──────────┐",
+			"│  Followers  │  Following  │  Mutual  │",
+			"├─────────────┼─────────────┼──────────┤",
+			"│ {} │ {} │ {} │",
+			"└─────────────┴─────────────┴──────────┘",
+			""
+		])
+		display.append( edges.format(*[
+			f"{self.countEdgeOwnerToTimelineMedia}".center( 5 ),
+			f"{self.countEdgeFelixVideoTimeline}".center( 5 ),
+			f"{self.countEdgeSavedMedia}".center( 6 ),
+			f"{self.countEdgeMediaCollections}".center( 11 ),
+			f"{self.countEdgeFollowedBy}".center( 11 ),
+			f"{self.countEdgeFollow}".center( 11 ),
+			f"{self.countEdgeMutualFollowedBy}".center( 8 ),
+		]))
+		
+		# Create Tree Structure
+		# For Human readabled profile info.
+		display[1] = tree( data=display[1], indent=4 )
+		
+		return display
+	
+	#[Profile.prints]: List
+	@property
+	def printsV2( self ):
+		
+		"""
+		This is only usage for Actions|Main class from
+		kanashi.main.Actions and kanashi.main.Main
 		"""
 		
 		# General information to be displayed.
 		# The empty string will be used for the new line.
 		prints = [
-			"",
+			"│",
 			"id",
 			"username",
 			"fullname",
-			"",
+			"│",
 			"pronouns",
-			"",
+			"│",
 			"category",
-			"",
+			"│",
 			"account",
-			"",
+			"│",
 			"website",
-			"",
-			"biography",
-			"",
+			"│",
 			"follow",
-			"",
+			"│",
 			"block",
-			"",
+			"│",
 			"restrict",
 			"muting",
-			"",
+			"│",
 			"bestie",
 			"favorite",
+			"",
+			"biography",
 			"",
 			"edges",
 			""
@@ -396,20 +461,20 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			val = prints[idx]
 			match val:
 				case "id":
-					prints[idx] = f"ID|PK {self.id}"
+					prints[idx] = f"├── ID|PK {self.id}"
 				case "fullname":
-					prints[idx] = f"Fullname \x1b[1;37m{self.fullname}\x1b[0m"
+					prints[idx] = f"├── Fullname \x1b[1;37m{self.fullname}\x1b[0m"
 				case "username":
-					prints[idx] = f"Username \x1b[1;38;5;189m{self.username}\x1b[0m"
+					prints[idx] = f"├── Username \x1b[1;38;5;189m{self.username}\x1b[0m"
 					if  self.isVerified:
 						prints[idx] += "\x20\x1b[1;36m√\x1b[0m"
 				case "pronouns":
-					prints[idx] = "\x0a\x20\x20\x20\x20\x20\x20..\x20".join([ "- Pronouns", self.pronounsFormat if self.pronounsFormat else "None" ])
+					prints[idx] = "\x0a\x20\x20\x20\x20│\x20\x20\x20└──\x20".join([ "├── Pronouns", self.pronounsFormat if self.pronounsFormat else "None" ])
 				case "category":
 					if  self.isProfessionalAccount:
-						prints[idx] = "\x0a\x20\x20\x20\x20\x20\x20..\x20".join([ "- Category", self.categoryName if self.categoryName else "None" ])
+						prints[idx] = "\x0a\x20\x20\x20\x20│\x20\x20\x20└──\x20".join([ "├── Category", self.categoryName if self.categoryName else "None" ])
 					else:
-						prints[idx] = "\x0a\x20\x20\x20\x20\x20\x20..\x20".join([ "- Category", "Not a Professional Account" ])
+						prints[idx] = "\x0a\x20\x20\x20\x20│\x20\x20\x20└──\x20".join([ "├── Category", "Not a Professional Account" ])
 				case "account":
 					account = []
 					if  self.isPrivateAccount:
@@ -420,9 +485,9 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 							account.append( "Business" )
 						if  self.isProfessionalAccount:
 							account.append( "\x20Professional" )
-					prints[idx] = "\x0a\x20\x20\x20\x20\x20\x20..\x20".join([ "- Account", "/".join( account ) ])
+					prints[idx] = "\x0a\x20\x20\x20\x20│\x20\x20\x20└──\x20".join([ "├── Account", "/".join( account ) ])
 				case "website":
-					prints[idx] = [ "- Website" ]
+					prints[idx] = [ "├── Website" ]
 					if  self['bio_links']:
 						if  "title" in self['bio_links'][0]:
 							prints[idx].append( "Title {}".format( self['bio_links']['title'] ) )
@@ -430,7 +495,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 						prints[idx].append( "\x1b[1;38;5;81m{}\x1b[0m".format( self['bio_links'][0]['url'] ) )
 					else:
 						prints[idx].append( "None" )
-					prints[idx] = "\x0a\x20\x20\x20\x20\x20\x20..\x20".join( prints[idx] )
+					prints[idx] = "\x0a\x20\x20\x20\x20│\x20\x20\x20└──\x20".join( prints[idx] )
 				case "biography":
 					if  self.biography:
 						prints[idx] = "\x0a\x20\x20\x20\x20".join([
@@ -454,67 +519,67 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 						del prints[idx]
 				case "block":
 					if  self.isMySelf:
-						prints[idx] = "- Block is not available for own profile"
+						prints[idx] = "├── Block is not available for own profile"
 					else:
 						block = []
 						if  self.hasBlockedViewer:
-							block.append( "- This user has blocked your account" )
+							block.append( "├── This user has blocked your account" )
 						else:
-							block.append( "- This user did not block your account" )
+							block.append( "├── This user did not block your account" )
 						if  self.blockedByViewer:
-							block.append( "- You have blocked this user" )
+							block.append( "├── You have blocked this user" )
 						else:
-							block.append( "- You did not block this user" )
+							block.append( "├── You did not block this user" )
 						prints[idx] = "\x0a\x20\x20\x20\x20".join( block )
 				case "muting":
 					if  self.isNotMySelf:
 						if  self.muting:
-							prints[idx] = "- You have mute this user"
+							prints[idx] = "├── You have mute this user"
 						else:
-							prints[idx] = "- You did not mute this user"
+							prints[idx] = "├── You did not mute this user"
 					else:
-						prints[idx] = "- Mute is not available for own profile"
+						prints[idx] = "├── Mute is not available for own profile"
 				case "restrict":
 					if  self.isNotMySelf:
 						if  self.restrictedByViewer:
-							prints[idx] = "- You have restrict this user"
+							prints[idx] = "├── You have restrict this user"
 						else:
-							prints[idx] = "- You did not restrict this user"
+							prints[idx] = "├── You did not restrict this user"
 					else:
-						prints[idx] = "- Restrict is not available for own profile"
+						prints[idx] = "├── Restrict is not available for own profile"
 				case "bestie":
 					if  self.isNotMySelf:
 						if  self.isBestie:
-							prints[idx] = "- This user is your bestie"
+							prints[idx] = "├── This user is your bestie"
 						else:
-							prints[idx] = "- This user is not your bestie"
+							prints[idx] = "├── This user is not your bestie"
 					else:
-						prints[idx] = "- Bestie is not available for own profile"
+						prints[idx] = "├── Bestie is not available for own profile"
 				case "favorite":
 					if  self.isNotMySelf:
 						if  self.isFeedFavorite:
-							prints[idx] = "- This user feed is your favourite"
+							prints[idx] = "├── This user feed is your favourite"
 						else:
-							prints[idx] = "- This user feed is not your favourite"
+							prints[idx] = "├── This user feed is not your favourite"
 					else:
-						prints[idx] = "- Favorite is not available for own profile"
+						prints[idx] = "├── Favorite is not available for own profile"
 				case "follow":
 					if  self.isMySelf:
-						prints[idx] = "- Follow is not available for own profile"
+						prints[idx] = "├── Follow is not available for own profile"
 					else:
 						follow = []
 						if  self.followsViewer:
-							follow.append( "- This user is following your account" )
+							follow.append( "├── This user is following your account" )
 						elif self.requestedFollow:
-							follow.append( "- This user is requested follow your account" )
+							follow.append( "├── This user is requested follow your account" )
 						else:
-							follow.append( "- This user is not following your account" )
+							follow.append( "├── This user is not following your account" )
 						if  self.followedByViewer:
-							follow.append( "- You have followed this user" )
+							follow.append( "├── You have followed this user" )
 						elif self.requestedByViewer:
-							follow.append( "- Your follow request has not been approved" )
+							follow.append( "├── Your follow request has not been approved" )
 						else:
-							follow.append( "- You are not following this user" )
+							follow.append( "├── You are not following this user" )
 						prints[idx] = "\x0a\x20\x20\x20\x20".join( follow )
 				case "edges":
 					prints[idx] = "\x0a\x20\x20\x20\x20".join([
@@ -546,16 +611,165 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			pass
 		return prints
 	
+	@property
+	def profile( self ):
+		return self.__profile__
+	
+	@property
+	def profilePicture( self ):
+		return self.__profile__.rofile_pic_url
+	
+	@property
+	def profilePictureHD( self ):
+		if  self.__profile__.isset( "hd_profile_pic_url_info" ):
+			return self.__profile__.hd_profile_pic_url_info.url
+		elif  self.__profile__.isset( "hd_profile_pic_versions" ):
+			return self.__profile__.hd_profile_pic_versions[-1].url
+		return self.__profile__.profile_pic_url_hd
+	
+	@property
+	def profilePictureHDResolution( self ):
+		if  self.__profile__.isset( "hd_profile_pic_url_info" ):
+			return "{}x{}".format(
+				self.__profile__.hd_profile_pic_url_info.width,
+				self.__profile__.hd_profile_pic_url_info.height
+			)
+		elif  self.__profile__.isset( "hd_profile_pic_versions" ):
+			return "{}x{}".format(
+				self.__profile__.hd_profile_pic_versions[-1].width,
+				self.__profile__.hd_profile_pic_versions[-1].height
+			)
+		return "320x320"
+	
+	@property
+	def pronouns( self ):
+		return self.__profile__.pronouns
+	
+	@property
+	def pronounsFormat( self ):
+		if  self.pronouns:
+			return "/".join( self.pronouns )
+		return ""
+	
+	@property
+	def requestedFollow( self ):
+		return self.__profile__.incoming_request
+	
+	@property
+	def requestedByViewer( self ):
+		return self.__profile__.requested_by_viewer
+	
+	@property
+	def restrictedByViewer( self ):
+		return self.__profile__.restricted_by_viewer
+	
+	@property
+	def subscribed( self ):
+		return self.__profile__.subscribed
+	
+	@property
+	def username( self ):
+		return self.__profile__.username
+	
+	@property
+	def viewer( self ):
+		return self.__viewer__.copy()
+	
+
+#[kanashi.profile.Profile]
+class Profile( ProfileProperties, Readonly, RequestRequired ):
+	
+	#[Profile.ATTRIBUTES]
+	ATTRIBUTES = [
+	]
+	
+	#[Profile( Object viewer, Request request, Dict profile, Mixed **kwargs )]: None
+	def __init__( self, viewer, request, profile, **kwargs ):
+		
+		"""
+		Construct method of class Profile.
+		
+		:params Object viewer
+			Object represent user active
+		:params Request request
+			Object instance of request
+		:params Dict profile
+			User profile
+		
+		:return None
+		"""
+		
+		# Viewer login information.
+		self.__viewer__ = viewer
+		
+		# Instance of class Parent.
+		self.__parent__ = super()
+		self.__parent__.__init__( request )
+		
+		# Save profile user info.
+		self.__profile__ = Object( profile )
+		
+		# Inherited methods from clients if available.
+		self.__methods__ = kwargs.pop( "methods", {} )
+	
+	#[Profile.__getitem__( String key )]: Mixed
+	def __getitem__( self, key ):
+		return self.__profile__[key]
+	
+	#[Profile.__setitem__( String key, Mixed value )]: Mixed
+	def __setitem__( self, key, value ):
+		return self.__profile__.set({ key: value })
+	
+	#[Profile.approve( Bool approve )]:
+	@avoidForMySelf
+	def approve( self, approve=True ):
+		
+		"""
+		Approve or ignore request follow from user.
+		
+		:params Bool approve
+			Approve action
+		
+		:return Object
+			Approve or ignore result represent
+		:raises ValueError
+			When the approve parameter is invalid
+		:raises ProfileError
+			When the user does not request follow your account
+			When you will approve yourself
+		:raises TypeError
+			When the approve does not passed when new Profile instance crated
+		"""
+		
+		if  typedef( approve, bool, False ):
+			raise ValueError( "Invalid approve parameter, value must be type bool, {} passed", typeof( approve ) )
+		elif not self.requestedFollow:
+			raise ProfileError( "This user does not sent request to follow your account" )
+		elif self.isMySelf:
+			raise ProfileError( "Unable to aprove or ignore request follow for yourself" )
+		else:
+			if  "approve" not in self.__methods__:
+				raise TypeError( "This profile instance can't usage for approve or ignore request follow" )
+			result = self.__methods__['approve']( id=self.id, approve=approve )
+			self.__profile__.incoming_request = False
+			return result
+	
 	#[Profile.bestie()]: Object
+	@avoidForMySelf
 	def bestie( self ):
 		
 		"""
 		Make bestie or unbestie user.
 		
+		THIS FUNCTION|METHOD UNDER DEVELOPMENT
+		THERE ARE UNRESOLVED BUG IN THIS FUNCTIONALITY
+		
 		:return Object
-			Bestie result representation
+			Bestie result represent
 		:raises BestieError
-			...
+			When you trying to make yourself as bestie
+			When you are not following the user
+			When something wrong, please to check the request response history
 		"""
 		
 		if  self.isMySelf:
@@ -583,7 +797,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			if  status == 200:
 				response = request.json()
 				if  "friendship_statuses" in response:
-					self.profile.is_bestie = False if self.isBestie else True
+					self.__profile__.is_bestie = False if self.isBestie else True
 					return Object( response['friendship_statuses'] )
 				else:
 					raise BestieError( response['message'] if "message" in response and response['message'] else f"Something wrong when {action} the {self.username}" )
@@ -593,15 +807,17 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			raise BestieError( "Can't set user as bestie before following" )
 	
 	#[Profile.block()]: Object
+	@avoidForMySelf
 	def block( self ):
 		
 		"""
 		Block or unblock user.
 		
 		:return Object
-			Block result representation
+			Block result represent
 		:raises BlockError
-			...
+			When you trying to block yourself
+			When something wrong, please to check the request response history
 		"""
 		
 		if  self.isMySelf:
@@ -623,7 +839,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		if  status == 200:
 			response = request.json()
 			if  "status" in response and response['status'] == "ok":
-				self.profile.blocked_by_viewer = False if self.blockedByViewer else True
+				self.__profile__.blocked_by_viewer = False if self.blockedByViewer else True
 				return Object({
 					"id": self.id,
 					"username": self.username,
@@ -633,20 +849,6 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 				raise BlockError( response['message'] if "message" in response and response['message'] else f"Something wrong when {action} the {self.username}" )
 		else:
 			self.throws( action, status )
-	
-	#[Profile.confirm( Bool follow )]:
-	def confirm( follow ):
-		
-		"""
-		Confirm/ aprove or ignore request follow from user.
-		"""
-		
-		if  not self.requestedFollow:
-			raise ProfileError( "This user does not sent request to follow your account" )
-		elif self.isMySelf:
-			raise ProfileError( "Unable to aprove or ignore request follow for yourself" )
-		else:
-			pass
 	
 	#[Profile.export( String fname )]: None
 	def export( self, fname=None ):
@@ -668,9 +870,9 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		
 		if  not isinstance( fname, str ):
 			fname = self.username
-		fdata = self.profile.json()
+		fdata = self.__profile__.json()
 		if  fname[0] != "/":
-			fname = Config.ONSAVED['export']['profile'].format( fname )
+			fname = Config.ONSAVED.export.profile.format( fname )
 		else:
 			fname = "{}.json".format( fname )
 		try:
@@ -679,6 +881,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			raise ProfileError( "Failed to export profile info", prev=e )
 	
 	#[Profile.favorite()]: Object
+	@avoidForMySelf
 	def favorite( self ):
 		
 		"""
@@ -687,7 +890,9 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		:return Object
 			Favorite result represent
 		:raises FavoriteError
-			...
+			When you trying to make yourself as favorite for yourself, this is ambigue bro!
+			When you are not following the user
+			When something wrong, please to check the request response history
 		"""
 		
 		if  self.isMySelf:
@@ -711,7 +916,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			if  status == 200:
 				response = request.json()
 				if  "status" in response and response['status'] == "ok":
-					self.profile.is_feed_favorire = False if self.isFeedFavorite else True
+					self.__profile__.is_feed_favorire = False if self.isFeedFavorite else True
 					return Object({
 						"id": self.id,
 						"username": self.username,
@@ -725,6 +930,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			raise FavoriteError( "Can't set user as favorite before following" )
 	
 	#[Profile.follow()]: Object
+	@avoidForMySelf
 	def follow( self ):
 		
 		"""
@@ -733,7 +939,8 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		:return Object
 			Follow result represent
 		:raises FollowError
-			...
+			When you trying to follow yourself, this is ambigue bro!
+			When something wrong, please to check the request response history
 		"""
 		
 		if  self.isMySelf:
@@ -764,11 +971,11 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			response = request.json()
 			if  "friendship_status" in response:
 				follow = response['friendship_status']
-				self.profile.requested_by_viewer = follow['outgoing_request']
-				self.profile.outgoing_request = follow['outgoing_request']
-				self.profile.incoming_request = follow['incoming_request']
-				self.profile.followed_by_viewer = follow['following']
-				self.profile.is_private = follow['is_private']
+				self.__profile__.requested_by_viewer = follow['outgoing_request']
+				self.__profile__.outgoing_request = follow['outgoing_request']
+				self.__profile__.incoming_request = follow['incoming_request']
+				self.__profile__.followed_by_viewer = follow['following']
+				self.__profile__.is_private = follow['is_private']
 				return Object({
 					"id": self.id,
 					"private": self.isPrivateAccount,
@@ -781,11 +988,51 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		else:
 			self.throws( action, status )
 	
+	#[Profile.profilePictureSave( String name, Bool random )]: Object
+	def profilePictureSave( self, name=None, random=False ):
+		
+		"""
+		Download profile picture user.
+		
+		:return Object
+			Download result represent
+		:raise ProfileError
+			When the user has no profile picture
+		"""
+		
+		if  self['has_anonymous_profile_picture']:
+			raise ProfileError( "User has no profile picture" )
+		if  not isinstance( name, str ):
+			if  random:
+				name = String.random( 32 )
+				name += "-{}".format( self.profilePictureHDResolution )
+			else:
+				name = "{} ({}) {}".format( self.fullname, self.username, self.profilePictureHDResolution )
+		if  name[0] != "/":
+			fname = Config.ONSAVED.media.profile.format( name )
+		else:
+			fname = "{}.json".format( name )
+		self.request.save( url := self.profilePictureHD, fname, fmode="wb" )
+		return Object({
+			"url": url,
+			"fmode": "wb",
+			"fname": name,
+			"saved": fname
+		})
+	
 	#[Profile.remove()]: Object
+	@avoidForMySelf
 	def remove( self ):
 		
 		"""
 		Remove user from followers.
+		
+		:return Object
+			Remove result represent
+		:raises ProfileError
+			When you trying to remove yourself from follower lists, this is ambigue bro!
+			When the user does not following your account
+			When something wrong, please to check the request response history
 		"""
 		
 		if  not self.followsViewer:
@@ -793,21 +1040,45 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		elif self.isMySelf:
 			raise ProfileError( "Unable to remove yourself from follower" )
 		else:
-			pass
+			self.headers.update({
+				"Content-Type": "application/x-www-form-urlencoded",
+				"Origin": "https://www.instagram.com",
+				"Referer": "https://www.instagram.com/{}/followers/".format( self.viewer.username )
+			})
+			request = self.request.post( "https://www.instagram.com/api/v1/web/friendships/{}/remove_follower/".format( self.id ), data={} )
+			status = request.status_code
+			if  status == 200:
+				response = request.json()
+				if  "status" in response and response['status'] == "ok":
+					self.__profile__.follows_viewer = False
+					return Object({
+						"id": self.id,
+						"username": self.username,
+						"followed": False
+					})
+				else:
+					raise FollowError( response['message'] if "message" in response and response['message'] else f"Something wrong when remove {self.username} from follower" )
+			else:
+				self.throws( "Remove follower", status )
 	
 	#[Profile.report( Dict|Object options )]: Object
+	@avoidForMySelf
 	def report( self, options ):
 		
 		"""
 		Report user account.
 		
+		THIS FUNCTIONALITY CURRENTLY IS DEPRECATED
+		THIS JUST WASTE MY TIME BROOOO!
+		
 		:return Object
 			Report result represent
 		:raises ReportError
-			...
+			Report result representation
 		"""
 	
 	#[Profile.restrict()]: Object
+	@avoidForMySelf
 	def restrict( self ):
 		
 		"""
@@ -816,7 +1087,8 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		:return Object
 			Restrict result represent
 		:raises RestrictError
-			...
+			When you trying to restrict yourself
+			When something wrong, please to check the request response history
 		"""
 		
 		if  self.isMySelf:
@@ -839,7 +1111,7 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		if  status == 200:
 			response = request.json()
 			if  "status" in response and response['status'] == "ok":
-				self.profile.restricted_by_viewer = False if self.restrictedByViewer else True
+				self.__profile__.restricted_by_viewer = False if self.restrictedByViewer else True
 				return Object({
 					"id": self.id,
 					"username": self.username,
@@ -850,34 +1122,6 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 		else:
 			self.throws( action, status )
 		pass
-	
-	#[Profile.profilePictureSave( String name, Bool random )]: Object
-	def profilePictureSave( self, name=None, random=False ):
-		
-		"""
-		Download profile picture user.
-		
-		:return Object
-			Download result represent
-		"""
-		
-		if  not isinstance( name, str ):
-			if  random:
-				name = String.random( 32 )
-				name += "-{}".format( self.profilePictureHDResolution )
-			else:
-				name = "{} ({}) {}".format( self.fullname, self.username, self.profilePictureHDResolution )
-		if  name[0] != "/":
-			fname = Config.ONSAVED['media']['profile'].format( name )
-		else:
-			fname = "{}.json".format( name )
-		self.request.save( url := self.profilePictureHD, fname, fmode="wb" )
-		return Object({
-			"url": url,
-			"fmode": "wb",
-			"fname": name,
-			"saved": fname
-		})
 	
 	#[Profile.throws( String action, int status )]: None
 	def throws( self, action, status ):
@@ -891,12 +1135,11 @@ class Profile( ProfileProperties, Readonly, RequestRequired ):
 			Request response satus code
 		
 		:return None
-		:raises AuthError
-			...
 		:raises UserNotFoundError
-			...
+			When the user does not found
+			This usually happens because of a typo error in the url
 		:raises UserError
-			...
+			When something wrong on request action, please to check the request response history
 		"""
 		
 		match status:
