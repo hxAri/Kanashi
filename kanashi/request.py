@@ -27,7 +27,7 @@ from datetime import datetime, timedelta
 from re import match
 from requests import Session
 
-from kanashi.error import RequestError, RequestAuthError, RequestDownloadError
+from kanashi.error import AuthError, RequestError, RequestAuthError, RequestDownloadError
 from kanashi.object import Object
 from kanashi.readonly import Readonly
 from kanashi.utility.file import File
@@ -331,6 +331,8 @@ class Request( Readonly ):
 			Request options
 		
 		:return Mixed
+		:raises AuthError
+			When the user login authentication required
 		:raises RequestError
 			When an error occurs while performing the request
 		"""
@@ -349,7 +351,7 @@ class Request( Readonly ):
 				"prev": self.error( e )
 			})
 		if  self.response.status_code == 401:
-			raise RequestAuthError( "Login authentication is required" )
+			raise AuthError( "Login authentication is required" )
 		return self.response
 	
 

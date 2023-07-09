@@ -88,8 +88,7 @@ def typedef( instance, of=None, opt=None ):
 			if  not isinstance( of, str ):
 				of = type( of ).__name__
 		instance = type( instance ).__name__
-		if  instance == of or \
-			isinstance( instance, of ):
+		if  instance == of:
 			return True
 		return False
 

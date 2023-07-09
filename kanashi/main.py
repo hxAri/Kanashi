@@ -34,7 +34,7 @@ from kanashi.media import Media, MediaCollection
 from kanashi.object import Object
 from kanashi.profile import Profile
 from kanashi.request import RequestRequired
-from kanashi.utility import Utility, typedef
+from kanashi.utility import Utility, tree, typedef
 
 
 #[kanashi.main.Actions]
@@ -428,10 +428,18 @@ class Actions:
 			self.output( self.follow, output )
 			self.previous( lambda: self.profile( profile=profile ), ">>>" )
 	
-	#[Actions.inbox()]: None
+	#[Actions.inbox( Object inbox, Int order )]: None
 	@logged
-	def inbox( self ):
-		self.client.inbox()
+	def inbox( self, inbox=None, order=None ):
+		if inbox == None:
+			try:
+				return self.inbox( inbox=Object( self.request.history[-1]['response']['content'] ) )
+				return self.inbox( inbox=self.client.inbox() )
+			except RequestError as e:
+				self.emit( e )
+				self.tryAgain( next=self.inbox, other=self.main )
+		else:
+			print( inbox )
 	
 	#[Actions.logout()]: None
 	@logged
@@ -906,7 +914,7 @@ class Main( Actions, Utility, RequestRequired ):
 				"signin": True,
 				"action": self.inbox,
 				"output": "News Inbox",
-				"prints": "Display news inbox or notifications"
+				"prints": "Display news inbox notifications"
 			},
 			"pending": {
 				"signin": True,

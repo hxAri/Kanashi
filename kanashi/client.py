@@ -70,6 +70,7 @@ class Client( RequestRequired ):
 	
 	# Response dropkeys.
 	Drops = Object({
+		"direct": [],
 		"friendship": {
 			"show": [
 				"blocking",
@@ -354,7 +355,7 @@ class Client( RequestRequired ):
 			
 			# Default source path is followers.
 			source = "followers"
-			if  kwargs.get( "following" ):
+			if  kwargs.pop( "following", False ):
 				source = "following"
 			
 			# Update request headers.
@@ -368,9 +369,10 @@ class Client( RequestRequired ):
 			request = self.request.post( "https://www.instagram.com/api/v1/friendships/show_many/", data={ "user_ids": ids } )
 			status = request.status_code
 			if status == 200:
+				response = request.json()
 				print( request )
 			else:
-				raise FriendshipError()
+				raise FriendshipError( f"An error occurred while fetching the friendship information of users [{status}]" )
 	
 	#[Client.graphql( Mixed **kwargs )]: Object
 	@logged
@@ -385,14 +387,12 @@ class Client( RequestRequired ):
 	def inbox( self ):
 		
 		"""
-		News Inbox
-		POST https://www.instagram.com/api/v1/news/inbox/
-		Payload {}
-		Headers {
-			Content-Type application/x-www-form-urlencoded
-			Origin https://www.instagram.com
-			Referer https://www.instagram.com/
-		}
+		Get news inbox notifications.
+		
+		:return Object
+			Representation of inbox results
+		:raises ClientError
+			When something wrong, please to check the request response history
 		"""
 		
 		# Update request headers.
@@ -406,7 +406,11 @@ class Client( RequestRequired ):
 		request = self.request.post( "https://www.instagram.com/api/v1/news/inbox/", data={} )
 		status = request.status_code
 		if status == 200:
-			print( request )
+			response = request.json()
+			if "status" in response and response['status'] == "ok":
+				return Object( droper( response, Client.Drops.inbox ) )
+			else:
+				raise ClientError( response['message'] if "message" in response and response['message'] else "There was an error when getting news inbox" )
 		else:
 			raise ClientError( f"An error occurred while fetching the news inbox notifications [{status}]" )
 	
