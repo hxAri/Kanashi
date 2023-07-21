@@ -158,10 +158,8 @@ class Actions:
 		
 		for index, option in enumerate( actions ):
 			action = actions[option]
-			if  "action" not in action:
+			if  "action" not in action or not callable( action['action'] ):
 				continue
-			else:
-				if  not callable( action['action'] ): continue
 			if  "allows" in action and not action['allows']: continue
 			if  "follow" in action and not action['follow']: continue
 			if  "signin" in action:
@@ -175,8 +173,8 @@ class Actions:
 						if  action['signin']['require'] is True:
 							continue
 				else:
-					if  self.authenticated and not action['signin'] or \
-						not self.authenticated and not action['signin']:
+					if  not self.authenticated and action['signin'] or \
+						self.authenticated and not action['signin']:
 						continue
 			if  "output" in action:
 				if  isinstance( action['output'], list ):
@@ -890,7 +888,6 @@ class Main( Actions, Utility, RequestRequired ):
 	
 	#[Main.main()]: None
 	def main( self ):
-		
 		action = self.action( actions={
 			"profile": {
 				"signin": True,
@@ -996,9 +993,7 @@ class Main( Actions, Utility, RequestRequired ):
 			self.output( self.profile, [ "",
 				"This tool is not used for illegal purposes",
 				"like, data theft and so on, please use it",
-				"properly",
-				"",
-				"Enter the user profile username"
+				"properly"
 			])
 			self.profile( self.input( "Username", default=self.active.username ) )
 		else:
