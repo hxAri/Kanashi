@@ -302,7 +302,7 @@ class Actions:
 			self.thread( "Reading configuration file", self.config.load )
 		except ConfigError as e:
 			self.emit( e )
-			self.tryAgain( next=self.configSave )
+			self.tryAgain( "Create new [Y/n]", next=self.configSave )
 		if  not isinstance( self.config.settings, Object ):
 			self.close( e, "Operation cannot be continued" )
 		pass
