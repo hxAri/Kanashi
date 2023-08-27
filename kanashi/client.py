@@ -29,6 +29,7 @@ from re import findall, match
 from time import sleep
 
 from kanashi.error import *
+from kanashi.inbox import Inbox
 from kanashi.object import Object
 from kanashi.profile import Profile
 from kanashi.request import Request, RequestRequired
@@ -59,7 +60,7 @@ def logged( handle ):
 	#[wrapper()]: Mixed
 	def wrapper( self, *args, **kwargs ):
 		if  not self.authenticated:
-			raise ClientError( "Login authentication required for method {}", handle.__name__ )
+			raise ClientError( "Login authentication required for method {}".format( handle.__name__ ) )
 		return handle( self, *args, **kwargs )
 	
 	return wrapper
@@ -187,9 +188,9 @@ class Client( RequestRequired ):
 		if  self.isUserId( id ):
 			id = int( id )
 		if  typedef( id, int, False ):
-			raise ValueError( "Invalid id parameter, value must be type int or id valid numeric string, {} passed", typeof( approve ) )
+			raise ValueError( "Invalid id parameter, value must be type int or id valid numeric string, {} passed".format( typeof( approve ) ) )
 		if  typedef( approve, bool, False ):
-			raise ValueError( "Invalid approve parameter, value must be type bool, {} passed", typeof( approve ) )
+			raise ValueError( "Invalid approve parameter, value must be type bool, {} passed".format( typeof( approve ) ) )
 		
 		action = "Approve request"
 		target = "https://www.instagram.com/api/v1/web/friendships/{}/approve/"
@@ -382,7 +383,7 @@ class Client( RequestRequired ):
 		Get data from graphql query.
 		"""
 	
-	#[Client.inbox()]: Object
+	#[Client.inbox()]: Inbox
 	@logged
 	def inbox( self ):
 		
@@ -408,7 +409,7 @@ class Client( RequestRequired ):
 		if status == 200:
 			response = request.json()
 			if "status" in response and response['status'] == "ok":
-				return Object( droper( response, Client.Drops.inbox ) )
+				return Inbox( self.request, droper( response, Client.Drops.inbox ) )
 			else:
 				raise ClientError( response['message'] if "message" in response and response['message'] else "There was an error when getting news inbox" )
 		else:
@@ -558,7 +559,6 @@ class Client( RequestRequired ):
 			friendship.dict()
 		else:
 			friendship = {}
-		
 		return Profile(
 			methods=self.__methods__,
 			request=self.request,
@@ -744,7 +744,7 @@ class Client( RequestRequired ):
 							if  "username" in response['user']:
 								username = response['user']['username']
 							if  "full_name" in response['user']:
-								result.set({ "signin": { "fullname": reponse['user']['full_name'] } })
+								result.set({ "signin": { "fullname": response['user']['full_name'] } })
 					result.set({
 						"remember": True,
 						"success": True,
@@ -836,13 +836,13 @@ class Client( RequestRequired ):
 			password = "hex[b64]\"{}\"".format( String.encode( password ) ) if password else None
 			result.set({
 				"signin": {
-					"id": result.id,
-					"username": result.username
+					"id": result.signin.id,
+					"username": result.signin.username
 				},
 				"result": {
-					"id": result.id,
-					"fullname": result.fullname,
-					"username": result.username if result.username else username,
+					"id": result.signin.id,
+					"fullname": result.signin.fullname,
+					"username": result.signin.username if result.signin.username else username,
 					"password": password,
 					"session": {
 						"browser": browser,
