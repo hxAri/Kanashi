@@ -86,7 +86,6 @@ class Cookie:
 	#[Cookie.simple( String raw )]: Dict
 	@staticmethod
 	def simple( raw ):
-		raw = "ig_did=AB155F65-65EE-4961-95D8-ED5C0CCD5E30; ig_nrcb=1; mid=ZH9J5gABAAEWf78IKWLVBjpb2zEg; datr=40l_ZG2E6y21sCphYg67RDDv; ds_user_id=16030795795; shbid=\"11933\\05416030795795\\0541718712494:01f7aefe7a8224e5d1647122962ff807b0efc152fe68d1099c9b9c085afc3f8e3468977a\"; shbts=\"1687176494\\05416030795795\\0541718712494:01f75e88a19e886adeef5f61727b0f8c6937f53cfedfbd8229206503b516acb87b5b9cf3\"; csrftoken=TvwyyOHkCWnY0oC7HxtjgH9gLSVULLwR; sessionid=16030795795:eQTlphXQdhtotv:14:AYcNBXWZp9wISYY-Syxb0-LLQ9LHJ5JIGVvXU1koTg; dpr=2; rur=\"EAG\\05416030795795\\0541718951101:01f7fa2b3d7e6d01f8fc35d17e13c80b2d2412aa46195329ea5e2f63f2985272f5601f6d\""
 		cookie = SimpleCookie()
 		cookie.load( raw )
 		parsed = {}

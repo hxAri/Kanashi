@@ -83,3 +83,7 @@ class Path():
 			if not Path.dir( name ):
 				os.mkdir( name )
 	
+	#[Path.pwd()]
+	@staticmethod
+	def pwd(): return( os.getcwd() )
+	
