@@ -33,6 +33,7 @@ from time import sleep
 
 from kanashi.error import Error
 from kanashi.utility import Thread
+from kanashi.utility.common import typedef
 
 
 # Application Banner
@@ -78,9 +79,14 @@ class Utility:
 				"pattern": r"(?P<boolean>\b(?:False|True|None)\b)",
 				"colorize": "\x1b[1;38;5;199m{}{}"
 			},
-			"type": {
-				"pattern": r"(?P<type>\b(?:int|float|str|list|tuple|dict|set|bool|range|BaseException|BaseExceptionGroup|GeneratorExit|KeyboardInterrupt|BufferError|EOFError|ExceptionGroup|ImportError|ModuleNotFoundError|LookupError|IndexError|KeyError|MemoryError|NameError|UnboundLocalError|OSError|BlockingIOError|ChildProcessError|ConnectionError|BrokenPipeError|ConnectionAbortedError|ConnectionRefusedError|ConnectionResetError|FileExistsError|FileNotFoundError|InterruptedError|IsADirectoryError|NotADirectoryError|PermissionError|ProcessLookupError|TimeoutError|ReferenceError|RuntimeError|NotImplementedError|RecursionError|StopAsyncIteration|StopIteration|SyntaxError|IndentationError|TabError|SystemError|TypeError|ValueError|UnicodeError|UnicodeDecodeError|UnicodeEncodeError|UnicodeTranslateError|Warning|BytesWarning|DeprecationWarning|EncodingWarning|FutureWarning|ImportWarning|PendingDeprecationWarning|ResourceWarning|RuntimeWarning|SyntaxWarning|UnicodeWarning|UserWarning)\b)",
+			"typedef": {
+				"pattern": r"(?P<typedef>\b(?:int|float|str|list|tuple|dict|set|bool|range|BaseException|BaseExceptionGroup|GeneratorExit|KeyboardInterrupt|BufferError|EOFError|ExceptionGroup|ImportError|ModuleNotFoundError|LookupError|IndexError|KeyError|MemoryError|NameError|UnboundLocalError|OSError|BlockingIOError|ChildProcessError|ConnectionError|BrokenPipeError|ConnectionAbortedError|ConnectionRefusedError|ConnectionResetError|FileExistsError|FileNotFoundError|InterruptedError|IsADirectoryError|NotADirectoryError|PermissionError|ProcessLookupError|TimeoutError|ReferenceError|RuntimeError|NotImplementedError|RecursionError|StopAsyncIteration|StopIteration|SyntaxError|IndentationError|TabError|SystemError|TypeError|ValueError|UnicodeError|UnicodeDecodeError|UnicodeEncodeError|UnicodeTranslateError|Warning|BytesWarning|DeprecationWarning|EncodingWarning|FutureWarning|ImportWarning|PendingDeprecationWarning|ResourceWarning|RuntimeWarning|SyntaxWarning|UnicodeWarning|UserWarning)\b)",
 				"colorize": "\x1b[1;38;5;213m{}{}"
+			},
+			"linked": {
+				"handler": lambda match: re.sub( r"(\\|\:|\*|-|\+|/|&|%|=|\;|,|\.|\?|\!|\||<|>|\~){1,}", lambda m: "\x1b[1;38;5;69m{}\x1b[1;38;5;43m".format( m.group() ), match.group( 0 ) ),
+				"pattern": r"(?P<linked>\bhttps?://[^\s]+)",
+				"colorize": "\x1b[1;38;5;43m\x1b[4m{}{}"
 			},
 			"version": {
 				"handler": lambda match: re.sub( r"([\d\.]+)", lambda m: "\x1b[1;38;5;190m{}\x1b[1;38;5;112m".format( m.group() ), match.group( 0 ) ),
@@ -144,6 +150,8 @@ class Utility:
 								colorize = regexps[group]['colorize']
 								break
 						chars = match.group( 0 )
+						if  "rematch" in regexps[group] and typedef( regexps[group]['rematch'], dict ):
+							pass
 						if  "handler" in regexps[group] and callable( regexps[group]['handler'] ):
 							result += escape
 							result += string[search:match.end() - len( chars )]
@@ -256,7 +264,8 @@ class Utility:
 		except KeyboardInterrupt as e:
 			if  ignore == False:
 				self.close( e, "\x46\x6f\x72\x63\x65\x20\x63\x6c\x6f\x73\x65" )
-			return self.getpass( label, default, ignore )
+			print( "\r" )
+			return self.getpass( label, ignore )
 	
 	#[Utility.input( String label )]:
 	def input( self, label, default=None, number=False, ignore=True ):
@@ -290,6 +299,7 @@ class Utility:
 		except KeyboardInterrupt as e:
 			if  ignore == False:
 				self.close( e, "\x46\x6f\x72\x63\x65\x20\x63\x6c\x6f\x73\x65" )
+			print( "\r" )
 			return self.input( label, default, number, ignore )
 	
 	#[Utility.open( String target )]:
