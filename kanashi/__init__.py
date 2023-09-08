@@ -23,9 +23,11 @@
 # not for SPAM.
 #
 
-from kanashi.client import Client, logged
+from kanashi.client import Client
+from kanashi.decorator import avoidForMySelf, logged
 from kanashi.error import *
 from kanashi.endpoint import *
+from kanashi.explore import Explore, ExploreClip, ExploreClipItem, ExploreFillItem, ExploreSectionalItem
 from kanashi.kanashi import Kanashi
 from kanashi.main import Main
 from kanashi.media import Media, MediaCollection
