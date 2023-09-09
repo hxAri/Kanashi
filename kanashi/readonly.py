@@ -59,12 +59,12 @@ class Readonly:
 			excepts = []
 		
 		if isinstance( self, Object ):
-			if self.isset( key ) and name not in excepts:
+			if self.isset( key ) and key not in excepts:
 				raise KeyError( f"Cannot override key \"{key}\", cannot override key that has been set in a class that extends the Readonly class" )
 			else:
-				self.set({ name, value })
+				self.set({ key, value })
 		else:
-			if name not in excepts:
+			if key not in excepts:
 				raise TypeError( "\"{}\" object does not support item assignment".format( type( self ).__name__ ) )
 	
 	#[Readonly.__setattr__( String name, Mixed value )]: None

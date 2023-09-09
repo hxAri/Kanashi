@@ -26,9 +26,11 @@
 from random import choice
 from re import match
 
-from kanashi.client import logged
 from kanashi.config import Config, ConfigError
+from kanashi.decorator import logged
 from kanashi.error import *
+from kanashi.explore import Explore
+from kanashi.inbox import Inbox
 from kanashi.kanashi import Kanashi
 from kanashi.media import Media, MediaCollection
 from kanashi.object import Object
@@ -38,7 +40,7 @@ from kanashi.utility import Utility, tree, typedef
 
 
 #[kanashi.main.Actions]
-class Actions:
+class Actions( Utility ):
 	
 	#[Actions()]: None
 	def __init__( self ):
@@ -208,6 +210,11 @@ class Actions:
 		option = self.input( label, number=True, default=[ idx +1 for idx in range( len( options ) ) ] )
 		return actions[options[option -1 ]]['action']
 	
+	#[Actions.activity()]
+	# @logged
+	# def activity( self ):
+	# 	pass
+	
 	#[Actions.approve( Object|Profile user, Bool approve )]: None
 	@logged
 	def approve( self, user, approve=None ):
@@ -220,7 +227,7 @@ class Actions:
 			match approve.upper():
 				case "\\":
 					if  typedef( user, Profile ):
-						self.profile( profile=profile )
+						self.profile( profile=user )
 					else:
 						self.main()
 				case "N":
@@ -255,7 +262,7 @@ class Actions:
 			bestie = self.thread( f"Trying to {action}", lambda: profile.bestie() )
 			try:
 				print( bestie )
-			except Exception as e:
+			except Throwable as e:
 				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.bestie( profile, ask=ask ) } )
 	
 	#[Actions.block( Profile profile, Bool ask )]: None
@@ -285,7 +292,7 @@ class Actions:
 		else:
 			try:
 				block = self.thread( f"Trying to {action.lower()} {profile.username}", lambda: profile.block() )
-			except Exception as e:
+			except Throwable as e:
 				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.block( profile, ask=ask ) } )
 			self.output( self.block, "Successfully {} {}".format( action, profile.username ) )
 			self.previous( lambda: self.profile( profile=profile ), ">>>" )
@@ -328,10 +335,27 @@ class Actions:
 			raise ValueError( "Invalid url parameter, value must be type str, {} passed".format( type( url ).__name__ ) )
 		pass
 	
-	#[Actions.explore()]: None
+	#[Actions.explore( Explore explore )]: None
 	@logged
-	def explore( self ):
-		pass
+	def explore( self, explore=None ):
+		if not isinstance( explore, Explore ):
+			try:
+				# explore = self.thread( "Trying to get contents from explore", lambda: self.client.explore() )
+				explore = Explore( self.request, Object( self.request.history[-1]['response']['content'] ) )
+			except Throwable as e:
+				self.emit( e )
+				self.tryAgain( next=lambda: self.explore(), other=self.main )
+				return
+			return self.explore( explore=explore )
+		else:
+			length = 0
+			for item in explore:
+				print( f"..Item {item}" )
+				for clip in item.layoutContentOneByTwoItemClips:
+					print( f"....Clip {clip}" )
+				for fill in item.layoutContentFillItems:
+					print( f"....Fill {fill}" )
+			print( length )
 	
 	#[Actions.export( Profile profile, String profilename, Media media, String medianame, Int mediatype )]: None
 	def export( self, profile=None, profilename=None, media=None, medianame=None, mediatype=None ):
@@ -359,7 +383,7 @@ class Actions:
 					self.previous( lambda: self.profile( profile=profile ), ">>>" )
 			if  isinstance( media, Media ):
 				pass
-		except Exception as e:
+		except Throwable as e:
 			self.emit( e )
 			self.tryAgain( **{
 				"next": lambda: self.export( **{
@@ -369,7 +393,7 @@ class Actions:
 					"profile": profile,
 					"profilename": profilename
 				}),
-				"other": self.close
+				"other": self.main
 			})
 	
 	#[Actions.favorite( Profile profile )]: None
@@ -383,7 +407,7 @@ class Actions:
 			action = "Make favorite"
 		try:
 			favorite = self.thread( f"Trying to {action} {profile.username}", lambda: profile.favorite() )
-		except Exception as e:
+		except Throwable as e:
 			raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.favorite( profile ) } )
 		self.output( self.favorite, "Successfully {} {}".format( action, profile.username ) )
 		self.previous( lambda: self.profile( profile=profile ), ">>>" )
@@ -412,7 +436,7 @@ class Actions:
 				action = "Cancel request follow"
 			try:
 				follow = self.thread( f"{action} {profile.username}", lambda: profile.follow() )
-			except Exception as e:
+			except Throwable as e:
 				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.follow( profile, ask=ask ) } )
 			if  follow.following == True:
 				output = f"Successfully following {profile.username}"
@@ -426,12 +450,12 @@ class Actions:
 			self.output( self.follow, output )
 			self.previous( lambda: self.profile( profile=profile ), ">>>" )
 	
-	#[Actions.inbox( Object inbox, Int order )]: None
+	#[Actions.inbox( Inbox inbox, Int order )]: None
 	@logged
 	def inbox( self, inbox=None, order=None ):
-		if inbox == None:
+		if not isinstance( inbox, Inbox ):
 			try:
-				return self.inbox( inbox=Object( self.request.history[-1]['response']['content'] ) )
+				# return self.inbox( inbox=Inbox( self.request, self.request.history[-1]['response']['content'] ) )
 				return self.inbox( inbox=self.client.inbox() )
 			except RequestError as e:
 				self.emit( e )
@@ -439,14 +463,19 @@ class Actions:
 		else:
 			print( inbox )
 	
+	#[Actions.likes()]: None
+	@logged
+	def likes( self ):
+		raise NotImplementedError( self.main )
+	
 	#[Actions.logout()]: None
 	@logged
 	def logout( self ):
-		pass
+		raise NotImplementedError( self.main )
 	
 	#[Actions.main()]: None
 	def main( self ):
-		pass
+		raise NotImplementedError( self.main )
 	
 	#[Actions.pending( List<Object> pending )]: None
 	@logged
@@ -456,7 +485,7 @@ class Actions:
 				pending = self.thread( "Trying to get pending request follow", lambda: self.client.pending() )
 				for i, v in enumerate( pending ):
 					pending[i] = Object( v )
-			except Exception as e:
+			except Throwable as e:
 				self.emit( e )
 				if  not isinstance( e, RequestAuthError ):
 					self.tryAgain( next=self.pending, other=self.main )
@@ -525,13 +554,13 @@ class Actions:
 				"change it please prefix the slash before the",
 				"file name and don’t give the file extension",
 				"",
-				"e.g /sdcard/path/fo/filename"
+				"e.g /sdcard/path/to/filename"
 			])
 			default = "{} ({}) {}".format( profile.fullname, profile.username, profile.profilePictureHDResolution )
 			fname = self.input( label := "~/{}".format( Config.ONSAVED.media.profile.format( default ) ), default=default )
 			save = self.thread( "Saving profile picture {}".format( profile.username ), lambda: profile.profilePictureSave() )
 			self.output( self.picture, "Saved on {}".format( fname ) )
-			self.previous( lambda: self.profile( profile=profile ) )
+			self.previous( lambda: self.profile( profile=profile ), ">>>" )
 	
 	#[Actions.profile( String username, Profile profile )]: None
 	@logged
@@ -580,7 +609,7 @@ class Actions:
 				action = "Restrict"
 			try:
 				restrict = self.thread( f"Trying to {action} {profile.username}", lambda: profile.restrict() )
-			except Exception as e:
+			except Throwable as e:
 				raise ProfileError( "Unexpected error", prev=e, data={ "action": lambda: self.restrict( profile, ask=ask ) } )
 			self.output( self.restrict, "Successfully {} {}".format( action, profile.username ) )
 			self.previous( lambda: self.profile( profile=profile ), ">>>" )
@@ -591,21 +620,108 @@ class Actions:
 		pass
 	
 	#[Actions.setting()]: None
-	def setting( self ):
-		pass
+	def setting( self, flag=0 ):
+		if not isinstance( flag, int ):
+			raise ValueError()
+		if flag == 0:
+			action = self.action( actions={
+				"lists": {
+					"action": lambda: self.setting( flag=1 ),
+					"output": "List available User-Agent"
+				},
+				"browser": {
+					"action": lambda: self.setting( flag=2 ),
+					"output": "Change default User-Agent",
+					"prints": [
+						"This will only change the main",
+						"configuration, this will not affect",
+						"the configuration of the logged in account"
+					]
+				},
+				"randoms": {
+					"action": lambda: self.setting( flag=3 ),
+					"output": "Add or remove browser lists"
+				},
+				"cancel": {
+					"action": lambda: self.main(),
+					"output": "Back to main"
+				}
+			})
+			action()
+		elif flag == 1:
+			self.output( self.setting, [ "", self.settings.browser.randoms ] )
+			self.previous( self.setting, ">>>" )
+		elif flag == 2:
+			self.output( self.setting, "Please enter the User-Agent that you will use as default" )
+			self.settings.browser.default = self.input( "User-Agent" )
+			try:
+				self.configSave()
+			except ConfigError as e:
+				self.emit( e )
+				self.tryAgain( next=self.setting, other=self.main, flag=2 )
+				return
+			self.output( self.setting, "Default User-Agent has updated" )
+			self.previous( self.setting, ">>>" )
+		elif flag == 3:
+			self.output( self.setting, [
+				"",
+				"Please select action", [
+					"List of User-Agent"
+					"Add User-Agent",
+					"Remove User-Agent",
+					"Cancel"
+				]
+			])
+			select = self.input( "Action", number=True, default=[ 1, 2, 3 ] )
+			match select:
+				case 1 | 2:
+					next = "Y"
+					if select == 1:
+						while next.upper() == "Y":
+							browser = self.input( "New User-Agent" )
+							self.settings.browser.randoms.append( browser )
+							next = self.input( "Add more [Y/n]", default=[ "Y", "y", "N", "n" ] )
+					else:
+						while next.upper() == "Y":
+							self.output( self.setting, [
+								"",
+								"Available User Agents",
+								self.settings.browser.randoms,
+							])
+							remove = self.input( "Remove User-Agent", number=True, default=[ idx +1 for idx in range( len( self.settings.browser.randoms ) ) ] )
+							remove-= 1
+							try:
+								del self.settings.browser.randoms[remove]
+								next = self.input( "Delete more [Y/n]", default=[ "Y", "y", "N", "n" ] )
+							except IndexError:
+								pass
+					try:
+						self.configSave()
+					except ConfigError as e:
+						self.emit( e )
+						self.tryAgain( next=self.setting, other=self.main, flag=3 )
+						return
+					self.output( self.setting, "User-Agent has updated" )
+					self.previous( self.setting, ">>>" )
+				case 3:
+					self.setting()
+		elif flag == 4:
+			self.main()
+		else:
+			self.setting()
 	
 	#[Actions.signin( String username, String password, Dict|Object|String cookies, String browser, Object|Dict two_factor, Object|Dict verify Bool ask, Int flag )]: None
 	def signin( self, 
-			username=None, 
-			password=None, 
-			csrftoken=None, 
-			cookies=None, 
-			browser=None, 
-			two_factor=None, 
-			verify=None, 
-			ask=True, 
-			flag=0 
-		):
+		username=None, 
+		password=None, 
+		csrftoken=None, 
+		cookies=None, 
+		browser=None, 
+		two_factor=None, 
+		verify=None, 
+		ask=True, 
+		flag=0 
+	):
 		if  flag == 0:
 			self.output( self.signin, [
 				"",
@@ -627,21 +743,21 @@ class Actions:
 					"responsible for anything that happens",
 					"to the account used"
 				])
-				self.tryAgain( "Ignore and next [Y/n]", next=self.signin, other=self.main, ask=True, flag=1 )
-				return
-			if  not isinstance( username, str ):
-				self.output( self.signin, [ "",
-					"Username account required for login",
-					"Please enter your account username"
-				])
-				username = self.input( "Username" )
-			if  not isinstance( password, str ):
-				self.output( self.signin, [ "",
-					"Password account required for login",
-					"Please enter the password carefully"
-				])
-				password = self.getpass( "Password" )
-			self.signin( username, password, cookies, csrftoken, browser, True, 5 )
+				self.tryAgain( "Ignore and next [Y/n]", next=self.signin, other=self.signin, ask=False, flag=1 )
+			else:
+				if  not isinstance( username, str ):
+					self.output( self.signin, [ "",
+						"Username account required for login",
+						"Please enter your account username"
+					])
+					username = self.input( "Username" )
+				if  not isinstance( password, str ):
+					self.output( self.signin, [ "",
+						"Password account required for login",
+						"Please enter the password carefully"
+					])
+					password = self.getpass( "Password" )
+				self.signin( username, password, cookies, csrftoken, browser, False, flag=5 )
 		elif flag == 2:
 			if  not isinstance( cookies, str ) or \
 				not isinstance( browser, str ):
@@ -671,7 +787,9 @@ class Actions:
 				cookies = self.input( "Cookies" )
 			if  not isinstance( browser, str ):
 				browser = self.input( "Browser", default=choice( self.settings.browser.default ) )
-			self.signin( username, password, cookies, csrftoken, browser, True, 5 )
+			if  not isinstance( username, str ):
+				username = self.input( "Username" )
+			self.signin( username, password, cookies=cookies, csrftoken=csrftoken, browser=browser, ask=False, flag=5 )
 		elif flag == 3:
 			if  typedef( two_factor, dict ) or \
 				typedef( two_factor, Object ):
@@ -734,7 +852,7 @@ class Actions:
 			self.main()
 		elif flag == 5:
 			try:
-				signin = self.thread( "Trying to SignIn your account", lambda: self.kanashi.signin( username, password, cookies, csrftoken, browser ) )
+				signin = self.thread( "Trying to SignIn your account", lambda: self.kanashi.signin( username, password, csrftoken, cookies, browser ) )
 				if  signin.success == True:
 					output = [
 						"",
@@ -784,7 +902,7 @@ class Actions:
 						"Please report this issue"
 					])
 					self.previous( lambda: self.close( self.signin, "Force close" ), ">>>" )
-			except Exception as e:
+			except Throwable as e:
 				self.emit( e )
 				if  isinstance( e, UserError ) or \
 					isinstance( e, RequestError ) and not \
@@ -855,7 +973,7 @@ class Actions:
 					self.output( self.switch, f"You are logged as \x1b[1;38;5;189m{self.kanashi.active.username}\x1b[0m" )
 					self.active = self.kanashi.active
 					self.previous( self.main, ">>>" )
-				except Exception as e:
+				except Throwable as e:
 					if  isinstance( e, ConfigError ):
 						self.active = self.kanashi.active
 						self.output( self.switch, "Something wrong when update config" )
@@ -885,10 +1003,52 @@ class Actions:
 
 #[kanashi.main.Main]
 class Main( Actions, Utility, RequestRequired ):
+
+	#[Main.activity()]
+	# @logged
+	# def activity( self, comments=None, history=None, likes=None, replies=None, reviews=None, flag=0 ):
+	# 	if flag == 1:
+	# 		if typedef( history, HistoryCollection ):
+	# 			print( history )
+	# 		else:
+	# 			history = self.client.history()
+	# 			self.activity( history=history, flag=1 )
+	# 	elif flag == 2:
+	# 		pass
+	# 	elif flag == 3:
+	# 		pass
+	# 	else:
+	# 		action = self.action( info=False, actions={
+	# 			"history": {
+	# 				"signin": True,
+	# 				"action": lambda: self.activity( flag=1 ),
+	# 				"output": "Account History",
+	# 				"prints": "Review changes you’ve made to your account"
+	# 			},
+	# 			"interactions": {
+	# 				"signin": True,
+	# 				"action": lambda: self.activity( flag=2 ),
+	# 				"output": "Interactions",
+	# 				"prints": "Review and delete likes, comments, and others"
+	# 			},
+	# 			"uploads": {
+	# 				"signin": True,
+	# 				"action": lambda: self.activity( flag=3 ),
+	# 				"output": "Photos and Videos",
+	# 				"prints": "View, archive or delete photos and videos"
+	# 			}
+	# 		})
+	# 		action()
 	
 	#[Main.main()]: None
 	def main( self ):
 		action = self.action( actions={
+			# "activity": {
+			# 	"signin": True,
+			# 	"action": self.activity,
+			# 	"output": "Your Activity",
+			# 	"prints": "Your instagram activities"
+			# },
 			"profile": {
 				"signin": True,
 				"action": self.profile,
@@ -1005,7 +1165,7 @@ class Main( Actions, Utility, RequestRequired ):
 						self.profiles[username] = profile
 					else:
 						profile = self.profiles[username]
-				except Exception as e:
+				except Throwable as e:
 					self.emit( e )
 					if  isinstance( e, AuthError ) or \
 						isinstance( e, RequestAuthError ):

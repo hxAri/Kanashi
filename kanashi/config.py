@@ -27,7 +27,7 @@ from kanashi.error import ConfigError
 from kanashi.object import Object
 from kanashi.utility import File
 from kanashi.utility import JSONError
-	
+
 
 #[kanashi.config.Config]
 class Config:

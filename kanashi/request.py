@@ -295,27 +295,27 @@ class Request( Readonly ):
 	
 	#[Request.get( String url, **kwargs )]
 	def get( self, url, **kwargs ):
-		return( self.request( "GET", url=url, **kwargs ) )
+		return( self.request( method="GET", url=url, **kwargs ) )
 	
 	#[Request.head( String url, **kwargs )]
 	def head( self, url, **kwargs ):
-		return( self.request( "HEAD", url=url, **kwargs ) )
+		return( self.request( method="HEAD", url=url, **kwargs ) )
 	
 	#[Request.options( String url, **kwargs )]
 	def options( self, url, **kwargs ):
-		return( self.request( "OPTIONS", url=url, **kwargs ) )
+		return( self.request( method="OPTIONS", url=url, **kwargs ) )
 	
 	#[Request.patch( String url, **kwargs )]
 	def patch( self, url, **kwargs ):
-		return( self.request( "PATCH", url=url, **kwargs ) )
+		return( self.request( method="PATCH", url=url, **kwargs ) )
 	
 	#[Request.post( String url, **kwargs )]
 	def post( self, url, **kwargs ):
-		return( self.request( "POST", url=url, **kwargs ) )
+		return( self.request( method="POST", url=url, **kwargs ) )
 	
 	#[Request.put( String url, **kwargs )]
 	def put( self, url, **kwargs ):
-		return( self.request( "PUT", url=url, **kwargs ) )
+		return( self.request( method="PUT", url=url, **kwargs ) )
 	
 	#[Request.request( String method, String url, **kwargs )]
 	def request( self, method, url, **kwargs ):
@@ -343,7 +343,7 @@ class Request( Readonly ):
 		if  "timeout" not in kwargs:
 			kwargs['timeout'] = self.timeout
 		try:
-			self.response = self.session.request( method, url=url, **kwargs )
+			self.response = self.session.request( method=method, url=url, **kwargs )
 			self.historySave()
 		except Exception as e:
 			raise RequestError(**{
@@ -379,7 +379,7 @@ class RequestRequired:
 			
 			# Trying to inject properties.
 			self.request = request
-			self.__setup__( request )
+			RequestRequired.__setup__( self, request )
 		else:
 			raise ValueError( "Parameter request must be type Request, {} passed".format( type( request ).__name__ ) )
 	
@@ -388,7 +388,7 @@ class RequestRequired:
 		if  name == "request":
 			if  isinstance( value, Request ):
 				self.__dict__[name] = value
-				self.__setup__( value )
+				RequestRequired.__setup__( self, value )
 				return
 		if  isinstance( self, Readonly ):
 			Readonly.__setattr__( self, name, value )

@@ -28,42 +28,14 @@ from random import randint
 from re import findall, match
 from time import sleep
 
+from kanashi.decorator import logged
 from kanashi.error import *
+from kanashi.explore import Explore
 from kanashi.inbox import Inbox
 from kanashi.object import Object
 from kanashi.profile import Profile
 from kanashi.request import Request, RequestRequired
 from kanashi.utility import Cookie, droper, JSON, String, typedef, typeof
-
-
-#[kanashi.client.logged]
-def logged( handle ):
-	
-	"""
-	A decoration to check whether the client is
-	logged in or not, if the function or method
-	being called requires login first it
-	will throw an error.
-	
-	Every method that uses this decoration must
-	have a method named `authenticated` with `@property`
-	decoration to check whether it is logged in or not,
-	this is because the flow of each class is different
-	when checking login or not.
-	
-	:return Function
-		A wrapper to check if login or not
-	:raises ClientError
-		When a function or method requires login authentication
-	"""
-	
-	#[wrapper()]: Mixed
-	def wrapper( self, *args, **kwargs ):
-		if  not self.authenticated:
-			raise ClientError( "Login authentication required for method {}".format( handle.__name__ ) )
-		return handle( self, *args, **kwargs )
-	
-	return wrapper
 	
 
 #[kanashi.client.Client]
@@ -152,18 +124,6 @@ class Client( RequestRequired ):
 		self.id = kwargs.pop( "id", None )
 		self.username = kwargs.pop( "username", None )
 		self.password = kwargs.pop( "password", None )
-		
-		# Methods can be use in profile.
-		# This methods must be always passed
-		# when new Profile instance created.
-		self.__methods__ = {
-			"approve": self.approve,
-			"authenticated": lambda: self.authenticated,
-			"friendship": self.friendship,
-			"friendshipShowMany": self.friendshipShowMany,
-			"graphql": self.graphql,
-			"media": self.media
-		}
 	
 	#[Client.approve( Int id, Bool approve )]: Object
 	@logged
@@ -221,12 +181,30 @@ class Client( RequestRequired ):
 		else:
 			raise ClientError( f"An error occurred while {action} follow [{status}]" )
 	
+	def attempt( self, fullname, usermail, username, password ):
+		
+		# Update request headers.
+		self.headers.update( **{
+			"Content-Type": "application/x-www-form-urlencoded",
+			"Origin": "https://www.instagram.com",
+			"Referer": "https://www.instagram.com/"
+		})
+		self.request.post( "https://www.instagram.com/api/v1/web/accounts/web_create_ajax/attempt/", data={
+			"email": usermail,
+			"enc_password": self.encpasw( password ),
+			"first_name": fullname,
+			"username": username,
+			"opt_into_one_tap": False
+		})
+	
 	#[Client.authenticated]: Bool
 	@property
 	def authenticated( self ):
 		
 		"""
 		Return if user is authenticated.
+
+		:return Bool
 		"""
 		
 		if  isinstance( self.id, str ):
@@ -276,6 +254,57 @@ class Client( RequestRequired ):
 	@logged
 	def direct( self ):
 		pass
+	
+	#[Client.encpasw( String password )]: String
+	def encpasw( self, password ):
+		return "#PWD_INSTAGRAM_BROWSER:0:{}:{}".format( int( datetime.now().timestamp() ), password )
+	
+	#[Client.explore( Int maxId, Bool includeFixedDestinations, Bool isNonpersonalizedExplore, Bool isPrefetch, Bool omitCoverMedia )]: Object
+	@logged
+	def explore( self, maxId=0, includeFixedDestinations=True, isNonpersonalizedExplore=False, isPrefetch=False, omitCoverMedia=False ):
+		
+		"""
+		Get contents Instagram explore
+
+		:params Int maxId
+		:params Bool includeFixedDestinations
+		:params Bool isNonpersonalizedExplore
+		:params Bool isPrefetch
+		:params Bool omitCoverMedia
+
+		:return Explore
+		:raises ClientError
+			When something wrong, please to check the request response history
+		"""
+
+		# Update request headers.
+		self.headers.update( **{
+			"Origin": "https://www.instagram.com",
+			"Referer": "https://www.instagram.com/explore/"
+		})
+
+		# Trying to get contents from instagram explore.
+		request = self.request.get( "https://www.instagram.com/api/v1/discover/web/explore_grid/", params={
+			"include_fixed_destinations": includeFixedDestinations,
+			"is_nonpersonalized_explore": isNonpersonalizedExplore,
+			"is_prefetch": isPrefetch,
+			"max_id": maxId,
+			"module": "explore_popular",
+			"omit_cover_media": omitCoverMedia
+		})
+		status = request.status_code
+		if  status == 200:
+			response = request.json()
+			if  "status" in response and response['status'] == "ok":
+				return Explore(
+					request=self.request,
+					explore=response,
+					# methods={}
+				)
+			else:
+				raise ClientError( response['message'] if "message" in response and response['message'] else "There was an error when getting contents from instagram explore" )
+		else:
+			raise ClientError( f"An error occurred while fetching contents from instagram explore [{status}]" )
 	
 	#[Client.friendship( Int id )]: Object
 	@logged
@@ -363,7 +392,7 @@ class Client( RequestRequired ):
 			self.headers.update({
 				"Content-Type": "application/x-www-form-urlencoded",
 				"Origin": "https://www.instagram.com",
-				"Referer": "https://www.instagram.com/{}/{}™/".format( username, source )
+				"Referer": "https://www.instagram.com/{}/{}/".format( username, source )
 			})
 			
 			# Trying to get more data.
@@ -560,8 +589,15 @@ class Client( RequestRequired ):
 		else:
 			friendship = {}
 		return Profile(
-			methods=self.__methods__,
 			request=self.request,
+			methods={
+				"approve": self.approve,
+				"authenticated": lambda: self.authenticated,
+				"friendship": self.friendship,
+				"friendshipShowMany": self.friendshipShowMany,
+				"graphql": self.graphql,
+				"media": self.media
+			},
 			profile={
 				**profile,
 				**friendship
@@ -784,7 +820,7 @@ class Client( RequestRequired ):
 			# Trying to log in.
 			signin = self.request.post( "https://www.instagram.com/accounts/login/ajax/", allow_redirects=True, data={
 				"username": username,
-				"enc_password": "#PWD_INSTAGRAM_BROWSER:0:{}:{}".format( int( datetime.now().timestamp() ), password ),
+				"enc_password": self.encpasw( password ),
 				"queryParams": {},
 				"optIntoOneTap": "false"
 			})
@@ -815,7 +851,7 @@ class Client( RequestRequired ):
 								}
 							})
 						except KeyError as e:
-							raise SigInError( "Invalid json user info", prev=e )
+							raise SignInError( "Invalid json user info", prev=e )
 					else:
 						raise PasswordError( f"Incorrect password for user \"{username}\", or may have been changed" )
 				else:

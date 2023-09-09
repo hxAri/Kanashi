@@ -24,20 +24,12 @@
 #
 
 from kanashi.config import Config
-from kanashi.error import AuthError, BlockError, FavoriteError, FollowError, ReportError, RestrictError, UserError, UserNotFoundError
+from kanashi.decorator import avoidForMySelf
+from kanashi.error import BestieError, BlockError, FavoriteError, FollowError, ProfileError, RestrictError, UserError, UserNotFoundError
 from kanashi.object import Object
 from kanashi.readonly import Readonly
 from kanashi.request import RequestRequired
 from kanashi.utility import File, String, tree, typedef, typeof
-
-
-#[kanashi.profile.avoidForMySelf]
-def avoidForMySelf( handle ):
-	def avoid( self ):
-		if  self.isMySelf:
-			raise ProfileError( "This action is not intended for self" )
-		return handle( self )
-	return avoid
 	
 
 #[kanashi.profile.ProfilePriperties]
@@ -115,7 +107,7 @@ class ProfileProperties:
 	
 	@property
 	def countEdgeMediaCollections( self ):
-		return self.__profile__.edge_mutual_followed_by.count
+		return self.__profile__.edge_media_collections.count
 	
 	@property
 	def countEdgeMutualFollowedBy( self ):
@@ -156,6 +148,14 @@ class ProfileProperties:
 	@property
 	def edgeSavedMedia( self ):
 		return self.__profile__.edge_saved_media.edges
+
+	@property
+	def eimuid( self ):
+		return self.__profile__.eimu_id
+	
+	@property
+	def fbid( self ):
+		return self.__profile__.fbid
 	
 	@property
 	def followedByViewer( self ):
@@ -216,6 +216,10 @@ class ProfileProperties:
 	@property
 	def isGuardianOfViewer( self ):
 		return self.__profile__.is_guardian_of_viewer
+
+	@property
+	def isInCanada( self ):
+		return self.__profile__.is_in_canada
 	
 	@property
 	def isSupervisedByViewer( self ):

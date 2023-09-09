@@ -28,7 +28,7 @@ from re import findall
 from kanashi.utility.json import JSON
 from kanashi.utility.json import JSONError
 
-#[kanashi.Object]
+#[kanashi..object.Object]
 class Object:
 	
 	#[Object( Dict data, Object parent )]: None
@@ -164,13 +164,11 @@ class Object:
 	
 	#[Object.idxs()]: List<Int>
 	def idxs( self ):
-		return([ idx for idx in range( len( self.__data__ ) ) ])
+		return [ idx for idx in range( len( self.__data__ ) ) ]
 	
 	#[Object.keys()]: List<String>
 	def keys( self, index=None ):
-		if  isinstance( index, int ):
-			 return self.keys()[index]
-		return list( self.__data__.keys() )
+		return self.keys()[index] if isinstance( index, int ) else  list( self.__data__.keys() )
 	
 	#[Object.get()]: Mixed
 	def get( self, key ):
