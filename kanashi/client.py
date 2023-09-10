@@ -24,8 +24,7 @@
 #
 
 from datetime import datetime
-from random import randint
-from re import findall, match
+from re import match
 from time import sleep
 
 from kanashi.decorator import logged
@@ -35,8 +34,8 @@ from kanashi.inbox import Inbox
 from kanashi.object import Object
 from kanashi.profile import Profile
 from kanashi.request import Request, RequestRequired
-from kanashi.utility import Cookie, droper, JSON, String, typedef, typeof
-	
+from kanashi.utility import Cookie, droper, String, typedef, typeof
+
 
 #[kanashi.client.Client]
 class Client( RequestRequired ):

@@ -32,11 +32,12 @@ from kanashi.error import *
 from kanashi.explore import Explore
 from kanashi.inbox import Inbox
 from kanashi.kanashi import Kanashi
-from kanashi.media import Media, MediaCollection
+from kanashi.media import Media
 from kanashi.object import Object
 from kanashi.profile import Profile
 from kanashi.request import RequestRequired
-from kanashi.utility import Utility, tree, typedef
+from kanashi.utility import Utility, typedef
+from kanashi.utility.common import typeof
 
 
 #[kanashi.main.Actions]
@@ -466,12 +467,12 @@ class Actions( Utility ):
 	#[Actions.likes()]: None
 	@logged
 	def likes( self ):
-		raise NotImplementedError( self.main )
+		raise NotImplementedError( self.likes )
 	
 	#[Actions.logout()]: None
 	@logged
 	def logout( self ):
-		raise NotImplementedError( self.main )
+		raise NotImplementedError( self.logout )
 	
 	#[Actions.main()]: None
 	def main( self ):
@@ -617,7 +618,7 @@ class Actions( Utility ):
 	#[Actions.search()]: None
 	@logged
 	def search( self ):
-		pass
+		raise NotImplementedError( self.search )
 	
 	#[Actions.setting()]: None
 	def setting( self, flag=0 ):
@@ -938,7 +939,7 @@ class Actions( Utility ):
 	
 	#[Actions.support()]: None
 	def support( self ):
-		pass
+		raise NotImplementedError( self.support )
 	
 	#[Actions.switch( Int|String select, Bool ask )]: None
 	def switch( self, select=None, ask=True ):
@@ -1162,6 +1163,17 @@ class Main( Actions, Utility, RequestRequired ):
 					username = username.lower()
 					if not username in self.profiles:
 						profile = self.thread( f"Retrieve user info {username}", lambda: self.kanashi.client.profile( username=username ) )
+						# profile=Object( self.request.history[1]['response']['content']['graphql']['user'] )
+						# profile.set( self.request.history[2]['response']['content']['user'] )
+						# profile.set( self.request.history[3]['response']['content'] )
+						# profile = Profile( 
+						# 	profile=profile,
+						# 	request=self.request,
+						# 	viewer=self.active
+						# )
+						print( "{}({})".format( typeof( profile.__viewer__.id ), profile.__viewer__.id ) )
+						print( "{}({})".format( typeof( profile.__profile__.id ), profile.__profile__.id ) )
+						return
 						self.profiles[username] = profile
 					else:
 						profile = self.profiles[username]

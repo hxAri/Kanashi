@@ -24,7 +24,8 @@
 #
 
 
-from kanashi.error import ClientError, ProfileError
+from kanashi.error import ClientError
+from kanashi.error import ProfileError
 
 
 #[kanashi.decorator.avoidForMySelf]

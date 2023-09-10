@@ -25,46 +25,27 @@
 
 
 from kanashi.collection import Collection
+from kanashi.request import RequestRequired
 
-
-#[kanashi.media.MediaCollection]
-class MediaCollection( Collection ):
-	
-	#[MediaCollection( Dict medias, Int type )]: None
-	def __init__( self, medias, type ):
-		
-		"""
-		Construct method of class MediaCollection.
-		
-		:params List medias
-			Media list
-		
-		:return None
-		:raises ValueError
-			When invalid media parameter
-		"""
-		
-		self.__parent__ = super()
-		self.__parent__.__init__( medias, Media )
 
 #[kanashi.media.Media]
-class Media:
-	
-	TYPE_COLLECTION = 3
-	TYPE_EXPLORE = 8
-	TYPE_HASHTAG = 5
-	TYPE_IGTV = 1
-	TYPE_LOCATION = 9
-	TYPE_POST = 2
-	TYPE_REEL = 6
-	TYPE_SAVED = 7
-	TYPE_STORY = 4
-	TYPE_SUGGESTED_REEL = 10
-	TYPE_SUGGESTED_TIMELINE = 11
-	TYPE_TIMELINE = 12
-	TYPE_URL = 13
-	
-	#[Media()]: None
-	def __init__( self, media, type=None ):
-		pass
-	
+class Media( Collection, RequestRequired ):
+	pass
+
+#[kanashi.media.MediaStory]
+class MediaStory: pass
+
+#[kanashi.media.MediaStoryImage]
+class MediaStoryImage: pass
+
+#[kanashi.media.MediaStory]
+class MediaStoryVideo: pass
+
+#[kanashi.media.MediaPost]
+class MediaPost: pass
+
+#[kanashi.media.MediaPostImage]
+class MediaPostImage: pass
+
+#[kanashi.media.MediaPostVideo]
+class MediaPostVideo: pass

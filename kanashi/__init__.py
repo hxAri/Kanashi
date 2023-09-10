@@ -30,7 +30,7 @@ from kanashi.endpoint import *
 from kanashi.explore import Explore, ExploreClip, ExploreClipItem, ExploreFillItem, ExploreSectionalItem
 from kanashi.kanashi import Kanashi
 from kanashi.main import Main
-from kanashi.media import Media, MediaCollection
+from kanashi.media import Media
 from kanashi.object import Object
 from kanashi.profile import Profile, avoidForMySelf
 from kanashi.readonly import Readonly
