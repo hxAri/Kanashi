@@ -32,17 +32,18 @@ from kanashi.utility.common import typedef
 #[kanashi.utility.json.JSON]
 class JSON:
 	
-	#[Json.decode( String string )]
+	#[Json.decode( String string, Mixed *args, Mixed **kwargs )]
 	@staticmethod
-	def decode( string ):
-		return( loads( string ) )
+	def decode( string, *args, **kwargs ):
+		return( loads( string, *args, **kwargs ) )
 		
-	#[Json.encode( Mixed values )]
+	#[Json.encode( Mixed values, Mixed *args, Mixed **kwargs )]
 	@staticmethod
-	def encode( values ):
+	def encode( values, *args, **kwargs ):
 		if typedef( values, "Object" ):
 			return values.json()
-		return( dumps( values, indent=4 ) )
+		kwargs['indent'] = kwargs.pop( "indent", 4 )
+		return( dumps( values, *args, **kwargs ) )
 		
 	#[Json.isSerializable( Mixed values )]
 	@staticmethod
