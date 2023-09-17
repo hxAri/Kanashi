@@ -23,54 +23,60 @@
 # not for SPAM.
 #
 
-from re import findall
 
-from kanashi.utility.json import JSON
-from kanashi.utility.json import JSONError
+from typing import final
+
+from kanashi.readonly import Readonly
+from kanashi.utility import JSON, typedef, typeof
+
 
 #[kanashi..object.Object]
 class Object:
 	
-	#[Object( Dict data, Object parent )]: None
-	def __init__( self, data, parent=None ):
-		
-		self.__parent__ = parent
-		self.__method__ = {}
-		self.__index__ = 0
-		self.__data__ = {}
-		
-		# Inject data.
+	#[Object( Dict|List|Object data, Object parent )]: None
+	def __init__( self, data, parent=None ) -> None:
+		self.__dict__['__parent__'] = parent
+		self.__dict__['__index__'] = 0
+		self.__dict__['__data__'] = {}
 		self.set( data )
 	
 	#[Object.__contains__( String name )]: Bool
-	def __contains__( self, name ):
-		return name in self.__data__
+	@final
+	def __contains__( self, name ) -> bool: return f"{name}" in self.__data__
 	
-	#[Object.__getattr__( self, name )]: Mixed
+	#[Object.__getattr__( self, name )]: Any
+	@final
 	def __getattr__( self, name ):
-		if  name in self.__dict__:
+		if name in self.__dict__:
 			return self.__dict__[name]
-		else:
-			return self.__data__[name]
+		elif name in self.__dict__['__data__']:
+			return self.__dict__['__data__'][name]
+		raise AttributeError( "\"{}\" object has no attribute \"{}\"".format( typeof( self ), name ) )
 	
-	#[Object.__setattr__( String name, Mixed value )]: None
+	#[Object.__setattr__( String name, Any value )]: None
+	@final
+	def __setattr__( self, name, value ) -> None: self.set({ name: value })
 	
-	#[Object.__getitem__( String key )]: Mixed
+	#[Object.__getitem__( String key )]: Any
+	@final
 	def __getitem__( self, key ):
-		if  key in self.__data__:
-			return self.__data__[key]
-		raise KeyError( "\"{}\" object has no item \"{}\"".format( type( self ).__name__, key ) )
+		if key in self.__dict__['__data__']:
+			return self.__dict__['__data__'][key]
+		if key in self.__dict__:
+			return self.__dict__[key]
+		raise KeyError( "\"{}\" object has no item \"{}\"".format( typeof( self ), key ) )
 	
-	#[Object.__setitem__( String key, Mixed value )]: None
-	def __setitem__( self, key, value ):
-		self.set({ key: value })
+	#[Object.__setitem__( String key, Any value )]: None
+	@final
+	def __setitem__( self, key, value ) -> None: self.set({ key: value })
 	
 	#[Object.__iter__()]: Object
-	def __iter__( self ):
-		return self
+	@final
+	def __iter__( self ): return self
 	
 	#[Object.__json( Dict | List data )]: Dict
-	def __json( self, data=None ):
+	@final
+	def __json( self, data=None ) -> dict:
 		if  data == None:
 			data = self.dict()
 		match type( data ):
@@ -84,15 +90,14 @@ class Object:
 								data[key] = self.__str( data[key] )
 			case "list":
 				for idx in range( len( data ) ):
-					match type( data[idx] ).__name__:
-						case "dict" | "list":
-							data[idx] = self.__json( data[idx] )
-						case _:
-							if not JSON.isSerializable( data[idx] ):
-								data[idx] = self.__str( data[idx] )
+					if isinstance( data[idx], ( dict, list ) ):
+						data[idx] = self.__json( data[idx] )
+					else:
+						if not JSON.isSerializable( data[idx] ):
+							data[idx] = self.__str( data[idx] )
 		return data
 	
-	#[Object.__next__()]
+	#[Object.__next__()]: Any
 	def __next__( self ):
 		
 		# Get current index iteration.
@@ -108,29 +113,28 @@ class Object:
 			pass
 		raise StopIteration
 	
-	#[Object.__repr__()]: String
-	def __repr__( self ):
-		return "{}[=Object]{}".format( type( self ).__name__, self.json() )
+	#[Object.__repr__()]: Str
+	def __repr__( self ) -> str: return "{}[=Object]{}".format( typeof( self ), self.json() )
 	
-	#[Object.__str__()]: String
-	def __str__( self ):
-		return self.json()
+	#[Object.__str__()]: Str
+	def __str__( self ) -> str: return self.json()
 	
-	#[Object.__str( Mixed data )]: String
-	def __str( self, data ):
+	#[Object.__str( Any data )]: Str
+	def __str( self, data ) -> str:
 		text = f"{data}"
 		text = text.replace( "'", "" )
 		text = text.replace( ">", "/>" )
 		return text
 	
 	#[Object.copy()]: Object
-	def copy( self ):
-		return Object( self.dict() )
+	@final
+	def copy( self ): return Object( self.dict() )
 	
 	#[Object.dict()]: Dict
-	def dict( self ):
+	@final
+	def dict( self ) -> dict:
 		data = {}
-		copy = self.__data__
+		copy = self.__dict__['__data__']
 		for key in copy.keys():
 			if  isinstance( copy[key], Object ):
 				data[key] = copy[key].dict()
@@ -145,76 +149,109 @@ class Object:
 				data[key] = copy[key]
 		return data
 	
-	#[Object.dump()]: String
-	def dump( self ):
-		return "{}".format( self.dict() )
+	#[Object.dump()]: Str
+	@final
+	def dump( self ) -> str: return "{}".format( self.dict() )
 	
-	#[Object.json()]: String
-	def json( self ):
-		return JSON.encode( self.__json( self.dict() ) )
+	#[Object.json( Any *args, Any **kwargs )]: Str
+	@final
+	def json( self, *args, **kwargs ) -> str: return JSON.encode( self.__json( self.dict() ), *args, **kwargs )
 	
 	#[Object.isset( String key )]: Bool
-	def isset( self, key ):
-		return self.__contains__( key )
+	@final
+	def isset( self, key ) -> bool: return self.__contains__( key )
 	
-	#[Object.unset( String key )]: None
-	def unset( self, key ):
-		if  key in self.__data__:
-			del self.__data__[key]
+	#[Object.unset( Str key )]: None
+	@final
+	def unset( self, key ) -> None:
+		if  key in self.__dict__['__data__']:
+			del self.__dict__['__data__'][key]
 	
 	#[Object.idxs()]: List<Int>
-	def idxs( self ):
-		return [ idx for idx in range( len( self.__data__ ) ) ]
+	@final
+	def idxs( self ) -> list: return [ idx for idx in range( len( self.__dict__['__data__'] ) ) ]
 	
 	#[Object.keys()]: List<String>
-	def keys( self, index=None ):
-		return self.keys()[index] if isinstance( index, int ) else  list( self.__data__.keys() )
+	@final
+	def keys( self, index=None ) -> list: return self.keys()[index] if isinstance( index, int ) else  list( self.__dict__['__data__'].keys() )
 	
-	#[Object.get()]: Mixed
-	def get( self, key ):
-		return self.__dict__[key]
+	#[Object.get()]: Any
+	@final
+	def get( self, key ): return self.__getitem__( key )
 	
 	#[Object.len()]: Int
-	def len( self ):
-		return len( self.__data__ )
+	@final
+	def len( self ) -> int: return len( self.__dict__['__data__'] )
 	
-	#[Object.__set( Dict data )]: None
-	def set( self, data ):
-		name = type( data ).__name__
-		if  name == "dict":
-			for k in data:
-				name = type( data[k] ).__name__
-				if  name == "dict":
-					if  self.isset( k ):
-						if  isinstance( self.__data__[k], Object ):
-							self.__data__[k].set( data[k] )
+	#[Object.__set( Dict|List|Object data )]: None
+	@final
+	def set( self, data ) -> None:
+		if isinstance( data, dict ):
+			excepts = []
+			if isinstance( self, Readonly ):
+				excepts = []
+				if "excepts" in self.__dict__:
+					if isinstance( self.__dict__['excepts'], list ):
+						excepts = self.__dict__['excepts']
+			else:
+				for keyword in data.keys():
+					if keyword not in excepts:
+						excepts.append( keyword )
+			if "__data__" in excepts:
+				del excepts[excepts.index( "__data__" )]
+			if "__parent__" in excepts:
+				del excepts[excepts.index( "__parent__" )]
+			if "__index__" not in excepts:
+				excepts.append( "__index__" )
+			for key in data.keys():
+				value = data[key]
+				if isinstance( value, dict ): value = Object( value )
+				elif isinstance( value, list ):
+					for i in range( len( value ) ):
+						if isinstance( value[i], dict ): value[i] = Object( value[i] )
+				if key in self.__dict__:
+					if key == "excepts":
+						if isinstance( value, list ):
+							for val in value:
+								if not isinstance( val, str ):
+									if key in self.__dict__:
+										raise TypeError( f"Cannot override attribute \"{key}\", cannot override attribute that has been set in a class that extends the Readonly class" )
+									self.__dict__['excepts'] = excepts
+									break
+								else:
+									self.__dict__['excepts'].append( val )
+							excepts = self.__dict__['excepts']
 							continue
-					self.__data__[k] = Object( data[k] )
-				elif name == "list":
-					self.__data__[k] = []
-					for v in data[k]:
-						if  isinstance( v, dict ):
-							v = Object( v )
-						self.__data__[k].append( v )
+					if key not in excepts:
+						raise TypeError( f"Cannot override attribute \"{key}\", cannot override attribute that has been set in a class that extends the Readonly class" )
+					self.__dict__[key] = data[key]
+				elif key in self.__dict__['__data__']:
+					if key not in excepts:
+						raise TypeError( f"Cannot override item \"{key}\", cannot override item that has been set in a class that extends the Readonly class" )
+					if isinstance( self.__dict__['__data__'][key], Object ) and isinstance( value, ( dict, Object ) ):
+						self.__dict__['__data__'][key].set( value )
+					elif isinstance( self.__dict__['__data__'][key], list ) and isinstance( value, list ):
+						for i in range( len( value ) ):
+							if value[i] not in self.__dict__['__data__'][key]:
+								self.__dict__['__data__'][key].append( value[i] )
+					else:
+						self.__dict__['__data__'][key] = value
 				else:
-					self.__data__[k] = data[k]
-		elif name == "list":
-			for v in data:
-				self.set( v )
-		elif name == "str":
-			raise DeprecationWarning( "Json String is deprecated" )
+					self.__dict__['__data__'][key] = value
+		elif isinstance( data, list ):
+			for i in range( len( data ) ):
+				self.set({ str( i ): data[i] })
 		elif isinstance( data, Object ):
-			keys = data.keys()
-			for i, v in enumerate( data ):
-				self.set({ keys[i]: v })
+			for key in data.keys():
+				self.set({ key: data[key] })
 		else:
-			raise ValueError( "Parameter data must be type Dictionary or JSON Strings, {} given".format( type( data ).__name__ ) )
-		self.ref()
+			raise ValueError( "Invalid \"data\" parameter, value must be type Dict|List|Object, {} passed".format( typeof( data ) ) )
+		self.__ref__()
 	
-	#[Object.__ref()]: None
-	def ref( self ):
-		if  self.__parent__ != None:
-			for i, v in enumerate( self.__data__ ):
-				self.__parent__.__dict__[v] = self.__data__[v]
-		pass
+	#[Object.__ref__()]: None
+	@final
+	def __ref__( self ) -> None:
+		if "__parent__" in self.__dict__ and self.__dict__['__parent__'] is not None:
+			for key in self.keys():
+				self.__dict__['__parent__'].__dict__[key] = self.__dict__['__data__'][key]
 	
