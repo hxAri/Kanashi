@@ -23,7 +23,11 @@
 # not for SPAM.
 #
 
-from kanashi.object import Object
+
+from typing import final
+
+from kanashi import object as module
+from kanashi.utility import typeof
 
 
 #[kanashi.readonly.Readonly]
@@ -35,63 +39,41 @@ class Readonly:
 	But if the attribute has not been set then the attribute will be allowed to be set.
 	"""
 	
-	#[Readonly.__setitem__( String key, Mixed value )]: None
-	def __setitem__( self, key, value ):
-		
-		"""
-		Set class item.
-		
-		:params String key
-			Item key name
-		:params Mixed value
-			Item values
-		
-		:return None
-		:raises KeyError
-			When the key or item has been previously set
-		:raises TypeError
-			When the object or class does not extends class kanashi.object.Object
-		"""
-		
-		try:
-			excepts = self.excepts
-		except( AttributeError, KeyError ):
-			excepts = []
-		
-		if isinstance( self, Object ):
-			if self.isset( key ) and key not in excepts:
-				raise KeyError( f"Cannot override key \"{key}\", cannot override key that has been set in a class that extends the Readonly class" )
-			else:
-				self.set({ key, value })
+	#[Readonly.__setattr__( String name, Any value )]: None
+	@final
+	def __setattr__( self, name, value ) -> None:
+		if isinstance( self, module.Object ):
+			module.Object.__setattr__( self, name, value )
 		else:
-			if key not in excepts:
-				raise TypeError( "\"{}\" object does not support item assignment".format( type( self ).__name__ ) )
-	
-	#[Readonly.__setattr__( String name, Mixed value )]: None
-	def __setattr__( self, name, value ):
-		
-		"""
-		Set class attribute.
-		
-		:params String name
-			Attribute name
-		:params Mixed value
-			Attribute values
-		
-		:return None
-		:raises AttributeError
-			When the attribute has been previously set
-		"""
-		
-		try:
-			excepts = self.excepts
-		except AttributeError:
 			excepts = []
-		
-		if  name in self.__dict__:
-			if  name not in excepts:
-				raise AttributeError( f"Cannot override attribute \"{name}\", cannot override attribute that has been set in a class that extends the Readonly class" )
-		
-		# Allow set when the attribute does not set.
-		self.__dict__[name] = value
-	
+			if "excepts" in self.__dict__:
+				if isinstance( self.__dict__['excepts'], list ):
+					for keyword in self.__dict__['excepts']:
+						if keyword in excepts: continue
+						if not isinstance( keyword, str ):
+							excepts = []; break
+						else:
+							excepts.append( keyword )
+			if name == "excepts":
+				if isinstance( value, list ):
+					allows = True
+					for keyword in value:
+						if keyword in excepts: continue
+						if not isinstance( keyword, str ):
+							allows = False; break
+					if allows:
+						self.__dict__['excepts'] = [ *excepts, *value ]
+						return
+			if name in self.__dict__:
+				if name not in excepts:
+					raise TypeError( f"Cannot override attribute \"{name}\", cannot override attribute that has been set in a class that extends the Readonly class" )
+			self.__dict__[name] = value
+		pass
+
+	#[Readonly.__setitem__( String key, Any value )]: None
+	@final
+	def __setitem__( self, key, value ) -> None:
+		if isinstance( self, module.Object ):
+			module.Object.__setitem__( self, key, value )
+		else:
+			raise TypeError( "\"{}\" object does not support item assignment".format( typeof( self ) ) )
