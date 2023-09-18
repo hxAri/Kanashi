@@ -23,16 +23,17 @@
 # not for SPAM.
 #
 
+
 from kanashi.utility.json import JSON
 from kanashi.utility.path import Path
 
 
 #[kanashi.utility.file.File]
-class File():
+class File:
 	
-	#[File.json( String fname )]
+	#[File.json( Str fname )]: Dict|List
 	@staticmethod
-	def json( fname ):
+	def json( fname:str ) -> dict|list:
 		
 		"""
 		Read file and return decoded json contents.
@@ -49,9 +50,9 @@ class File():
 		
 		return( JSON.decode( File.read( fname ) ) )
 	
-	#[File.read( String fname )]
+	#[File.read( Str fname )]: Str
 	@staticmethod
-	def read( fname ):
+	def read( fname:str ) -> str:
 		
 		"""
 		Read file contents.
@@ -68,14 +69,17 @@ class File():
 			fopen.close()
 		return( fread )
 	
-	#[File.readline( String fname )]: List
+	#[File.readline( Str fname )]: List
 	@staticmethod
-	def readline( fname ):
+	def readline( fname:str ) -> list:
 		return File.read( fname ).split( "\n" )
 	
-	#[File.write( String fname, String fdata, String fmode )]
+	#[File.remove( Str fname )]: None
+	def remove( fname:str ) -> None: ...
+	
+	#[File.write( Str fname, Str fdata, Str fmode )]: None
 	@staticmethod
-	def write( fname, fdata, fmode="w" ):
+	def write( fname:str, fdata, fmode:str="w" ) -> None:
 		
 		"""
 		Write content into file.

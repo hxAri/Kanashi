@@ -23,8 +23,13 @@
 # not for SPAM.
 #
 
+
+from datetime import datetime
+from re import match
+
+
 #[kanashi.utility.common.droper( Dict|List|Object items, List<Dict|List|Object|Dict> keys )]: Dict
-def droper( items, keys ):
+def droper( items:dict|list, keys:list ) -> dict:
 	
 	"""
 	Drops item based keys given.
@@ -65,8 +70,14 @@ def droper( items, keys ):
 				drops[k] = items[k]
 	return drops
 
+#[kanashi.utility.common.encpaswd( Str password )]: Str
+def encpaswd( password:str ) -> str: return "#PWD_INSTAGRAM_BROWSER:0:{}:{}".format( int( datetime.now().timestamp() ), password )
+
+#[kanashi.utility.common.isUserId( Int|Str id)]: Bool
+def isUserId( id:int|str ) -> bool: return bool( match( r"^[1-9]{1}[0-9]{9,10}$", str( id ) ) )
+
 #[kanashi.itility.common.typedef( Mixed instance, Mixed of, Bool opt )]: Bool
-def typedef( instance, of=None, opt=None ):
+def typedef( instance, of=None, opt:bool=None ) -> bool:
 	
 	"""
 	Returns if instance is instance of instead.
@@ -93,7 +104,7 @@ def typedef( instance, of=None, opt=None ):
 		return False
 
 #[kanashi.utility.common.typeof( Mixed instance )]: Str
-def typeof( instance ):
+def typeof( instance ) -> str:
 	
 	"""
 	Return object instance name.

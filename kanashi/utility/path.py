@@ -23,14 +23,17 @@
 # not for SPAM.
 #
 
+
 import os
+import shutil
+
 
 #[kanashi.utility.path.Path]
-class Path():
+class Path:
 	
-	#[Path.is( String dir )]
+	#[Path.is( Str dir )]: Bool
 	@staticmethod
-	def dir( dir ):
+	def dir( dir:str ) -> bool:
 		
 		"""
 		Return if directory name is directory.
@@ -45,9 +48,9 @@ class Path():
 		
 		return( os.path.isdir( dir ) )
 	
-	#[Path.exists( String dir )]
+	#[Path.exists( Str dir )]: Bool
 	@staticmethod
-	def exists( dir ):
+	def exists( dir:str ) -> bool:
 		
 		"""
 		Return if directory is exists.
@@ -61,9 +64,9 @@ class Path():
 		"""
 		return( os.path.exists( dir ) )
 	
-	#[Path.mkdir( String dir )]
+	#[Path.mkdir( Str dir )]: None
 	@staticmethod
-	def mkdir( dir ):
+	def mkdir( dir ) -> None:
 		
 		"""
 		Make directory
@@ -83,7 +86,13 @@ class Path():
 			if not Path.dir( name ):
 				os.mkdir( name )
 	
-	#[Path.pwd()]
+	#[Path.pwd()]: Str
 	@staticmethod
-	def pwd(): return( os.getcwd() )
+	def pwd() -> str: return( os.getcwd() )
+
+	#[Path.rmdir( Str dir )]: None
+	@staticmethod
+	def rmdir( dir:str ) -> None:
+		if Path.exists( dir ):
+			shutil.rmtree( dir )
 	

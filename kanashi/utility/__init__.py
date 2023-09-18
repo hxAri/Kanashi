@@ -23,7 +23,7 @@
 # not for SPAM.
 #
 
-from kanashi.utility.common import droper, typedef, typeof
+from kanashi.utility.common import droper,encpaswd, isUserId, typedef, typeof
 from kanashi.utility.cookie import Cookie
 from kanashi.utility.file import File
 from kanashi.utility.json import JSON, JSONError

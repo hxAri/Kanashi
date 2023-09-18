@@ -23,7 +23,9 @@
 # not for SPAM.
 #
 
+
 from kanashi.utility.common import typedef, typeof
+
 
 #[kanashi.utility.tree.tree( Dict|List|Set|Tuple data, Int indent ]: String
 def tree( data, indent=0 ):
