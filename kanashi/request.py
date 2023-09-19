@@ -25,17 +25,24 @@
 
 from datetime import datetime, timedelta
 from re import match
+from urllib.parse import parse_qs as queryparse, urlparse
 from requests import Session
+from typing import final
 
-from kanashi.error import AuthError, RequestError, RequestAuthError, RequestDownloadError
+from kanashi.error import ( 
+	RequestError, 
+	RequestAuthError, 
+	RequestDownloadError
+)
 from kanashi.object import Object
 from kanashi.readonly import Readonly
-from kanashi.utility.file import File
-	
+from kanashi.utility.common import typeof
+from kanashi.utility.file import File, Path
+
 
 #[kanashi.request.Request]
 class Request( Readonly ):
-	
+
 	# Default header settings for requests.
 	HEADERS = {
 		"Accept": "*/*",
@@ -57,8 +64,8 @@ class Request( Readonly ):
 		"X-Requested-With": "XMLHttpRequest"
 	}
 	
-	#[Request( Dict headers, Int timeout, Bool history )]: None
-	def __init__( self, headers=None, timeout=15, history=True ):
+	#[Request( Dict|Object headers, Int timeout, Bool history )]: None
+	def __init__( self, headers:dict|Object=None, timeout:int=15, history:bool=True ) -> None:
 		
 		"""
 		Construct of method class Request.
@@ -73,10 +80,7 @@ class Request( Readonly ):
 		:return None
 		"""
 		
-		if  headers == None:
-			headers = {}
-		
-		# Resolve require headers.
+		if not isinstance( headers, ( dict, Object ) ): headers = {}
 		for i, k in enumerate( Request.HEADERS ):
 			if  k not in headers:
 				headers[k] = Request.HEADERS[k]
@@ -104,11 +108,12 @@ class Request( Readonly ):
 		self.response = None
 		
 		# Default request timeout.
-		self.timeout = 10
+		self.timeout = timeout if timeout != None else 10
 		
 		# History configurations.
 		self.historyAllow = history == True
-		self.historyFname = "response.json"
+		self.historyFname = "response/response.json"
+		self.historyFormat = "response/{}/response\x20{}.json"
 		self.history = []
 		
 		# If every successful request is allowed to save.
@@ -120,6 +125,7 @@ class Request( Readonly ):
 	
 	#[Request.clean()]: Bool
 	def clean( self ):
+		Path.rmdir( "response" )
 		self.history = []
 		self.previous = None
 		self.response = None
@@ -141,7 +147,7 @@ class Request( Readonly ):
 			Content/ Filename
 		:params String fmode
 			File open mode
-		:params Mixed **kwargs
+		:params Any **kwargs
 			Request options
 		
 		:return Bool<True>
@@ -167,6 +173,7 @@ class Request( Readonly ):
 			raise RequestDownloadError( f"Failed get content from url, status [{result.status_code}]" )
 	
 	#[Request.error( Exception error )]: Exception
+	@final
 	def error( self, error ):
 		name = type( error ).__name__
 		names = {
@@ -203,6 +210,7 @@ class Request( Readonly ):
 		return RequestError( string.format( name=name ), prev=error )
 	
 	#[Request.historySave()]: Request
+	@final
 	def historySave( self ):
 		
 		"""
@@ -217,35 +225,53 @@ class Request( Readonly ):
 		if  self.response != False and \
 			self.response != None:
 			try:
+				content = self.response.json()
+			except Exception:
 				try:
-					content = self.response.json()
+					content = f"[{self.response.headers['Content-Type']}]"
 				except Exception:
-					try:
-						content = f"[{self.response.headers['Content-Type']}]"
-					except Exception:
-						content = None
-				self.history.append({
-					"target": self.response.url,
-					"browser": self.session.headers['User-Agent'],
-					"unixtime": datetime.timestamp( datetime.now() ),
-					"request": {
-						"cookies": dict( self.cookies ),
-						"headers": dict( self.headers )
-					},
-					"response": {
-						"status": f"{self.response}",
-						"cookies": dict( self.response.cookies ),
-						"headers": dict( self.response.headers ),
-						"content": content
-					}
-				})
-				File.write( self.historyFname, self.history )
-			except Exception as e:
-				pass
+					content = None
+			parsed = self.parse( self.response.url )
+			query = parsed['query']
+			time = datetime.now()
+			file = self.historyFormat.format( parsed['path'], f"{time}" ).replace( "//", "/" )
+			timestamp = datetime.timestamp( time )
+			self.history.append({
+				"url": parsed['url'],
+				"file": file,
+				"time": timestamp
+			})
+			File.write( self.historyFname, self.history )
+			File.write( file, {
+				"target": parsed['url'],
+				"browser": self.session.headers['User-Agent'],
+				"unixtime": timestamp,
+				"request": {
+					"cookies": dict( self.cookies ),
+					"headers": dict( self.headers ),
+					"query": query
+				},
+				"response": {
+					"status": f"{self.response}",
+					"cookies": dict( self.response.cookies ),
+					"headers": dict( self.response.headers ),
+					"content": content
+				}
+			})
 		return( self )
 	
-	#[Request.previously( time )]: List
-	def previously( self, time ):
+	#[Request.parse( Str url )]: Dict<Str, Dict|Str>
+	def parse( self, url:str ) -> dict[str:dict|str]:
+		parsed = urlparse( url )
+		query = queryparse( parsed.query )
+		return {
+			"path": parsed.path[1::] if parsed.path != "" else "/",
+			"url": parsed.geturl(),
+			"query": query
+		}
+	
+	#[Request.previously( Str time )]: List
+	def previously( self, time:str ) -> list:
 		
 		"""
 		Return previous request responses based on given time.
@@ -263,7 +289,7 @@ class Request( Readonly ):
 		
 		current = datetime.now()
 		if  not isinstance( time, str ):
-			raise ValueError( "Invalid time parameter, value must be type str, {} passed".format( type( time ).__name__ ) )
+			raise ValueError( "Invalid time parameter, value must be type str, {} passed".format( typeof( time ) ) )
 		if  valid := match( r"^(?P<diff>[1-9][0-9]*)(?P<unit>s|m|h|d|w|M|y)$", time ):
 			diff = int( valid.group( "diff" ) )
 			unit = valid.group( "unit" )
@@ -282,7 +308,7 @@ class Request( Readonly ):
 				case "y":
 					delta = timedelta( days=diff * 365 )
 			for history in self.history:
-				timestamp = datetime.fromtimestamp( history['unixtime'] )
+				timestamp = datetime.fromtimestamp( history['time'] )
 				if  timestamp >= current - delta:
 					data.append( history )
 			return data
@@ -327,14 +353,14 @@ class Request( Readonly ):
 			Request method name
 		:params String url
 			Request url target
-		:params Mixed **kwargs
+		:params Any **kwargs
 			Request options
 		
-		:return Mixed
-		:raises AuthError
-			When the user login authentication required
+		:return Any
 		:raises RequestError
 			When an error occurs while performing the request
+		:raises RequestAuthError
+			When the user login authentication required
 		"""
 		
 		self.previous = self.response
@@ -345,21 +371,21 @@ class Request( Readonly ):
 		try:
 			self.response = self.session.request( method=method, url=url, **kwargs )
 			self.historySave()
-		except Exception as e:
+		except ImportError as e:
 			raise RequestError(**{
 				"message": "There was an error sending the request",
 				"prev": self.error( e )
 			})
 		if  self.response.status_code == 401:
-			raise AuthError( "Login authentication is required" )
+			raise RequestAuthError( "Login authentication is required" )
 		return self.response
 	
 
 #[kanashi.request.RequestRequired]
 class RequestRequired:
 	
-	#[RequestRequired( Request request )]
-	def __init__( self, request ):
+	#[RequestRequired( Request request )]: None
+	def __init__( self, request ) -> None:
 		
 		"""
 		Construct method of class RequestRequired.
@@ -376,15 +402,13 @@ class RequestRequired:
 		if  isinstance( self, Object ):
 			raise TypeError( "Class \"{}\" may not inherit an Object if it has inherited a previous RequestRequired".format( type( self ).__name__ ) )
 		if  isinstance( request, Request ):
-			
-			# Trying to inject properties.
 			self.request = request
 			RequestRequired.__setup__( self, request )
 		else:
 			raise ValueError( "Parameter request must be type Request, {} passed".format( type( request ).__name__ ) )
 	
-	#[RequestRequired.__setattr__( String name, Mixed value )]: None
-	def __setattr__( self, name, value ):
+	#[RequestRequired.__setattr__( String name, Any value )]: None
+	def __setattr__( self, name, value ) -> None:
 		if  name == "request":
 			if  isinstance( value, Request ):
 				self.__dict__[name] = value
@@ -396,7 +420,7 @@ class RequestRequired:
 			self.__dict__[name] = value
 	
 	#[RequestRequired.__setup__( Request request )]: None
-	def __setup__( self, request ):
+	def __setup__( self, request ) -> None:
 		try:
 			self.cookies = request.cookies
 			self.headers = request.headers
