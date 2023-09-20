@@ -25,6 +25,7 @@
 
 from kanashi.utility.common import droper,encpaswd, isUserId, typedef, typeof
 from kanashi.utility.cookie import Cookie
+from kanashi.utility.decorator import avoidForMySelf, logged
 from kanashi.utility.file import File
 from kanashi.utility.json import JSON, JSONError
 from kanashi.utility.path import Path

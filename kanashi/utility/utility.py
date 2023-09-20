@@ -81,7 +81,7 @@ class Utility:
 				"colorize": "\x1b[1;38;5;199m{}{}"
 			},
 			"typedef": {
-				"pattern": r"(?P<typedef>\b(?:int|float|str|list|tuple|dict|set|bool|range|AttributeError|BaseException|BaseExceptionGroup|GeneratorExit|KeyboardInterrupt|BufferError|EOFError|ExceptionGroup|ImportError|ModuleNotFoundError|LookupError|IndexError|KeyError|MemoryError|NameError|UnboundLocalError|OSError|BlockingIOError|ChildProcessError|ConnectionError|BrokenPipeError|ConnectionAbortedError|ConnectionRefusedError|ConnectionResetError|FileExistsError|FileNotFoundError|InterruptedError|IsADirectoryError|NotADirectoryError|PermissionError|ProcessLookupError|TimeoutError|ReferenceError|RuntimeError|NotImplementedError|RecursionError|StopAsyncIteration|StopIteration|SyntaxError|IndentationError|TabError|SystemError|TypeError|ValueError|UnicodeError|UnicodeDecodeError|UnicodeEncodeError|UnicodeTranslateError|Warning|BytesWarning|DeprecationWarning|EncodingWarning|FutureWarning|ImportWarning|PendingDeprecationWarning|ResourceWarning|RuntimeWarning|SyntaxWarning|UnicodeWarning|UserWarning)\b)",
+				"pattern": r"(?P<typedef>\b(?:int|float|str|list|tuple|dict|object|set|bool|range|AttributeError|BaseException|BaseExceptionGroup|GeneratorExit|KeyboardInterrupt|BufferError|EOFError|ExceptionGroup|ImportError|ModuleNotFoundError|LookupError|IndexError|KeyError|MemoryError|NameError|UnboundLocalError|OSError|BlockingIOError|ChildProcessError|ConnectionError|BrokenPipeError|ConnectionAbortedError|ConnectionRefusedError|ConnectionResetError|FileExistsError|FileNotFoundError|InterruptedError|IsADirectoryError|NotADirectoryError|PermissionError|ProcessLookupError|TimeoutError|ReferenceError|RuntimeError|NotImplementedError|RecursionError|StopAsyncIteration|StopIteration|SyntaxError|IndentationError|TabError|SystemError|TypeError|ValueError|UnicodeError|UnicodeDecodeError|UnicodeEncodeError|UnicodeTranslateError|Warning|BytesWarning|DeprecationWarning|EncodingWarning|FutureWarning|ImportWarning|PendingDeprecationWarning|ResourceWarning|RuntimeWarning|SyntaxWarning|UnicodeWarning|UserWarning)\b)",
 				"colorize": "\x1b[1;38;5;213m{}{}"
 			},
 			"linked": {
@@ -170,6 +170,7 @@ class Utility:
 		except Exception as e:
 			print( e )
 			print( e.__traceback__.tb_lineno )
+			exit()
 		return result
 	
 	#[Utility.exit( Mixed *args, Mixed **kwargs )]
