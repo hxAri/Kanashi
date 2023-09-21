@@ -24,8 +24,12 @@
 #
 
 
-from json import dumps, loads
-from json import JSONDecodeError as JSONError
+from json import (
+	dumps,
+	JSONDecodeError as JSONError, 
+	loads, 
+)
+from typing import Any
 
 from kanashi.utility.common import typedef
 
@@ -60,9 +64,9 @@ class JSON:
 		
 		try:
 			JSON.encode( values )
-			return( True )
 		except OverflowError:
 			return( False )
 		except TypeError:
 			return( False )
+		return( True )
 	

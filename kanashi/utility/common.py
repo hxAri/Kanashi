@@ -28,6 +28,28 @@ from datetime import datetime
 from re import match
 
 
+#[kanashi.utility.common.classmethods( Object obj, Bool wrapper )]: Dict<Str, Callable>
+def classmethods( obj:object, wrapper:bool=False ) -> dict[str:callable]:
+
+	"""
+	Return dictionary method of class.
+
+	:params Object obj
+	:params Bool wrapper
+		Include wrapper methods e.g __(init|repr)__
+	
+	:return Dict<Str, Callable>
+	"""
+
+	methods = {}
+	for method in dir( obj ):
+		if not wrapper:
+			if  method.startswith( "__" ) and \
+				method.endswith( "__" ):
+				continue
+		methods[method] = getattr( obj, method )
+	return methods
+
 #[kanashi.utility.common.droper( Dict|List|Object items, List<Dict|List|Object|Dict> keys )]: Dict
 def droper( items:dict|list, keys:list ) -> dict:
 	
@@ -44,9 +66,9 @@ def droper( items:dict|list, keys:list ) -> dict:
 		When keys parameter is invalid
 	"""
 	
-	if  typedef( keys, str ):
+	if typedef( keys, str ):
 		keys = [keys]
-	if  typedef( keys, list, False ):
+	if typedef( keys, list, False ):
 		raise ValueError( "Invalid keys parameter, value must be type List<Dict|List|Object|Str>, {} passed".format( typeof( keys ) ) )
 	drops = {}
 	for i, k in enumerate( keys ):
@@ -66,7 +88,7 @@ def droper( items:dict|list, keys:list ) -> dict:
 				**droper( items, k )
 			}
 		else:
-			if  k in items:
+			if k in items:
 				drops[k] = items[k]
 	return drops
 

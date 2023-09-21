@@ -23,7 +23,15 @@
 # not for SPAM.
 #
 
-from kanashi.utility.common import droper,encpaswd, isUserId, typedef, typeof
+
+from kanashi.utility.common import (
+	classmethods, 
+	droper, 
+	encpaswd, 
+	isUserId, 
+	typedef, 
+	typeof 
+)
 from kanashi.utility.cookie import Cookie
 from kanashi.utility.decorator import avoidForMySelf, logged
 from kanashi.utility.file import File
