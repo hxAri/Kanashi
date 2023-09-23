@@ -30,17 +30,46 @@ from kanashi.readonly import Readonly
 from kanashi.utility import JSON, typedef, typeof
 
 
-#[kanashi..object.Object]
+#[kanashi.object.Object]
 class Object:
 	
 	#[Object( Dict|List|Object data, Object parent )]: None
-	def __init__( self, data, parent=None ) -> None:
+	def __init__( self, data, parent:object=None ) -> None:
+
+		"""
+		Construct method of class Object.
+
+		:params Dict|List|Object data
+		:params Object parent
+
+		:return None
+		"""
+
 		self.__dict__['__parent__'] = parent
 		self.__dict__['__index__'] = 0
 		self.__dict__['__data__'] = {}
 		self.set( data )
 	
-	#[Object.__contains__( String name )]: Bool
+	#[Object.__builder__( Object parent, Dict data )]: Object
+	@final
+	@staticmethod
+	def __builder__( parent:object, data:dict ):
+
+		"""
+		Object builder for child
+
+		:params Object parent
+		:params Dict<Str, Str> data
+
+		:return Object
+		"""
+
+		class ObjectBuilder( parent ):
+			def __init__( self, data:dict ):
+				Object.__init__( self, data )
+		return ObjectBuilder( data )
+
+	#[Object.__contains__( Str name )]: Bool
 	@final
 	def __contains__( self, name ) -> bool: return f"{name}" in self.__data__
 	
@@ -53,11 +82,7 @@ class Object:
 			return self.__dict__['__data__'][name]
 		raise AttributeError( "\"{}\" object has no attribute \"{}\"".format( typeof( self ), name ) )
 	
-	#[Object.__setattr__( String name, Any value )]: None
-	@final
-	def __setattr__( self, name, value ) -> None: self.set({ name: value })
-	
-	#[Object.__getitem__( String key )]: Any
+	#[Object.__getitem__( Str key )]: Any
 	@final
 	def __getitem__( self, key ):
 		if key in self.__dict__['__data__']:
@@ -66,17 +91,13 @@ class Object:
 			return self.__dict__[key]
 		raise KeyError( "\"{}\" object has no item \"{}\"".format( typeof( self ), key ) )
 	
-	#[Object.__setitem__( String key, Any value )]: None
-	@final
-	def __setitem__( self, key, value ) -> None: self.set({ key: value })
-	
 	#[Object.__iter__()]: Object
 	@final
 	def __iter__( self ): return self
 	
-	#[Object.__json( Dict | List data )]: Dict
+	#[Object.__json__( Dict|List data )]: Dict
 	@final
-	def __json( self, data=None ) -> dict:
+	def __json__( self, data=None ) -> dict:
 		if  data == None:
 			data = self.dict()
 		match type( data ):
@@ -84,20 +105,25 @@ class Object:
 				for key in data:
 					match type( data[key] ).__name__:
 						case "dict" | "list":
-							data[key] = self.__json( data[key] )
+							data[key] = self.__json__( data[key] )
 						case _:
 							if not JSON.isSerializable( data[key] ):
 								data[key] = self.__str( data[key] )
 			case "list":
 				for idx in range( len( data ) ):
 					if isinstance( data[idx], ( dict, list ) ):
-						data[idx] = self.__json( data[idx] )
+						data[idx] = self.__json__( data[idx] )
 					else:
 						if not JSON.isSerializable( data[idx] ):
 							data[idx] = self.__str( data[idx] )
 		return data
 	
+	#[Object.__len__()]: Int
+	@final
+	def __len__( self ) -> int: return len( self.__dict__['__data__'] )
+	
 	#[Object.__next__()]: Any
+	@final
 	def __next__( self ):
 		
 		# Get current index iteration.
@@ -113,26 +139,95 @@ class Object:
 			pass
 		raise StopIteration
 	
+	#[Object.__ref__()]: None
+	@final
+	def __ref__( self ) -> None:
+		if "__parent__" in self.__dict__ and self.__dict__['__parent__'] is not None:
+			for key in self.keys():
+				self.__dict__['__parent__'].__dict__[key] = self.__dict__['__data__'][key]
+		
 	#[Object.__repr__()]: Str
-	def __repr__( self ) -> str: return "{}[=Object]{}".format( typeof( self ), self.json() )
+	@final
+	def __repr__( self ) -> str:
+
+		"""
+		Return representation of Object.
+
+		:return Str
+		"""
+
+		def represent( data:dict|list|Object, indent=4 ) -> str:
+			def wrapper( data:dict|list|Object, indent=4 ) -> str:
+				values = []
+				length = len( data )
+				spaces = "\x20" * indent
+				if isinstance( data, ( dict, Object ) ):
+					define = "\"{}\""
+					indexs = data.keys()
+				else:
+					define = "[{}]"
+					indexs = [ idx for idx in range( length ) ]
+				for index in indexs:
+					key = define.format( index )
+					value = data[index]
+					if isinstance( value, ( dict, Object ) ):
+						if len( value ) >= 1:
+							values.append( "{}: {}".format( key, represent( value, indent +4 ) ) )
+						else:
+							values.append( "{}: {}(\n{})".format( key, typeof( value ), spaces ) )
+					elif isinstance( value, list ):
+						length = len( value )
+						lspace = indent + 4
+						lspace = "\x20" * lspace
+						if length >= 1:
+							array = []
+							for i in range( length ):
+								if isinstance( value[i], ( dict, list, Object ) ):
+									array.append( "[{}]: {}".format( i, represent( value[i], indent +8 ) ) )
+								else:
+									if isinstance( value[i], str ):
+										value[i] = f"\"{value[i]}\""
+									array.append( "[{}]: {}({})".format( i, typeof( value[i] ), value[i] ) )
+							values.append( "{0}: {1}(\n{2}{4}\n{3})".format( key, typeof( value ), lspace, spaces, f",\n{lspace}".join( array ) ) )
+						else:
+							values.append( "{0}: {1}(\n{2})".format( key, typeof( value ), spaces ) )
+					else:
+						if isinstance( value, str ):
+							value = f"\"{value}\""
+						values.append( "{}: {}({})".format( key, typeof( value ), value ) )
+				return f",\n{spaces}".join( values )
+			if len( data ) >= 1:
+				return "{}(\n{}{}\n{})".format( typeof( data ), "\x20" * indent, wrapper( data, indent=indent ), "\x20" * ( 0 if indent == 4 else indent -4 ) )
+			else:
+				return "{}(\n{})".format( typeof( data ), "\x20" * ( 0 if indent == 4 else indent -4 ) )
+		return represent( self, indent=4 )
 	
+	#[Object.__setattr__( Str name, Any value )]: None
+	@final
+	def __setattr__( self, name, value ) -> None: self.set({ name: value })
+
+	#[Object.__setitem__( Str key, Any value )]: None
+	@final
+	def __setitem__( self, key, value ) -> None: self.set({ key: value })
+
 	#[Object.__str__()]: Str
+	@final
 	def __str__( self ) -> str: return self.json()
-	
-	#[Object.__str( Any data )]: Str
-	def __str( self, data ) -> str:
-		text = f"{data}"
-		text = text.replace( "'", "" )
-		text = text.replace( ">", "/>" )
-		return text
 	
 	#[Object.copy()]: Object
 	@final
-	def copy( self ): return Object( self.dict() )
+	def copy( self ): return self.__builder__( self.dict() )
 	
 	#[Object.dict()]: Dict
 	@final
 	def dict( self ) -> dict:
+
+		"""
+		Return Dictionary of Object
+
+		:return Dict
+		"""
+
 		data = {}
 		copy = self.__dict__['__data__']
 		for key in copy.keys():
@@ -151,13 +246,13 @@ class Object:
 	
 	#[Object.dump()]: Str
 	@final
-	def dump( self ) -> str: return "{}".format( self.dict() )
+	def dump( self ) -> str: return self.__repr__()
 	
 	#[Object.json( Any *args, Any **kwargs )]: Str
 	@final
-	def json( self, *args, **kwargs ) -> str: return JSON.encode( self.__json( self.dict() ), *args, **kwargs )
+	def json( self, *args, **kwargs ) -> str: return JSON.encode( self.__json__( self.dict() ), *args, **kwargs )
 	
-	#[Object.isset( String key )]: Bool
+	#[Object.isset( Str key )]: Bool
 	@final
 	def isset( self, key ) -> bool: return self.__contains__( key )
 	
@@ -169,9 +264,9 @@ class Object:
 	
 	#[Object.idxs()]: List<Int>
 	@final
-	def idxs( self ) -> list: return [ idx for idx in range( len( self.__dict__['__data__'] ) ) ]
+	def idxs( self ) -> list: return [ idx for idx in range( len( self ) ) ]
 	
-	#[Object.keys()]: List<String>
+	#[Object.keys()]: List<Str>
 	@final
 	def keys( self, index=None ) -> list: return self.keys()[index] if isinstance( index, int ) else  list( self.__dict__['__data__'].keys() )
 	
@@ -181,18 +276,31 @@ class Object:
 	
 	#[Object.len()]: Int
 	@final
-	def len( self ) -> int: return len( self.__dict__['__data__'] )
+	def len( self ) -> int: return self.__len__()
 	
 	#[Object.__set( Dict|List|Object data )]: None
 	@final
 	def set( self, data ) -> None:
+
+		"""
+		Object setter.
+
+		:params Dict|List|Object data
+
+		:return None
+		:raises TypeError
+			When trying override value on Readonly Object
+		:raises ValueError
+			When the value type of parameter is invalid
+		"""
+
 		if isinstance( data, dict ):
 			excepts = []
 			if isinstance( self, Readonly ):
 				excepts = []
-				if "excepts" in self.__dict__:
-					if isinstance( self.__dict__['excepts'], list ):
-						excepts = self.__dict__['excepts']
+				if "__except__" in self.__dict__:
+					if isinstance( self.__dict__['__except__'], list ):
+						excepts = self.__dict__['__except__']
 			else:
 				for keyword in data.keys():
 					if keyword not in excepts:
@@ -205,22 +313,27 @@ class Object:
 				excepts.append( "__index__" )
 			for key in data.keys():
 				value = data[key]
-				if isinstance( value, dict ): value = Object( value )
+				if isinstance( value, dict ):
+					define = typeof( self )
+					if define != "Object" and define != "ObjectBuilder":
+						value = Object.__builder__( type( self ), value )
+					else:
+						value = Object( value )
 				elif isinstance( value, list ):
 					for i in range( len( value ) ):
 						if isinstance( value[i], dict ): value[i] = Object( value[i] )
 				if key in self.__dict__:
-					if key == "excepts":
+					if key == "__except__":
 						if isinstance( value, list ):
 							for val in value:
 								if not isinstance( val, str ):
 									if key in self.__dict__:
 										raise TypeError( f"Cannot override attribute \"{key}\", cannot override attribute that has been set in a class that extends the Readonly class" )
-									self.__dict__['excepts'] = excepts
+									self.__dict__['__except__'] = excepts
 									break
 								else:
-									self.__dict__['excepts'].append( val )
-							excepts = self.__dict__['excepts']
+									self.__dict__['__except__'].append( val )
+							excepts = self.__dict__['__except__']
 							continue
 					if key not in excepts:
 						raise TypeError( f"Cannot override attribute \"{key}\", cannot override attribute that has been set in a class that extends the Readonly class" )
@@ -229,7 +342,14 @@ class Object:
 					if key not in excepts:
 						raise TypeError( f"Cannot override item \"{key}\", cannot override item that has been set in a class that extends the Readonly class" )
 					if isinstance( self.__dict__['__data__'][key], Object ) and isinstance( value, ( dict, Object ) ):
-						self.__dict__['__data__'][key].set( value )
+						name = typeof( self.__dict__['__data__'][key] )
+						diff = typeof( value )
+						if  name != "Object" and name != "ObjectBuilder" or \
+							diff != "Object" and diff != "ObjectBuilder" or \
+							name != diff:
+							self.__dict__['__data__'][key] = value
+						else:
+							self.__dict__['__data__'][key].set( value )
 					elif isinstance( self.__dict__['__data__'][key], list ) and isinstance( value, list ):
 						for i in range( len( value ) ):
 							if value[i] not in self.__dict__['__data__'][key]:
@@ -247,11 +367,3 @@ class Object:
 		else:
 			raise ValueError( "Invalid \"data\" parameter, value must be type Dict|List|Object, {} passed".format( typeof( data ) ) )
 		self.__ref__()
-	
-	#[Object.__ref__()]: None
-	@final
-	def __ref__( self ) -> None:
-		if "__parent__" in self.__dict__ and self.__dict__['__parent__'] is not None:
-			for key in self.keys():
-				self.__dict__['__parent__'].__dict__[key] = self.__dict__['__data__'][key]
-	
