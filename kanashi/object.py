@@ -24,23 +24,24 @@
 #
 
 
+
 from typing import final
 
 from kanashi.readonly import Readonly
-from kanashi.utility import JSON, typedef, typeof
+from kanashi.utility import JSON, typeof
 
 
 #[kanashi.object.Object]
 class Object:
 	
-	#[Object( Dict|List|Object data, Object parent )]: None
-	def __init__( self, data, parent:object=None ) -> None:
+	#[Object( Dict|List|Object data, Any parent )]: None
+	def __init__( self, data, parent:any=None ) -> None:
 
 		"""
 		Construct method of class Object.
 
 		:params Dict|List|Object data
-		:params Object parent
+		:params Any parent
 
 		:return None
 		"""
@@ -72,6 +73,28 @@ class Object:
 	#[Object.__contains__( Str name )]: Bool
 	@final
 	def __contains__( self, name ) -> bool: return f"{name}" in self.__data__
+
+	#[Object.__delattr__( Int|Str key )]: None
+	@final
+	def __delattr__( self, key:int|str ) -> None:
+		if key in self.__dict__:
+			if  key != "__data__" and \
+				key != "__index__" and \
+				key != "__parent__":
+				del self.__dict__[key]
+		elif key in self.__dict__['__data__']:
+			del self.__dict__['__data__'][key]
+	
+	#[Object.__delitem__( Int|Str index )]: None
+	@final
+	def __delitem__( self, index:int|str ) -> None:
+		if index in self.__dict__['__data__']:
+			del self.__dict__['__data__'][index]
+		elif index in self.__dict__:
+			if  index != "__data__" and \
+				index != "__index__" and \
+				index != "__parent__":
+				del self.__dict__[index]
 	
 	#[Object.__getattr__( self, name )]: Any
 	@final
@@ -157,6 +180,7 @@ class Object:
 		"""
 
 		def represent( data:dict|list|Object, indent=4 ) -> str:
+			def normalize( string:str ) -> str: return string.replace( "\"", "\\\"" )
 			def wrapper( data:dict|list|Object, indent=4 ) -> str:
 				values = []
 				length = len( data )
@@ -186,14 +210,14 @@ class Object:
 									array.append( "[{}]: {}".format( i, represent( value[i], indent +8 ) ) )
 								else:
 									if isinstance( value[i], str ):
-										value[i] = f"\"{value[i]}\""
+										value[i] = f"\"{normalize(value[i])}\""
 									array.append( "[{}]: {}({})".format( i, typeof( value[i] ), value[i] ) )
 							values.append( "{0}: {1}(\n{2}{4}\n{3})".format( key, typeof( value ), lspace, spaces, f",\n{lspace}".join( array ) ) )
 						else:
 							values.append( "{0}: {1}(\n{2})".format( key, typeof( value ), spaces ) )
 					else:
 						if isinstance( value, str ):
-							value = f"\"{value}\""
+							value = f"\"{normalize(value)}\""
 						values.append( "{}: {}({})".format( key, typeof( value ), value ) )
 				return f",\n{spaces}".join( values )
 			if len( data ) >= 1:
@@ -256,12 +280,6 @@ class Object:
 	@final
 	def isset( self, key ) -> bool: return self.__contains__( key )
 	
-	#[Object.unset( Str key )]: None
-	@final
-	def unset( self, key ) -> None:
-		if  key in self.__dict__['__data__']:
-			del self.__dict__['__data__'][key]
-	
 	#[Object.idxs()]: List<Int>
 	@final
 	def idxs( self ) -> list: return [ idx for idx in range( len( self ) ) ]
@@ -277,6 +295,11 @@ class Object:
 	#[Object.len()]: Int
 	@final
 	def len( self ) -> int: return self.__len__()
+
+	#[Object.length()]: Int
+	@final
+	@property
+	def length( self ) -> int: return self.__len__()
 	
 	#[Object.__set( Dict|List|Object data )]: None
 	@final
