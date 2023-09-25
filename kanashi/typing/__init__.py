@@ -26,7 +26,8 @@
 
 from kanashi.typing.active import Active
 from kanashi.typing.chekpoint import Checkpoint
+from kanashi.typing.logout import Logout
 from kanashi.typing.setting import Settings
 from kanashi.typing.signin import SignIn
-from kanashi.typing.two_factor import TwoFactor, TwoFactorInfo 
+from kanashi.typing.two_factor import TwoFactor, TwoFactorInfo
 from kanashi.typing.user import User
