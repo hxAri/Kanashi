@@ -50,46 +50,45 @@ def classmethods( obj:object, wrapper:bool=False ) -> dict[str:callable]:
 		methods[method] = getattr( obj, method )
 	return methods
 
-#[kanashi.utility.common.droper( Dict|List|Object items, List<Dict|List|Object|Dict> keys )]: Dict
-def droper( items:dict|list, keys:list ) -> dict:
+#[kanashi.utility.common.droper( Dict|List|Object items, List<Dict|List|Object|Dict> search, Bool nested )]: Dict
+def droper( items:dict|list, search:list, nested:bool=False ) -> dict:
 	
 	"""
 	Drops item based keys given.
 	
 	:params Dict|List|Object items
-	:params List<Dict|List|Object|Str> keys
+	:params List<Dict|List|Object|Str> search
+	:params Bool nested
 	
 	:return Dict
 		Droped items
 	
-	:raises ValueError
-		When keys parameter is invalid
+	:raises TypeError
+		When the value type if parameter is invalid
 	"""
 	
-	if typedef( keys, str ):
-		keys = [keys]
-	if typedef( keys, list, False ):
-		raise ValueError( "Invalid keys parameter, value must be type List<Dict|List|Object|Str>, {} passed".format( typeof( keys ) ) )
+	if isinstance( search, str ):
+		search = [search]
+	if not isinstance( search, list ):
+		raise TypeError( "Invalid keys parameter, value must be type List<Dict|List|Object|Str>, {} passed".format( typeof( search ) ) )
 	drops = {}
-	for i, k in enumerate( keys ):
-		if  typedef( k, dict ) or \
-			typedef( k, "Object" ):
-			for index, key in enumerate( k ):
-				if  typedef( k, "Object" ):
-					key = k.keys( key )
-				if  key in items:
-					drops = {
-						**drops,
-						**droper( items[key], k[key] )
-					}
-		elif typedef( k, list ):
-			drops = {
-				**drops,
-				**droper( items, k )
-			}
+	for index in search:
+		if  isinstance( index, dict ) or \
+			typedef( index, [ "Collection", "Object" ] ):
+			for key in index.keys():
+				if key not in items: continue
+				droping = droper( items[key], index[key], nested=nested )
+				if nested is True:
+					drops[key] = droping
+				else:
+					drops = { **drops, **droping }
+		elif isinstance( index, list ):
+			drops = { **drops, **droper( items[key], index[key], nested=nested ) }
+		elif isinstance( index, str ):
+			if index in items:
+				drops[index] = items[index]
 		else:
-			if k in items:
-				drops[k] = items[k]
+			raise TypeError( "Invalid keys parameter, value must be type List<Dict|List|Object|Str>, {} passed in items".format( typeof( key ) ) )
 	return drops
 
 #[kanashi.utility.common.encpaswd( Str password )]: Str
