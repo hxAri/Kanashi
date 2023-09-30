@@ -26,6 +26,7 @@
 
 from typing import final
 
+from kanashi.object import Object
 from kanashi.typing.typing import Typing
 
 
@@ -33,22 +34,13 @@ from kanashi.typing.typing import Typing
 @final
 class SignIn( Typing ):
 
-	#[SignIn.__items__]: Dict<Str, Str>|List<Str>
+	#[SignIn.__items__]: List<Dict|List|Object|Str>
 	@property
-	def __items__( self ) -> dict[str:str]|list[str]:
-		return {
-			"checkpoint": [],
-			"remember": [],
-			"success": [],
-			"payload": [
-				"id",
-				"fullname",
-				"username",
-				"password",
-				"csrftoken",
-				"sessionid"
-			],
-			"request": [],
-			"verify": []
-		}
+	def __items__( self ) -> list[dict|list|Object]:
+		return [
+			"authenticated",
+			"checkpoint",
+			"two_factor",
+			"user"
+		]
 	
