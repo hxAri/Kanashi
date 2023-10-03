@@ -51,7 +51,7 @@ class User:
 
 		if isinstance( self, Object ):
 			if "id" in self:
-				return int( self.id )
+				return int( self.__dict__['__data__']['id'] )
 		if "id" in self.__dict__:
 			return self.__dict__['id']
 		raise NotImplementedError( "Property {} is not initialize ot implemented".format( self.id ) )
@@ -71,7 +71,8 @@ class User:
 
 		if isinstance( self, Object ):
 			if "username" in self:
-				return self.username
+				return self.__dict__['__data__']['username']
 		if "username" in self.__dict__:
 			return self.__dict__['username']
 		raise NotImplementedError( "Property {} is not initialize ot implemented".format( self.username ) )
+	
