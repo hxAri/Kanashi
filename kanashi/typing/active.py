@@ -28,55 +28,32 @@ from typing import final
 
 from kanashi.object import Object
 from kanashi.readonly import Readonly
+from kanashi.typing.typing import Typing
 from kanashi.typing.user import User
 from kanashi.utility import typeof
 
 
 #[kanashi.typing.active.Active]
 @final
-class Active( Object, Readonly, User ):
+class Active( Typing, Readonly, User ):
 
-	#[Active( Dict|Object user )]
-	def __init__( self, user:dict|Object ) -> None:
-		
-		"""
-		Construct method of class Active.
-		
-		:params Dict user
-			User active data
-		
-		:return None
-		:raises TypeError
-			When the user data is invalid
-		:raises ValueError
-			When the user is invalid value
-		"""
-		
-		if isinstance( user, ( dict, Object ) ):
-			if  "id" not in user and \
-				"fullname" not in user and \
-				"username" not in user and \
-				"password" not in user and \
-				"session" not in user and \
-				"browser" not in user['session'] and \
-				"cookies" not in user['session'] and \
-				"headers" not in user['session'] and \
-				"csrftoken" not in user['session'] and \
-				"sessionid" not in user['session']:
-				raise TypeError( "Invalid user data" )
-			else:
-				super().__init__({
-					"id": int( user['id'] ),
-					"fullname": user['fullname'],
-					"username": user['username'],
-					"password": user['password'],
-					"session": {
-						"browser": user['session']['browser'],
-						"cookies": user['session']['cookies'],
-						"headers": user['session']['headers'],
-						"csrftoken": user['session']['csrftoken'],
-						"sessionid": user['session']['sessionid']
-					}
-				})
-		else:
-			raise ValueError( "Invalid user parameter, value must be type dict|Object, {} passed".format( typeof( user ) ) )
+	#[Active.__items__]: List<Dict|List|Object|Str>
+	@property
+	def __items__( self ) -> list[dict|list|Object]:
+		return [
+			"id",
+			"fullname",
+			"username",
+			"usermail",
+			"password",
+			"csrftoken",
+			"sessionid",
+			{
+				"session": [
+					"browser",
+					"cookies",
+					"headers"
+				]
+			}
+		]
+	
