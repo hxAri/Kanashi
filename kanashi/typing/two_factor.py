@@ -28,12 +28,25 @@ from typing import final
 
 from kanashi.object import Object
 from kanashi.readonly import Readonly
+from kanashi.typing.typing import Typing
 
 
 #[kanashi.typing.two_factor.TwoFactor]
 @final
-class TwoFactor( Object, Readonly ): ...
+class TwoFactor( Typing, Readonly ):
+
+	#[TwoFactor.__items__]: List<Dict|List|Object|Str>
+	@property
+	def __items__( self ) -> list[dict|list|Object]:
+		return [
+		]
 
 #[kanashi.typing.two_factor.TwoFactorInfo]
 @final
-class TwoFactorInfo( Object, Readonly ): ...
+class TwoFactorInfo( Typing, Readonly ):
+
+	#[TwoFactor.__items__]: List<Dict|List|Object|Str>
+	@property
+	def __items__( self ) -> list[dict|list|Object]:
+		return [
+		]

@@ -30,27 +30,17 @@ from kanashi.object import Object
 from kanashi.typing.typing import Typing
 
 
-#[kanashi.typing.setting.Settings]
+#[kanashi.typing.profile.Profile]
 @final
-class Settings( Typing ):
+class Profile( Typing ):
 
-	#[Settings.__items__]: List<Dict|List|Object|Str>
+	#[Profile.__items__]: List<Dict|List|Object|Str>
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
-			{
-				"browser": [
-					"default",
-					"randoms"
-				]
-			},
-			{
-				"signin": [
-					"active",
-					"switch"
-				]
-			},
-			"version",
-			"version-release"
 		]
+	
+	#[Profile.__nested__]: Bool
+	@property
+	def __nested__( self ) -> bool: return False
 	

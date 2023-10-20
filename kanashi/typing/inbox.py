@@ -30,27 +30,22 @@ from kanashi.object import Object
 from kanashi.typing.typing import Typing
 
 
-#[kanashi.typing.setting.Settings]
+#[kanashi.typing.inbox.Inbox]
 @final
-class Settings( Typing ):
+class Inbox( Typing ):
 
-	#[Settings.__items__]: List<Dict|List|Object|Str>
+	#[Inbox.__items__]: List<Dict|List|Object|Str>
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
-			{
-				"browser": [
-					"default",
-					"randoms"
-				]
-			},
-			{
-				"signin": [
-					"active",
-					"switch"
-				]
-			},
-			"version",
-			"version-release"
+			"counts",
+			"last_checked",
+			"priority_stories",
+			"new_stories",
+			"old_stories",
+			"continuation_token",
+			"subscription",
+			"is_last_page",
+			"partition"
 		]
 	

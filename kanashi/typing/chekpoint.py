@@ -26,6 +26,7 @@
 
 from typing import final
 
+from kanashi.object import Object
 from kanashi.readonly import Readonly
 from kanashi.typing.typing import Typing
 
@@ -34,9 +35,15 @@ from kanashi.typing.typing import Typing
 @final
 class Checkpoint( Typing, Readonly ):
 
-	#[Checkpoint.__items__]: Dict<Str, Str>|List<Str>
+	#[Checkpoint.__items__]: List<Dict|List|Object|Str>
 	@property
-	def __items__( self ) -> dict[str:str]|list[str]:
+	def __items__( self ) -> list[dict|list|Object]:
 		return [
+			"checkpoint_url",
+			"lock"
 		]
+	
+	#[Checkpoint.url]: Str
+	@property
+	def url( self ): return self.checkpoint_url if "checkpoint_url" in self else ""
 	

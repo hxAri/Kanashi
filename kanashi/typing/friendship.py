@@ -30,27 +30,41 @@ from kanashi.object import Object
 from kanashi.typing.typing import Typing
 
 
-#[kanashi.typing.setting.Settings]
+#[kanashi.typing.friendship.Friendship]
 @final
-class Settings( Typing ):
+class Friendship( Typing ):
 
-	#[Settings.__items__]: List<Dict|List|Object|Str>
+	#[Friendship.__items__]: List<Dict|List|Object|Str>
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
-			{
-				"browser": [
-					"default",
-					"randoms"
-				]
-			},
-			{
-				"signin": [
-					"active",
-					"switch"
-				]
-			},
-			"version",
-			"version-release"
+			"blocking",
+			"followed_by",
+			"following",
+			"incoming_request",
+			"is_bestie",
+			"is_blocking_reel",
+			"is_eligible_to_subscribe",
+			"is_feed_favorite",
+			"is_guardian_of_viewer",
+			"is_muting_notes",
+			"is_muting_reel",
+			"is_private",
+			"is_restricted",
+			"is_supervised_by_viewer",
+			"muting",
+			"outgoing_request",
+			"subscribed"
+		]
+	
+
+#[kanashi.typing.friendship.FriendshipShowMany]
+@final
+class FriendshipShowMany( Typing ):
+
+	#[FriendshipShowMany.__items__]: List<Dict|List|Object|Str>
+	@property
+	def __items__( self ) -> list[dict|list|Object]:
+		return [
 		]
 	

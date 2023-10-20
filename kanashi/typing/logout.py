@@ -27,30 +27,17 @@
 from typing import final
 
 from kanashi.object import Object
+from kanashi.readonly import Readonly
 from kanashi.typing.typing import Typing
 
 
-#[kanashi.typing.setting.Settings]
+#[kanashi.typing.logout.Logout]
 @final
-class Settings( Typing ):
+class Logout( Readonly, Typing ):
 
-	#[Settings.__items__]: List<Dict|List|Object|Str>
+	#[Logout.__items__]: List<Dict|List|Object|Str>
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
-			{
-				"browser": [
-					"default",
-					"randoms"
-				]
-			},
-			{
-				"signin": [
-					"active",
-					"switch"
-				]
-			},
-			"version",
-			"version-release"
 		]
 	

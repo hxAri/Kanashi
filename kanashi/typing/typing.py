@@ -30,7 +30,11 @@ class Typing( Object ):
 	def __init__( self, data:dict|list|Object, parent:object=None ) -> None:
 		if not isinstance( data, ( dict, Object ) ):
 			raise TypeError()
-		super().__init__( droper( data, self.__items__ ), parent )
+		super().__init__( droper( data, self.__items__, nested=self.__nested__ ), parent )
+	
+	#[Typing.__nested__]: Bool
+	@property
+	def __nested__( self ) -> bool: return True
 
 	#[Typing.__items__()]: Dict<Str, Str>|List<Str>
 	@property
