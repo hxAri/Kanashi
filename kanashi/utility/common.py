@@ -67,13 +67,13 @@ def droper( items:dict|list, search:list, nested:bool=False ) -> dict:
 		When the value type if parameter is invalid
 	"""
 	
-	if isinstance( search, str ):
+	if isinstance( search, ( dict, str ) ):
 		search = [search]
 	if not isinstance( search, list ):
 		raise TypeError( "Invalid keys parameter, value must be type List<Dict|List|Object|Str>, {} passed".format( typeof( search ) ) )
 	drops = {}
 	for index in search:
-		if  isinstance( index, dict ) or \
+		if isinstance( index, dict ) or \
 			typedef( index, [ "Collection", "Object" ] ):
 			for key in index.keys():
 				if key not in items: continue

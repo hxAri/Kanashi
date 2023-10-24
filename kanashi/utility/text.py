@@ -24,21 +24,20 @@
 #
 
 
-from kanashi.utility.common import (
-	classmethods, 
-	droper, 
-	encpaswd, 
-	isUserId, 
-	typedef, 
-	typeof 
-)
-from kanashi.utility.cookie import Cookie
-from kanashi.utility.decorator import avoidForMySelf, logged
-from kanashi.utility.file import File
-from kanashi.utility.json import JSON, JSONError
-from kanashi.utility.path import Path
-from kanashi.utility.string import Binary, String
-from kanashi.utility.text import Text
-from kanashi.utility.thread import Thread
-from kanashi.utility.tree import tree
-from kanashi.utility.utility import Utility
+from typing import final
+
+
+#[kanashi.utility.text.Text]
+@final
+class Text:
+
+	#[Text.fromSnakeToCamel( Str string )]: Str
+	@staticmethod
+	def fromSnakeToCamel( string:str ) -> str:
+		parts = string.split( "\x5f" )
+		return "{}{}".format( parts[0], "".join( part.capitalize() for part in parts[1:] ) )
+
+	#[Text.fromSnakeToTitle( Str string )]: Str
+	@staticmethod
+	def fromSnakeToTitle( string:str ) -> str: return "\x20".join([ part.capitalize() for part in string.split( "\x5f" ) ])
+	

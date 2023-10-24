@@ -34,6 +34,7 @@ def avoidForMySelf( handle ):
 		if  self.isMySelf:
 			raise ProfileError( "This action is not intended for self" )
 		return handle( self )
+	avoid.__name__ = handle.__name__
 	return avoid
 
 #[kanashi.uility.decorator.logged]
@@ -62,5 +63,5 @@ def logged( handle ):
 		if  not self.authenticated:
 			raise ClientError( "Login authentication required for method {}".format( handle.__name__ ) )
 		return handle( self, *args, **kwargs )
-	
+	wrapper.__name__ = handle.__name__
 	return wrapper

@@ -35,7 +35,7 @@ from typing import final
 
 from kanashi.error import Error
 from kanashi.utility import Thread
-from kanashi.utility.common import typedef
+from kanashi.utility.common import typedef, typeof
 
 
 #[kanashi.utility.utility.Utility]
@@ -122,10 +122,10 @@ class Utility:
 			compile = re.compile( pattern, re.MULTILINE | re.S )
 			skipable = []
 			for idx, string in enumerate( strings ):
-				if  idx in skipable:
+				if idx in skipable:
 					continue
 				color = re.match( r"^(?:\x1b|\033)\[([^m]+)m$", string )
-				if  color != None:
+				if color != None:
 					index = idx +1
 					escape = color.group( 0 )
 					last = escape
@@ -137,7 +137,7 @@ class Utility:
 							index += 1
 					except IndexError:
 						break
-					if  index +1 in skipable:
+					if index +1 in skipable:
 						index += 1
 					skipable.append( index )
 				else:
@@ -150,15 +150,15 @@ class Utility:
 					if match.groupdict():
 						groups = match.groupdict().keys()
 						for group in groups:
-							if  group in regexps and \
+							if group in regexps and \
 								isinstance( regexps[group], dict ) and \
 								isinstance( match.group( group ), str ):
 								colorize = regexps[group]['colorize']
 								break
 						chars = match.group( 0 )
-						if  "rematch" in regexps[group] and typedef( regexps[group]['rematch'], dict ):
+						if "rematch" in regexps[group] and typedef( regexps[group]['rematch'], dict ):
 							pass
-						if  "handler" in regexps[group] and callable( regexps[group]['handler'] ):
+						if "handler" in regexps[group] and callable( regexps[group]['handler'] ):
 							result += escape
 							result += string[search:match.end() - len( chars )]
 							result += colorize.format( regexps[group]['handler']( match ), escape )
@@ -189,11 +189,11 @@ class Utility:
 		self.clear
 		name = type( self ).__name__
 		strings = f"{name}\x2e\x65\x72\x72\x6f\x72\x0a"
-		if  isinstance( error, Error ):
+		if isinstance( error, Error ):
 			message = error.message
 			code = error.code
 			prev = error.prev
-			if  isinstance( prev, BaseException ):
+			if isinstance( prev, BaseException ):
 				prevName = type( prev ).__name__
 				prevMessage = str( prev )
 				try:
@@ -203,7 +203,7 @@ class Utility:
 					prevFile = None
 					prevLine = None
 				prev = ""
-				if  prevFile and prevLine:
+				if prevFile and prevLine:
 					prev += f"\x20\x20{name}\x2e\x70\x72\x65\x76\x20{prevName}\x0a"
 					prev += f"\x20\x20\x20\x20{prevFile}\x20{prevLine}\x0a"
 				prev += f"\x20\x20{name}\x2e\x70\x72\x65\x76\x20{prevName}\x0a"
@@ -223,7 +223,7 @@ class Utility:
 			strings += f"\x20\x20\x20\x20{file}\x20{line}\x0a"
 			strings += f"\x20\x20\x20\x20{message}\x0a"
 		else:
-			if  isinstance( error, list ):
+			if isinstance( error, list ):
 				try:
 					message = [ str( error[0] ), error[1] ]
 				except IndexError:
@@ -246,9 +246,9 @@ class Utility:
 				error = type( error ).__name__
 			strings = f"{name}\x2e\x65\x72\x72\x6f\x72\x0a "
 			strings += f"\x20\x20{name}\x2e\x72\x61\x69\x73\x65\x20{error}\x0a"
-			if  filename and lineno:
+			if filename and lineno:
 				strings += f"\x20\x20\x20\x20{filename}\x20{lineno}\x0a"
-			if  isinstance( message, list ):
+			if isinstance( message, list ):
 				for i in range( len( message ) ):
 					strings += f"\x20\x20\x20\x20{message[i]}\x0a"
 			else:
@@ -260,19 +260,19 @@ class Utility:
 	#[Utility.getpass( Str label, Bool ignore )]: Str
 	@final
 	def getpass( self, label:str, ignore:bool=True ) -> str:
-		if  label == None or label == "":
+		if label == None or label == "":
 			place = "\x7b\x7d\x2e\x67\x65\x74\x70\x61\x73\x73\x3a\x20".format( type( self ).__name__ )
 		else:
 			place = "\x7b\x7d\x3a\x20".format( label )
 		try:
 			value = getpass( self.colorize( place ) )
-			if  value == "":
+			if value == "":
 				value = self.getpass( label, ignore )
 			return value
 		except EOFError as e:
 			self.close( e, "\x46\x6f\x72\x63\x65\x20\x63\x6c\x6f\x73\x65" )
 		except KeyboardInterrupt as e:
-			if  ignore == False:
+			if ignore == False:
 				self.close( e, "\x46\x6f\x72\x63\x65\x20\x63\x6c\x6f\x73\x65" )
 			print( "\r" )
 			return self.getpass( label, ignore )
@@ -280,24 +280,31 @@ class Utility:
 	#[Utility.input( Str label, Any default, Bool number, Bool ignore )]: Str
 	@final
 	def input( self, label:str, default:any=None, number:bool=False, ignore:bool=True ) -> str:
-		if  label == None or label == "":
+		if label == None or label == "":
 			place = "\x7b\x7d\x2e\x69\x6e\x70\x75\x74\x3a\x20".format( type( self ).__name__ )
 		else:
-			if  label != "<<<" and label != ">>>":
-				place = "\x7b\x7d\x3a\x20".format( label )
+			if not isinstance( label, str ):
+				typed = typeof( label )
+				if typed == "function" or typed == "method":
+					label = label.__name__
+					label = label.capitalize()
+				else:
+					label = typed
+			if label != "<<<" and label != ">>>" and not label.endswith( "[Y/n]" ):
+				place = "\x7b\x7d\x3a\x20".format( label.strip() )
 			else:
-				place = label
+				place = "\x7b\x7d\x20".format( label.strip() )
 		try:
-			if  number:
+			if number:
 				value = int( float( input( self.colorize( place ) ) ) )
 			else:
 				value = input( self.colorize( place ) )
-			if  value == "":
-				if  default != None:
+			if value == "":
+				if default != None:
 					value = default if type( default ).__name__ != "list" else default[0]
 				else:
 					value = self.input( label, default, number, ignore )
-			if  type( default ).__name__ == "list":
+			if type( default ).__name__ == "list":
 				try:
 					default.index( value )
 				except ValueError:
@@ -308,49 +315,95 @@ class Utility:
 		except EOFError as e:
 			self.close( e, "\x46\x6f\x72\x63\x65\x20\x63\x6c\x6f\x73\x65" )
 		except KeyboardInterrupt as e:
-			if  ignore == False:
+			if ignore == False:
 				self.close( e, "\x46\x6f\x72\x63\x65\x20\x63\x6c\x6f\x73\x65" )
 			print( "\r" )
 			return self.input( label, default, number, ignore )
 	
-	#[Utility.open( Str target )]: None
-	@final
-	def xdgopen( self, target:str ) -> None:
-		try:
-			system( "xdg-open {}".format( target ) )
-		except BaseException:
-			pass
-	
 	#[Utility.output( Object refer, Dict|List|Str message, Bool line )]: None
 	@final
 	def output( self, refer:object, message:dict|list|str, line:bool=False ) -> None:
+		def println( message:str, indent:int=4, line:bool=False ) -> str:
+			space = "\x20" * indent
+			stack = ""
+			match typeof( message ):
+				case "dict":
+					for i in message:
+						match typeof( message[i] ):
+							case "dict":
+								try:
+									stack += println(*[ message[i]['message'], indent +4 if message[i]['line'] else indent, False if message[i]['line'] else True ])
+								except KeyError:
+									stack += println(*[ message[i], indent +4 if line else indent, False if line else True ])
+							case "list":
+								stack += println(*[ message[i], indent +4 if line else indent, False if line else True ])
+							case _:
+								parts = str( message[i] )
+								parts = parts.split( "\n" )
+								for part in parts:
+									if line:
+										stack += "\x7b\x30\x7d\x7b\x31\x7d\x29\x20\x1b[1;38;5;252m\x7b\x32\x7d\x1b[0m\x0a".format( space, i, part )
+									else:
+										stack += "\x7b\x30\x7d\x7b\x31\x7d\x0a ".format( space, part )
+				case "list":
+					u = 0
+					l = len( message )
+					for i in range( l ):
+						match typeof( message[i] ):
+							case "dict":
+								try:
+									stack += println(*[ message[i]['message'], indent +4 if message[i]['line'] else indent, False if message[i]['line'] else True ])
+								except KeyError:
+									stack += println(*[ message[i], indent +4 if line else indent, False if line else True ])
+								u += 1
+							case "list":
+								stack += println(*[ message[i], indent +4 if line else indent, False if line else True ])
+								u += 1
+							case _:
+								parts = str( message[i] )
+								parts = parts.split( "\n" )
+								for part in parts:
+									if line:
+										index = i +1 -u
+										length = len( str( l ) )
+										length = length +1 if length == 1 else length
+										format = f"\x7b\x30\x7d\x7b\x31\x3a\x30\x3e{length}\x7d\x29\x20\x1b[1;38;5;252m\x7b\x32\x7d\x1b[0m\x0a"
+										stack += format.format( space, index, part )
+									else:
+										stack += "\x7b\x30\x7d\x7b\x31\x7d\x0a".format( space, part )
+				case _:
+					message = str( message )
+					for line in message.split( "\n" ):
+						stack = "\x7b\x30\x7d\x7b\x31\x7d\x0a".format( space, line )
+			return stack
+		
 		self.clear
 		base = refer
 		try:
 			refer = refer.__name__
 		except AttributeError:
-			named = type( refer ).__name__
+			named = typeof( refer )
 			match named:
 				case "str" | "int" | "float" | "complex" | "list" | "tuple" | "range" | "dict" | "set" | "frozenset" | "bool" | "bytes" | "bytearray" | "memoryview" | "NoneType":
 					pass
 				case _:
 					refer = named
-		named = type( self ).__name__
+		named = typeof( self )
 		strings = f"{named}\x2e\x6f\x75\x74\x70\x75\x74\x0a"
-		if  isinstance( refer, BaseException ):
+		if isinstance( refer, BaseException ):
 			strings += f"\x20\x20{named}\x2e{refer}\x2e{base.__traceback__.tb__lineno}\x0a"
 			strings += f"\x20\x20{named}\x2e{refer}\x2e{__name__}\x0a"
 		else:
 			strings += f"\x20\x20{named}\x2e{refer}\x0a"
-		strings += self.println( message, 4, line )
+		strings += println( message, 4, line )
 		print( "\x0a\x7b\x7d\x0a\x0a\x0a\x7b\x7d".format( self.banner, self.colorize( f"\x1b[0m{strings}" ) ) )
 	
 	#[Utility.previous( Callable back, Str label, Any *args, Any **kwargs )]: Any
 	@final
 	def previous( self, back:callable, label:str=None, *args:any, **kwargs:any ) -> any:
-		match type( back ).__name__:
+		match typeof( back ):
 			case "function" | "method":
-				if  label == None:
+				if label == None:
 					try:
 						label = f"Back ({back.__self__.__class__.__name__})"
 					except AttributeError:
@@ -360,84 +413,12 @@ class Utility:
 			case _:
 				raise ValueError( f"Argument back must be type Function|Method, {type( back ).__name__} given" )
 	
-	#[Utility.println( Dict|List|Str message, Int indent, Bool line )]: Str
-	@final
-	def println( self, message:str, indent:int=4, line:bool=False ) -> str:
-		space = "\x20" * indent
-		stack = ""
-		match type( message ).__name__:
-			case "dict":
-				for i in message:
-					match type( message[i] ).__name__:
-						case "dict":
-							try:
-								stack += self.println(*[
-									message[i]['message'],
-									indent +4 if message[i]['line'] else indent,
-									False if message[i]['line'] else True
-								])
-							except KeyError:
-								stack += self.println(*[
-									message[i],
-									indent +4 if line else indent,
-									False if line else True
-								])
-						case "list":
-							stack += self.println(*[
-								message[i],
-								indent +4 if line else indent,
-								False if line else True
-							])
-						case _:
-							if  line:
-								stack += "\x7b\x30\x7d\x7b\x31\x7d\x29\x20\x7b\x32\x7d\x0a".format( space, i, message[i] )
-							else:
-								stack += "\x7b\x30\x7d\x7b\x31\x7d\x0a ".format( space, message[i] )
-			case "list":
-				u = 0
-				l = len( message )
-				for i in range( l ):
-					match type( message[i] ).__name__:
-						case "dict":
-							try:
-								stack += self.println(*[
-									message[i]['message'],
-									indent +4 if message[i]['line'] else indent,
-									False if message[i]['line'] else True
-								])
-							except KeyError:
-								stack += self.println(*[
-									message[i],
-									indent +4 if line else indent,
-									False if line else True
-								])
-							u += 1
-						case "list":
-							stack += self.println(*[
-								message[i],
-								indent +4 if line else indent,
-								False if line else True
-							])
-							u += 1
-						case _:
-							if  line:
-								index = i +1 -u
-								length = len( str( l ) )
-								length = length +1 if length == 1 else length
-								format = f"\x7b\x30\x7d\x7b\x31\x3a\x30\x3e{length}\x7d\x29\x20\x7b\x32\x7d\x0a"
-								stack += format.format( space, index, message[i] )
-							else:
-								stack += "\x7b\x30\x7d\x7b\x31\x7d\x0a".format( space, message[i] )
-			case _:
-				stack = "\x7b\x30\x7d\x7b\x31\x7d\x0a".format( space, message )
-		return stack
-	
 	#[Utility.rmdoc( Dict lists )]: List
 	@final
 	def rmdoc( self, lists:dict ) -> list:
 		stack = []
 		for i in lists:
-			match type( lists[i] ).__name__:
+			match typeof( lists[i] ):
 				case "dict" | "list" | "set" | "tuple":
 					pass
 				case _:
@@ -457,23 +438,23 @@ class Utility:
 			for e in strings:
 				sys.stdout.write( e )
 				sys.stdout.flush()
-				if  e != "\x20":
-					#sleep( 00000.1 )
+				if e != "\x20":
+					# sleep( 00000.1 )
 					pass
 			task.start()
 			while task.is_alive():
 				for i in "\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x5c\x7c\x2f\x2d\x20":
 					print( "\x0d\x7b\x7d\x20\x1b[1;33m\x7b\x7d".format( self.colorize( strings ), i ), end="" )
-					#sleep( 00000.1 )
+					# sleep( 00000.1 )
 			print( "\x0d\x0a" )
-			#sleep( 00000.1 )
+			# sleep( 00000.1 )
 			self.clear
 		except EOFError as e:
 			self.close( e, "\x46\x6f\x72\x63\x65\x20\x63\x6c\x6f\x73\x65" )
 		except KeyboardInterrupt:
 			self.close( e, "\x46\x6f\x72\x63\x65\x20\x63\x6c\x6f\x73\x65" )
 		error = task.getExcept()
-		if  isinstance( error, BaseException ):
+		if isinstance( error, BaseException ):
 			raise error
 		else:
 			return task.getReturn()
@@ -481,13 +462,21 @@ class Utility:
 	#[Utility.tryAgain( Str label, Callable next, Callable other, Str value, List defaultValue, Any *args, Any **kwargs )]: Any
 	@final
 	def tryAgain( self, label:str="Try again [Y/n]", next:callable=None, other:callable=None, value="Y", defaultValue=[ "Y", "y", "N", "n" ], *args, **kwargs ) -> any:
-		if  self.input( label, default=defaultValue ).upper() == value:
-			if  callable( next ):
+		if self.input( label, default=defaultValue ).upper() == value:
+			if callable( next ):
 				return next( *args, **kwargs )
 			else:
 				raise ValueError( "Argument next must be type Function|Method, {} passed".format( type( next ).__name__ ) )
 		else:
-			if  callable( other ):
+			if callable( other ):
 				return other()
 		pass
+
+	#[Utility.xdgopen( Str target )]: Int
+	@final
+	def xdgopen( self, target:str ) -> int:
+		try:
+			return system( "xdg-open {}".format( target ) )
+		except BaseException:
+			pass
 	
