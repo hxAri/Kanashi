@@ -240,7 +240,11 @@ class Object:
 	
 	#[Object.copy()]: Object
 	@final
-	def copy( self ): return self.__builder__( self.dict() )
+	def copy( self ): return self.__builder__( type( self ), self.dict() )
+
+	#[Object.delt( Int|Str index )]: None
+	@final
+	def delt( self, index:int|str ) -> None: self.__delitem__( index )
 	
 	#[Object.dict()]: Dict
 	@final
