@@ -38,10 +38,13 @@ class Friendship( Typing ):
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
+			"approve",
 			"blocking",
 			"followed_by",
 			"following",
+			"ignoring",
 			"incoming_request",
+			"id",
 			"is_bestie",
 			"is_blocking_reel",
 			"is_eligible_to_subscribe",

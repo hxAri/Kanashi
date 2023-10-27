@@ -27,37 +27,5 @@
 from typing import final
 
 from kanashi.object import Object
-from kanashi.readonly import Readonly
 from kanashi.typing.typing import Typing
-from kanashi.typing.user import User
-from kanashi.utility import typeof
 
-
-#[kanashi.typing.active.Active]
-@final
-class Active( Readonly, User ):
-
-	#[Active.__nested__]: Bool
-	@property
-	def __nested__( self ) -> bool: return True
-
-	#[Active.__items__]: List<Dict|List|Object|Str>
-	@property
-	def __items__( self ) -> list[dict|list|Object]:
-		return [
-			"id",
-			"fullname",
-			"username",
-			"usermail",
-			"password",
-			"csrftoken",
-			"sessionid",
-			{
-				"session": [
-					"browser",
-					"cookies",
-					"headers"
-				]
-			}
-		]
-	

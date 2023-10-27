@@ -27,37 +27,22 @@
 from typing import final
 
 from kanashi.object import Object
-from kanashi.readonly import Readonly
 from kanashi.typing.typing import Typing
-from kanashi.typing.user import User
-from kanashi.utility import typeof
 
 
-#[kanashi.typing.active.Active]
+#[kanashi.typing.direct.Direct]
 @final
-class Active( Readonly, User ):
+class Direct( Typing ):
 
-	#[Active.__nested__]: Bool
-	@property
-	def __nested__( self ) -> bool: return True
-
-	#[Active.__items__]: List<Dict|List|Object|Str>
+	#[Pending.__items__]: List<Dict|List|Object|Str>
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
-			"id",
-			"fullname",
-			"username",
-			"usermail",
-			"password",
-			"csrftoken",
-			"sessionid",
-			{
-				"session": [
-					"browser",
-					"cookies",
-					"headers"
-				]
-			}
+            "has_pending_top_requests",
+			"inbox",
+            "pending_requests_total",
+			"seq_id",
+			"snapshot_at_ms",
+			"viewer"
 		]
 	

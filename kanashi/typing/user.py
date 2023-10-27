@@ -27,14 +27,56 @@
 from typing import final
 
 from kanashi.object import Object
+from kanashi.typing.typing import Typing
 
 
 #[kanashi.typing.user.User]
-class User:
+class User( Typing ):
 
 	"""
 	To indentify if object is obtained user info
 	"""
+
+	#[User.__nested__]: Bool
+	@property
+	def __nested__( self ) -> bool: return False
+
+	#[User.__items__]: Dict<Str, Str>|List<Str>
+	@property
+	def __items__( self ) -> dict[str:str]|list[str]:
+		return [
+			"full_name",
+			"id",
+			"is_private",
+			"is_verified",
+			"pk",
+			"pk_id",
+			"profile_grid_display_type",
+			"profile_pic_id",
+			"profile_pic_url",
+			"username",
+			{
+				"data": {
+					"user": [
+						"id"
+					]
+				}
+			},
+			{
+				"user": [
+					"full_name",
+					"id",
+					"is_private",
+					"is_verified",
+					"pk",
+					"pk_id",
+					"profile_grid_display_type",
+					"profile_pic_id",
+					"profile_pic_url",
+					"username"
+				]
+			}
+		]
 
 	#[User.id]: Int
 	@final

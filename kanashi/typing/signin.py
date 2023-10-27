@@ -40,6 +40,10 @@ class SignIn( Typing ):
 		return [
 			"authenticated",
 			"checkpoint",
+			"cookies",
+			"headers",
+			"request",
+			"response",
 			"two_factor",
 			"user"
 		]

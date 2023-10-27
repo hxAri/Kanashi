@@ -25,13 +25,29 @@
 
 
 from kanashi.typing.active import Active
-from kanashi.typing.chekpoint import Checkpoint
+from kanashi.typing.checkpoint import Checkpoint
+from kanashi.typing.direct import Direct
 from kanashi.typing.explore import Explore
+# from kanashi.typing.feed import 
 from kanashi.typing.friendship import Friendship, FriendshipShowMany
 from kanashi.typing.inbox import Inbox
 from kanashi.typing.logout import Logout
+from kanashi.typing.pending import Pending, Pendings
 from kanashi.typing.profile import Profile
 from kanashi.typing.setting import Settings
 from kanashi.typing.signin import SignIn
+from kanashi.typing.story import (
+	Story, 
+	StoryFeed, 
+	StoryFeedTray, 
+	StoryFeedTrayReel, 
+	StoryFeedTrayReels, 
+	StoryHighlight, 
+	StoryHighlights, 
+	StoryItem, 
+	StoryProfile, 
+	StoryProfileEdge, 
+	StoryReel
+)
 from kanashi.typing.two_factor import TwoFactor, TwoFactorInfo
 from kanashi.typing.user import User

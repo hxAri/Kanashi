@@ -50,6 +50,7 @@ class Settings( Typing ):
 					"switch"
 				]
 			},
+			"timeout",
 			"version",
 			"version-release"
 		]

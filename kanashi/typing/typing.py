@@ -1,14 +1,38 @@
+#!/usr/bin/env python
 
+#
+# @author Ari Setiawan
+# @create 23.05-2022
+# @github https://github.com/hxAri/Kanashi
+#
+# Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
+# Kanashī Licence under GNU General Public Licence v3
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# Kanashī is not affiliated with or endorsed, endorsed at all by
+# Instagram or any other party, if you use the main account to use this
+# tool we as Coders and Developers are not responsible for anything that
+# happens to that account, use it at your own risk, and this is Strictly
+# not for SPAM.
+#
 
 
 from re import match
 from typing import final
 
 from kanashi.object import Object
-from kanashi.utility import droper
+from kanashi.readonly import Readonly
+from kanashi.utility import droper, typeof
 
 
-#[kanashi.typing.Typing]
+#[kanashi.typing.typing.Typing]
 class Typing( Object ):
 
 	"""
@@ -27,31 +51,46 @@ class Typing( Object ):
 
 	#[Typing( Dict|List|Object data, Object parent )]: None
 	@final
-	def __init__( self, data:dict|list|Object, parent:object=None ) -> None:
+	def __init__( self, data:dict|Object, parent:object=None ) -> None:
 		if not isinstance( data, ( dict, Object ) ):
-			raise TypeError()
-		super().__init__( droper( data, self.__items__, nested=self.__nested__ ), parent )
+			raise TypeError( "Invalid \"data\" parameter, value must be type Dict|Object, {} passed".format( typeof( data ) ) )
+		super().__init__( 
+			self.__resolver__( 
+				droper( 
+					items=data, 
+					search=self.__items__, 
+					nested=self.__nested__ 
+				) 
+			), 
+			parent=parent 
+		)
+	
+	#[Typing.__items__]: Dict<Str, Str>|List<Str>
+	@property
+	def __items__( self ) -> dict[str:str]|list[str]:
+		raise NotImplementedError( "Property {} is not initialize or implemented".format( self.__allows__ ) )
 	
 	#[Typing.__nested__]: Bool
 	@property
 	def __nested__( self ) -> bool: return True
 
-	#[Typing.__items__()]: Dict<Str, Str>|List<Str>
-	@property
-	def __items__( self ) -> dict[str:str]|list[str]:
-		raise NotImplementedError( "Property {} is not initialize or implemented".format( self.__allows__ ) )
-
 	#[Typing.__resolver__( Any value )]: Any
 	@final
 	def __resolver__( self, value:any ) -> any:
+		if isinstance( value, Readonly ):
+			return value
 		if isinstance( value, ( dict, list, Object ) ):
-			indexs = [ idx for idx in range( len( value ) ) ]
-			if isinstance( value, ( dict, Object ) ):
+			if isinstance( value, dict ):
 				indexs = value.keys()
-			for index in indexs:
-				value[indexs[index]] = self.__resolver__( value[indexs[index]] )
+				indexs = list( indexs )
+			elif isinstance( value, Object ):
+				indexs = value.keys()
+			else:
+				indexs = [ index for index in range( len( value ) ) ]
+			for i in range( len( indexs ) ):
+				index = indexs[i]
+				value[index] = self.__resolver__( value[index] )
 		elif isinstance( value, str ):
-			matches = match( r"^(?:\d+)$", value )
-			if matches is not None:
+			if match( r"^\d+$", value ):
 				value = int( value )
 		return value

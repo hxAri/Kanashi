@@ -30,7 +30,7 @@ from kanashi.object import Object
 from kanashi.typing.typing import Typing
 
 
-#[kanashi.typing.explore.Explore
+#[kanashi.typing.explore.Explore]
 @final
 class Explore( Typing ):
 
@@ -38,5 +38,14 @@ class Explore( Typing ):
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
+			"auto_load_more_enabled",
+			# "clusters",
+			"max_id",
+			"more_available",
+			"next_max_id",
+			"rank_token",
+			"ranked_time_in_seconds",
+			"sectional_items",
+			"session_paging_token"
 		]
 	
