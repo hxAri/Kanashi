@@ -95,7 +95,7 @@ def droper( items:dict|list, search:list, nested:bool=False ) -> dict:
 def encpaswd( password:str ) -> str: return "#PWD_INSTAGRAM_BROWSER:0:{}:{}".format( int( datetime.now().timestamp() ), password )
 
 #[kanashi.utility.common.isUserId( Int|Str id)]: Bool
-def isUserId( id:int|str ) -> bool: return bool( match( r"^[1-9]{1}[0-9]{9,10}$", str( id ) ) )
+def isUserId( id:int|str ) -> bool: return bool( match( r"^\d+$", str( id ) ) )
 
 #[kanashi.itility.common.typedef( Mixed instance, Mixed of, Bool opt )]: Bool
 def typedef( instance, of=None, opt:bool=None ) -> bool:

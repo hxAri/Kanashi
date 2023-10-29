@@ -24,21 +24,53 @@
 #
 
 
-from kanashi.error import ClientError
-from kanashi.error import ProfileError
+from re import match
 
+from kanashi.error import ClientError, ProfileError
 
-#[kanashi.uility.decorator.avoidForMySelf]
-def avoidForMySelf( handle ):
-	def avoid( self ):
-		if  self.isMySelf:
-			raise ProfileError( "This action is not intended for self" )
-		return handle( self )
-	avoid.__name__ = handle.__name__
-	return avoid
+#[kanashi.utility.decorator.avoidForMySelf]: Callable
+def avoidForMySelf( handle ) -> callable:
 
-#[kanashi.uility.decorator.logged]
-def logged( handle ):
+	"""
+	Decorator to prevent performing actions that
+	should not be performed for yourself.
+	"""
+
+	from kanashi.pattern import Pattern
+	from kanashi.typing.user import User
+	
+	#[kanashi.utility.avoidForMySelf( Self@Client slef, Any *args, Any **kwargs )]: Any
+	def wrapper( self, *args, **kwargs ) -> any:
+		throws = lambda: ProfileError( "This action is not intended for your self" )
+		match handle.__name__:
+			case "approve"|"bestie"|"block"|"favorite"|"follow"|"remove"|"report"|"restrict":
+				try:
+					user = args[0]
+				except IndexError:
+					user = kwargs.get( "user", None )
+				if isinstance( user, int ):
+					if user == self.active.id: raise throws()
+				elif isinstance( user, str ):
+					if match( Pattern.USERNAME, user ):
+						if user == self.active.username:
+							raise throws()
+				elif isinstance( user, User ):
+					user = user.id if "id" in user \
+						else user.pk if "pk" in user \
+						else user.username
+					if isinstance( user, int ):
+						if user == self.active.id: raise throws()
+					else:
+						if user == self.active.username:
+							raise throws()
+			case _:
+				...
+		return handle( self, *args, **kwargs )
+	wrapper.__name__ = handle.__name__
+	return wrapper
+
+#[kanashi.utility.decorator.logged]: Callable
+def logged( handle ) -> callable:
 	
 	"""
 	A decoration to check whether the client is
@@ -58,10 +90,11 @@ def logged( handle ):
 		When a function or method requires login authentication
 	"""
 	
-	#[wrapper()]: Mixed
-	def wrapper( self, *args, **kwargs ):
+	#[kanash.utility.logged@wrapper( Self@Client slef, Any *args, Any **kwargs )]: Any
+	def wrapper( self, *args, **kwargs ) -> any:
 		if  not self.authenticated:
 			raise ClientError( "Login authentication required for method {}".format( handle.__name__ ) )
 		return handle( self, *args, **kwargs )
 	wrapper.__name__ = handle.__name__
 	return wrapper
+
