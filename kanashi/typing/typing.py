@@ -54,21 +54,61 @@ class Typing( Object ):
 	def __init__( self, data:dict|Object, parent:object=None ) -> None:
 		if not isinstance( data, ( dict, Object ) ):
 			raise TypeError( "Invalid \"data\" parameter, value must be type Dict|Object, {} passed".format( typeof( data ) ) )
-		super().__init__( 
-			self.__resolver__( 
-				droper( 
-					items=data, 
-					search=self.__items__, 
-					nested=self.__nested__ 
-				) 
-			), 
-			parent=parent 
+		parent = super()
+		parent.__init__(
+			self.__resolver__(
+				self.__mapper__( 
+					self.__mapping__, 
+					droper( 
+						items=data, 
+						search=self.__items__, 
+						nested=self.__nested__ 
+					) 
+				)
+			)
 		)
 	
 	#[Typing.__items__]: Dict<Str, Str>|List<Str>
 	@property
 	def __items__( self ) -> dict[str:str]|list[str]:
 		raise NotImplementedError( "Property {} is not initialize or implemented".format( self.__allows__ ) )
+	
+	#[Typing.__mapper__( Dict|Object properties, Any values )]: Any
+	@final
+	def __mapper__( self, properties:dict|Object, values:any ) -> any:
+		for key in list( properties.keys() ):
+			if key in values:
+				if isinstance( properties[key], type ):
+					if isinstance( values[key], properties[key] ):
+						continue
+					elif isinstance( values[key], ( dict, Object ) ):
+						values[key] = properties[key]( values[key] )
+					elif isinstance( values[key], list ):
+						for i in range( len( values[key] ) ):
+							if isinstance( values[key][i], properties[key] ):
+								continue
+							values[key][i] = properties[key]( values[key][i] )
+						...
+					...
+				elif isinstance( properties[key], ( dict, Object ) ):
+					if isinstance( properties[key], type ):
+						if isinstance( values[key], properties[key] ):
+							continue
+					if isinstance( values[key], ( dict, Object ) ):
+						values[key] = self.__mapper__( properties[key], values[key] )
+					elif isinstance( values[key], list ):
+						for i in range( len( values[key] ) ):
+							if isinstance( values[key][i], properties[key] ):
+								continue
+							if isinstance( values[key][i], ( dict, Object ) ):
+								values[key][i] = self.__mapper__( properties[key], values[key][i] )
+						...
+			...
+		return values
+	
+	#[Typing.__mapping__]: Dict|Object
+	@property
+	def __mapping__( self ) -> dict|Object: return {}
 	
 	#[Typing.__nested__]: Bool
 	@property
