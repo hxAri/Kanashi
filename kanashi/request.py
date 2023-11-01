@@ -23,54 +23,52 @@
 # not for SPAM.
 #
 
+
 from datetime import datetime, timedelta
 from re import match
 from urllib.parse import parse_qs as queryparse, urlparse
-from requests import Session
+from requests import Session, Response
+from requests.cookies import RequestsCookieJar as Cookies
+from requests.structures import CaseInsensitiveDict as Headers
 from typing import final
 
+from kanashi.config import Config
 from kanashi.error import ( 
 	RequestError, 
 	RequestAuthError, 
 	RequestDownloadError
 )
 from kanashi.object import Object
+from kanashi.pattern import Pattern
 from kanashi.readonly import Readonly
-from kanashi.utility.common import typeof
-from kanashi.utility.file import File, Path
+from kanashi.utility import (
+	Cookie, 
+	File, 
+	Path, 
+	typeof 
+)
 
 
 #[kanashi.request.Request]
 class Request( Readonly ):
 
-	# Default header settings for requests.
+	# Default request headers.
 	HEADERS = {
-		"Accept": "*/*",
-		"Accept-Encoding": "gzip, deflate, br",
-		"Accept-Language": "en-US,en;q=0.9",
-		"Authority": "www.instagram.com",
-		"Connection": "close",
-		"Origin": "https://www.instagram.com",
-		"Referer": "https://www.instagram.com/",
-		"Sec-Fetch-Dest": "empty",
-		"Sec-Fetch-Mode": "cors",
-		"Sec-Fetch-Site": "same-origin",
-		"User-Agent": "Mozilla/5.0 (Linux; Android 4.4.1; [HM NOTE|NOTE-III|NOTE2 1LTETD) AppleWebKit/535.42 (KHTML, like Gecko)  Chrome/112.0.5615.137 Mobile Safari/600.3",
-		"Viewport-Width": "980",
-		"X-Asbd-Id": "198387",
-		"X-IG-App-Id": "1217981644879628",
-		"X-IG-WWW-Claim": "hmac.AR04Hjqeow3ipAWpAcl8Q5Dc7eMtKr3Ff08SxTMJosgMAh-z",
-		"X-Instagram-Ajax": "1007625843",
-		"X-Requested-With": "XMLHttpRequest"
+		"User-Agent": f"Kanashi/{Config.VERSION}"
 	}
+
+	# Default request timeouts.
+	TIMEOUTS = 10
 	
-	#[Request( Dict|Object headers, Int timeout, Bool history )]: None
-	def __init__( self, headers:dict|Object=None, timeout:int=15, history:bool=True ) -> None:
+	#[Request( Cookies|Dict|Object cookies, Dict|Headers|Object headers, Int timeout, Bool history )]: None
+	def __init__( self, cookies:Cookies|dict|Object=None, headers:dict|Headers|Object=None, timeout:int=15, history:bool=True ) -> None:
 		
 		"""
 		Construct of method class Request.
 		
-		:params Dict headers
+		:params Cookies|Dict|Object cookies
+			Request cookies
+		:params Dict|Headers|Object headers
 			Header settings for requests
 		:params Int timeout
 			Default timeout for requests
@@ -78,65 +76,191 @@ class Request( Readonly ):
 			Allow every successful request to save
 		
 		:return None
+		:raises TypeError
+			Raise when the value of parameter is invalid
 		"""
-		
-		if not isinstance( headers, ( dict, Object ) ): headers = {}
-		for i, k in enumerate( Request.HEADERS ):
-			if  k not in headers:
-				headers[k] = Request.HEADERS[k]
-		
-		# Request configurations.
-		self.session = Session()
-		self.cookies = self.session.cookies
-		self.headers = self.session.headers
-		self.headers.update({
-			**headers
-		})
-		
+
 		# Readonly exceptional.
-		self.excepts = [
-			"previous",
-			"response",
-			"timeout",
-			"history"
+		self.__except__ = [
+			"__previous__",
+			"__response__",
+			"__timeout__",
+			"__history__"
 		]
-		
-		# Previous request results.
-		self.previous = None
-		
-		# Request results.
-		self.response = None
+
+		# History configurations.
+		self.__history__ = []
+		self.__historyAllow__ = history is True
+		self.__historyFname__ = "requests/response.json"
+		self.__historyFormat__ = "requests/{}/response\x20{}.json"
+		self.__historyFormatHtml__ = "requests/{}/html/response\x20{}.html"
+
+		# Request configurations.
+		self.__session__ = Session()
+		self.__cookies__ = self.session.cookies
+		self.__headers__ = self.session.headers
+
+		self.__previous__ = None
+		self.__response__ = None
 		
 		# Default request timeout.
-		self.timeout = timeout if timeout != None else 10
+		self.__timeout__ = timeout if isinstance( timeout, int ) else Request.TIMEOUTS
 		
-		# History configurations.
-		self.historyAllow = history == True
-		self.historyFname = "response/response.json"
-		self.historyFormat = "response/{}/response\x20{}.json"
-		self.history = []
+		if headers is not None:
+			if not isinstance( headers, ( dict, Headers, Object ) ):
+				raise TypeError( "Invalid \"request\" parameter, value must be type Dict|Headers|Object, {} passed".format( typeof( headers ) ) )
+			if isinstance( headers, Headers ):
+				headers = dict( headers )
+		else:
+			headers = {}
+		for header in Request.HEADERS.keys():
+			if header not in headers:
+				headers[header] = Request.HEADERS[header]
+		for header in headers.keys():
+			self.headers.update({ header: headers[header] })
+		if cookies is not None:
+			if not isinstance( cookies, ( Cookies, dict, Object ) ):
+				raise TypeError( "Invalid \"request\" parameter, value must be type Cookies|Dict|Object, {} passed".format( typeof( cookies ) ) )
+			if isinstance( cookies, Cookies ):
+				cookie = dict( cookies )
+			for cookie in cookies.keys():
+				Cookie.set( self.cookies, cookie, cookies[cookie] )
 		
 		# If every successful request is allowed to save.
-		if  history:
+		if self.historyAllow:
 			try:
-				self.history = File.json( self.historyFname )
-			except Exception as e:
+				self.__history__ = File.json( self.historyFname )
+			except FileNotFoundError as e:
 				self.clean()
 	
+	#[Request.__error__( Exception error )]: Exception
+	@final
+	def __error__( self, error ):
+		name = typeof( error )
+		names = {
+			"InvalidJSONError": "{name}: A JSON error occured",
+			"JSONDecodeError": "{name}: Couldn't decode the text into json",
+			"HTTPError ": "{name}: An HTTP error occurred",
+			"ConnectionError ": "{name}: A Connection error occurred",
+			"ProxyError ": "{name}: A proxy error occurred",
+			"SSLError ": "{name}: An SSL error occurred",
+			"Timeout ": "{name}: The request timed out",
+			"ConnectTimeout ": "{name}: The request timed out while trying to connect to the remote server",
+			"ReadTimeout ": "{name}: The server did not send any data in the allotted amount of time",
+			"URLRequired ": "{name}: A valid URL is required to make a request",
+			"TooManyRedirects ": "{name}: Too many redirects",
+			"MissingSchema ": "{name}: The URL scheme (e.g. http or https) is missing",
+			"InvalidSchema ": "{name}: The URL scheme provided is either invalid or unsupported",
+			"InvalidURL ": "{name}: The URL provided was somehow invalid",
+			"InvalidHeader ": "{name}: The header value provided was somehow invalid",
+			"InvalidProxyURL ": "{name}: The proxy URL provided is invalid",
+			"ChunkedEncodingError": "{name}: The server declared chunked encoding but sent an invalid chunk",
+			"ContentDecodingError": "{name}: Failed to decode response content",
+			"StreamConsumedError": "{name}: The content for this response was already consumed",
+			"RetryError": "{name}: Custom retries logic failed",
+			"UnrewindableBodyError": "{name}: Requests encountered an error when trying to rewind a body",
+			"RequestsWarning": "{name}: Base warning for Requests",
+			"FileModeWarning": "{name}: A file was opened in text mode, but Requests determined its binary length",
+			"RequestsDependencyWarning": "{name}: An imported dependency doesn't match the expected version range"
+		}
+		if  name in names:
+			string = names[name]
+		else:
+			string = "{name}: There was an ambiguous exception that occurred while handling your request"
+			string += str( error )
+		return RequestError( string.format( name=name ), prev=error )
+	
+	#[Request.__parse__( Str url )]: Dict<Str, Dict|Str>
+	def __parse__( self, url:str ) -> dict[str:dict|str]:
+		parsed = urlparse( url )
+		query = queryparse( parsed.query )
+		return {
+			"path": parsed.path[1::] if parsed.path != "" else "/",
+			"url": parsed.geturl(),
+			"query": query
+		}
+	
+	#[Request.__save__()]: Request
+	@final
+	def __save__( self ):
+		
+		"""
+		Save every successful request
+		
+		:return Request
+			Instance of class Request
+		"""
+		
+		if  self.historyAllow is not True: return
+		if  self.response != False and \
+			self.response != None:
+			try:
+				content = self.response.json()
+			except Exception:
+				try:
+					content = f"[{self.response.headers['Content-Type']}]"
+				except Exception:
+					content = None
+			parsed = self.__parse__( self.response.url )
+			query = parsed['query']
+			time = datetime.now()
+			file = self.historyFormat.format( parsed['path'], f"{time}" ).replace( "//", "/" )
+			timestamp = datetime.timestamp( time )
+			self.__history__.append({
+				"url": parsed['url'],
+				"file": file,
+				"time": timestamp
+			})
+			File.write( self.historyFname, self.history )
+			File.write( file, {
+				"target": parsed['url'],
+				"browser": self.response.request.headers['User-Agent'],
+				"unixtime": timestamp,
+				"request": {
+					"cookies": dict( self.cookies ),
+					"headers": dict( self.headers ),
+					"method": self.response.request.method,
+					"query": query,
+					"body": self.response.request.body
+				},
+				"response": {
+					"status": f"{self.response}",
+					"cookies": dict( self.response.cookies ),
+					"headers": dict( self.response.headers ),
+					"content": content
+				}
+			})
+			if match( Pattern.HTML, self.__response__.headers['Content-Type'] ) is not None:
+				File.write( 
+					self.historyFormatHtml.format( parsed['path'], f"{time}" ).replace( "//", "/" ), 
+					self.response.content.decode( "utf-8" ) 
+				)
+		return( self )
+	
 	#[Request.clean()]: Bool
-	def clean( self ):
-		Path.rmdir( "response" )
-		self.history = []
-		self.previous = None
-		self.response = None
+	def clean( self ) -> bool:
+		Path.rmdir( "requests" )
+		self.__history__ = []
+		self.__previous__ = None
+		self.__response__ = None
 		try:
 			File.write( self.historyFname, "[]" )
 		except Exception:
 			return False
 		return True
 	
-	#[Request.save( String url, String name, String fmode, **kwargs )]: Bool
-	def save( self, url, name, fmode="wb", **kwargs ):
+	#[Request.cookies]: Cookies => RequestsCookieJar
+	@final
+	@property
+	def cookies( self ) -> Cookies: return self.__cookies__
+
+	#[Request.delete( String url, **kwargs )]: Response
+	@final
+	def delete( self, url, **kwargs ) -> Response:
+		return( self.request( "DELETE", url=url, **kwargs ) )
+
+	#[Request.download( String url, String name, String fmode, **kwargs )]: Bool
+	def download( self, url, name, fmode="wb", **kwargs ):
 		
 		"""
 		Download content from url.
@@ -172,103 +296,65 @@ class Request( Readonly ):
 		else:
 			raise RequestDownloadError( f"Failed get content from url, status [{result.status_code}]" )
 	
-	#[Request.error( Exception error )]: Exception
+	#[Request.get( String url, **kwargs )]: Response
 	@final
-	def error( self, error ):
-		name = type( error ).__name__
-		names = {
-			"InvalidJSONError": "{name}: A JSON error occured",
-			"JSONDecodeError": "{name}: Couldn't decode the text into json",
-			"HTTPError ": "{name}: An HTTP error occurred",
-			"ConnectionError ": "{name}: A Connection error occurred",
-			"ProxyError ": "{name}: A proxy error occurred",
-			"SSLError ": "{name}: An SSL error occurred",
-			"Timeout ": "{name}: The request timed out",
-			"ConnectTimeout ": "{name}: The request timed out while trying to connect to the remote server",
-			"ReadTimeout ": "{name}: The server did not send any data in the allotted amount of time",
-			"URLRequired ": "{name}: A valid URL is required to make a request",
-			"TooManyRedirects ": "{name}: Too many redirects",
-			"MissingSchema ": "{name}: The URL scheme (e.g. http or https) is missing",
-			"InvalidSchema ": "{name}: The URL scheme provided is either invalid or unsupported",
-			"InvalidURL ": "{name}: The URL provided was somehow invalid",
-			"InvalidHeader ": "{name}: The header value provided was somehow invalid",
-			"InvalidProxyURL ": "{name}: The proxy URL provided is invalid",
-			"ChunkedEncodingError": "{name}: The server declared chunked encoding but sent an invalid chunk",
-			"ContentDecodingError": "{name}: Failed to decode response content",
-			"StreamConsumedError": "{name}: The content for this response was already consumed",
-			"RetryError": "{name}: Custom retries logic failed",
-			"UnrewindableBodyError": "{name}: Requests encountered an error when trying to rewind a body",
-			"RequestsWarning": "{name}: Base warning for Requests",
-			"FileModeWarning": "{name}: A file was opened in text mode, but Requests determined its binary length",
-			"RequestsDependencyWarning": "{name}: An imported dependency doesn't match the expected version range"
-		}
-		if  name in names:
-			string = names[name]
-		else:
-			string = "{name}: There was an ambiguous exception that occurred while handling your request"
-			string += str( error )
-		return RequestError( string.format( name=name ), prev=error )
+	def get( self, url, **kwargs ) -> Response:
+		return( self.request( method="GET", url=url, **kwargs ) )
 	
-	#[Request.historySave()]: Request
+	#[Request.head( String url, **kwargs )]: Response
 	@final
-	def historySave( self ):
-		
-		"""
-		Save every successful request
-		
-		:return Request
-			Instance of class Request
-		"""
-		
-		if  self.historyAllow != True:
-			return
-		if  self.response != False and \
-			self.response != None:
-			try:
-				content = self.response.json()
-			except Exception:
-				try:
-					content = f"[{self.response.headers['Content-Type']}]"
-				except Exception:
-					content = None
-			parsed = self.parse( self.response.url )
-			query = parsed['query']
-			time = datetime.now()
-			file = self.historyFormat.format( parsed['path'], f"{time}" ).replace( "//", "/" )
-			timestamp = datetime.timestamp( time )
-			self.history.append({
-				"url": parsed['url'],
-				"file": file,
-				"time": timestamp
-			})
-			File.write( self.historyFname, self.history )
-			File.write( file, {
-				"target": parsed['url'],
-				"browser": self.session.headers['User-Agent'],
-				"unixtime": timestamp,
-				"request": {
-					"cookies": dict( self.cookies ),
-					"headers": dict( self.headers ),
-					"query": query
-				},
-				"response": {
-					"status": f"{self.response}",
-					"cookies": dict( self.response.cookies ),
-					"headers": dict( self.response.headers ),
-					"content": content
-				}
-			})
-		return( self )
+	def head( self, url, **kwargs ) -> Response:
+		return( self.request( method="HEAD", url=url, **kwargs ) )
+
+	#[Request.headers]: Headers => CaseInsensitiveDict
+	@final
+	@property
+	def headers( self ) -> Headers: return self.__headers__
+
+	#[Request.history]: List
+	@final
+	@property
+	def history( self ) -> list: return self.__history__
 	
-	#[Request.parse( Str url )]: Dict<Str, Dict|Str>
-	def parse( self, url:str ) -> dict[str:dict|str]:
-		parsed = urlparse( url )
-		query = queryparse( parsed.query )
-		return {
-			"path": parsed.path[1::] if parsed.path != "" else "/",
-			"url": parsed.geturl(),
-			"query": query
-		}
+	#[Request.historyAllow]: Bool
+	@final
+	@property
+	def historyAllow( self ) -> bool: return self.__historyAllow__
+	
+	#[Request.historyFname]: Str
+	@final
+	@property
+	def historyFname( self ) -> str: return self.__historyFname__
+	
+	#[Request.historyFormat]: Str
+	@final
+	@property
+	def historyFormat( self ) -> str: return self.__historyFormat__
+
+	#[Request.historyFormatHtml]: Str
+	@final
+	@property
+	def historyFormatHtml( self ) -> str: return self.__historyFormatHtml__
+
+	#[Request.options( String url, **kwargs )]
+	@final
+	def options( self, url, **kwargs ):
+		return( self.request( method="OPTIONS", url=url, **kwargs ) )
+	
+	#[Request.patch( String url, **kwargs )]: Response
+	@final
+	def patch( self, url, **kwargs ) -> Response:
+		return( self.request( method="PATCH", url=url, **kwargs ) )
+	
+	#[Request.post( String url, **kwargs )]: Response
+	@final
+	def post( self, url, **kwargs ) -> Response:
+		return( self.request( method="POST", url=url, **kwargs ) )
+	
+	#[Request.previous]: Response
+	@final
+	@property
+	def previous( self ) -> Response: return self.__previous__
 	
 	#[Request.previously( Str time )]: List
 	def previously( self, time:str ) -> list:
@@ -315,36 +401,14 @@ class Request( Readonly ):
 		else:
 			raise TypeError( "Invalid time syntax, value must be like \\d+(s|m|h|d|w|M|y)" )
 	
-	#[Request.delete( String url, **kwargs )]
-	def delete( self, url, **kwargs ):
-		return( self.request( "DELETE", url=url, **kwargs ) )
-	
-	#[Request.get( String url, **kwargs )]
-	def get( self, url, **kwargs ):
-		return( self.request( method="GET", url=url, **kwargs ) )
-	
-	#[Request.head( String url, **kwargs )]
-	def head( self, url, **kwargs ):
-		return( self.request( method="HEAD", url=url, **kwargs ) )
-	
-	#[Request.options( String url, **kwargs )]
-	def options( self, url, **kwargs ):
-		return( self.request( method="OPTIONS", url=url, **kwargs ) )
-	
-	#[Request.patch( String url, **kwargs )]
-	def patch( self, url, **kwargs ):
-		return( self.request( method="PATCH", url=url, **kwargs ) )
-	
-	#[Request.post( String url, **kwargs )]
-	def post( self, url, **kwargs ):
-		return( self.request( method="POST", url=url, **kwargs ) )
-	
-	#[Request.put( String url, **kwargs )]
-	def put( self, url, **kwargs ):
+	#[Request.put( String url, **kwargs )]: Response
+	@final
+	def put( self, url, **kwargs ) -> Response:
 		return( self.request( method="PUT", url=url, **kwargs ) )
 	
-	#[Request.request( String method, String url, **kwargs )]
-	def request( self, method, url, **kwargs ):
+	#[Request.request( String method, String url, **kwargs )]: Response
+	@final
+	def request( self, method, url, **kwargs ) -> Response:
 		
 		"""
 		Send request to url target.
@@ -363,22 +427,50 @@ class Request( Readonly ):
 			When the user login authentication required
 		"""
 		
-		self.previous = self.response
-		self.response = None
+		self.__previous__ = self.response
+		self.__response__ = None
 		
-		if  "timeout" not in kwargs:
+		if "timeout" not in kwargs:
 			kwargs['timeout'] = self.timeout
+		if "cookies" in kwargs:
+			for cookie in list( kwargs['cookies'].keys() ):
+				kwargs['cookies'][cookie] = str( kwargs['cookies'][cookie] )
+		for cookie in self.cookies.keys():
+			Cookie.set( self.cookies, cookie, str( self.cookies[cookie] ) )
+		if "headers" in kwargs:
+			for header in list( kwargs['headers'].keys() ):
+				kwargs['headers'][header] = str( kwargs['headers'][header] )
+		for header in list( self.headers.keys() ):
+			self.headers.update({ 
+				header: str( self.headers[header] )
+			})
 		try:
-			self.response = self.session.request( method=method, url=url, **kwargs )
-			self.historySave()
-		except ImportError as e:
+			self.__response__ = self.session.request( method=method, url=url, **kwargs )
+			self.__response__.status = self.__response__.status_code
+			self.__save__()
+		except BaseException as e:
 			raise RequestError(**{
 				"message": "There was an error sending the request",
-				"prev": self.error( e )
+				"prev": self.__error__( e )
 			})
-		if  self.response.status_code == 401:
+		if self.response.status == 401:
 			raise RequestAuthError( "Login authentication is required" )
 		return self.response
+	
+	#[Request.response]: Response
+	@final
+	@property
+	def response( self ) -> Response: return self.__response__
+
+	#[Request.session]: Session
+	@final
+	@property
+	def session( self ) -> Session: return self.__session__
+
+	#[Request.response]: Int
+	@final
+	@property
+	def timeout( self ) -> int: return self.__timeout__
 	
 
 #[kanashi.request.RequestRequired]
@@ -402,14 +494,15 @@ class RequestRequired:
 		if  isinstance( self, Object ):
 			raise TypeError( "Class \"{}\" may not inherit an Object if it has inherited a previous RequestRequired".format( type( self ).__name__ ) )
 		if  isinstance( request, Request ):
-			self.request = request
+			self.__request__ = request
 			RequestRequired.__setup__( self, request )
 		else:
 			raise ValueError( "Parameter request must be type Request, {} passed".format( type( request ).__name__ ) )
 	
 	#[RequestRequired.__setattr__( String name, Any value )]: None
+	@final
 	def __setattr__( self, name, value ) -> None:
-		if  name == "request":
+		if  name == "__request__":
 			if  isinstance( value, Request ):
 				self.__dict__[name] = value
 				RequestRequired.__setup__( self, value )
@@ -420,11 +513,32 @@ class RequestRequired:
 			self.__dict__[name] = value
 	
 	#[RequestRequired.__setup__( Request request )]: None
+	@final
 	def __setup__( self, request ) -> None:
 		try:
-			self.cookies = request.cookies
-			self.headers = request.headers
-			self.session = request.session
+			self.__cookies__ = request.cookies
+			self.__headers__ = request.headers
+			self.__session__ = request.session
 		except AttributeError:
 			pass
+	
+	#[RequestRequired.cookies]: Cookies => RequestsCookieJar
+	@final
+	@property
+	def cookies( self ) -> Cookies: return self.__cookies__
+
+	#[RequestRequired.headers]: Headers => CaseInsensitiveDict
+	@final
+	@property
+	def headers( self ) -> Headers: return self.__headers__
+
+	#[RequestRequired.request]: Request
+	@final
+	@property
+	def request( self ) -> Request: return self.__request__
+
+	#[RequestRequired.session]: Session
+	@final
+	@property
+	def session( self ) -> Session: return self.__session__
 	
