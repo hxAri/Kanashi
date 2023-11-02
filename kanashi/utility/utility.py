@@ -398,7 +398,7 @@ class Utility:
 		else:
 			strings += f"\x20\x20{named}\x2e{refer}\x0a"
 		strings += println( message, 4, line )
-		print( "\x0a\x7b\x7d\x0a\x0a\x0a\x7b\x7d".format( self.banner, self.colorize( f"\x1b[0m{strings}" ) ) )
+		print( "\x0a\x7b\x7d\x0a\x0a\x0a\x7b\x7d".format( self.banner, self.colorize( f"\x1b[0m{strings}".replace( "\t", "\x20" *4 ) ) ) )
 	
 	#[Utility.previous( Callable back, Str label, Any *args, Any **kwargs )]: Any
 	@final

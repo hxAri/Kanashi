@@ -45,6 +45,10 @@ def tree( data:any, indent:int=0 ) -> str:
 	
 	#[kanashi.utility.tree$.builder( Any data, Int indent, Str space )]: Str
 	def builder( data:any, indent:int, space:str ) -> str:
+
+		"""
+		"""
+
 		if isinstance( data, ( dict, list, set, tuple ) ):
 			return looping( data=data, indent=indent if indent >= 4 else 4, space=space )
 		else:
@@ -52,6 +56,10 @@ def tree( data:any, indent:int=0 ) -> str:
 	
 	#[kanashi.utility.tree$.looping( Dict|List[Any]|Set|Tuple data, Int indent, Str space )]: Str
 	def looping( data:dict|list|set|tuple, indent:int, space:str ) -> str:
+
+		"""
+		"""
+		
 		result = ""
 		if isinstance( data, dict ):
 			length = len( data )
@@ -82,9 +90,8 @@ def tree( data:any, indent:int=0 ) -> str:
 						if isinstance( value, dict ):
 							result += builder( data=value, indent=indent, space=space + SPC_LINE )
 						elif isinstance( value, ( list, set, tuple ) ):
-							#result += builder( data=value, indent=indent, space=space + SPC_LINE )
-							result += looping( data=value, indent=indent, space=space + SPC_LINE )
-							print( value )
+							result += builder( data=value, indent=indent, space=space + SPC_LINE )
+							# result += looping( data=value, indent=indent, space=space + SPC_LINE )
 						else:
 							result += space
 							result += SPC_LINE
