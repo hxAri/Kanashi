@@ -25,17 +25,19 @@
 
 
 
-from typing import final
+from typing import final, MutableMapping, Generic, TypeVar
 
 from kanashi.readonly import Readonly
 from kanashi.utility import JSON, typeof
 
+KeyType = TypeVar( "KeyType" )
+ValType = TypeVar( "ValType" )
 
 #[kanashi.object.Object]
-class Object:
+class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 	
 	#[Object( Dict|List|Object data, Any parent )]: None
-	def __init__( self, data, parent:any=None ) -> None:
+	def __init__( self, data={}, parent:any=None ) -> None:
 
 		"""
 		Construct method of class Object.
@@ -45,6 +47,8 @@ class Object:
 
 		:return None
 		"""
+
+		print( typeof( self ) )
 
 		self.__dict__['__parent__'] = parent
 		self.__dict__['__index__'] = 0
@@ -275,6 +279,10 @@ class Object:
 	#[Object.dump()]: Str
 	@final
 	def dump( self ) -> str: return self.__repr__()
+
+	#[Object.empty()]
+	@final
+	def empty( self ) -> bool: return self.__len__() == 0
 	
 	#[Object.json( Any *args, Any **kwargs )]: Str
 	@final
