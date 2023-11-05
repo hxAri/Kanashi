@@ -25,19 +25,20 @@
 
 
 
-from typing import final, MutableMapping, Generic, TypeVar
+from typing import final, TypeVar
 
+from kanashi.error import ReportError
 from kanashi.readonly import Readonly
 from kanashi.utility import JSON, typeof
 
-KeyType = TypeVar( "KeyType" )
-ValType = TypeVar( "ValType" )
+Object = TypeVar( "Object" )
+ObjectBuilder = TypeVar( "ObjectBuilder" )
 
 #[kanashi.object.Object]
-class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
+class Object:
 	
-	#[Object( Dict|List|Object data, Any parent )]: None
-	def __init__( self, data={}, parent:any=None ) -> None:
+	#[Object( Dict|Object data, Any parent )]: None
+	def __init__( self, data:dict|Object={}, parent:any=None ) -> None:
 
 		"""
 		Construct method of class Object.
@@ -48,17 +49,15 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 		:return None
 		"""
 
-		print( typeof( self ) )
-
 		self.__dict__['__parent__'] = parent
 		self.__dict__['__index__'] = 0
 		self.__dict__['__data__'] = {}
 		self.set( data )
 	
-	#[Object.__builder__( Object parent, Dict data )]: Object
+	#[Object.__builder__( Object parent, Dict|Object data )]: ObjectBuilder
 	@final
 	@staticmethod
-	def __builder__( parent:object, data:dict ):
+	def __builder__( parent:object, data:dict|Object ) -> ObjectBuilder:
 
 		"""
 		Object builder for child
@@ -70,7 +69,7 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 		"""
 
 		class ObjectBuilder( parent ):
-			def __init__( self, data:dict ):
+			def __init__( self, data:dict ) -> None:
 				Object.__init__( self, data )
 		return ObjectBuilder( data )
 
@@ -81,8 +80,9 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 	#[Object.__delattr__( Int|Str key )]: None
 	@final
 	def __delattr__( self, key:int|str ) -> None:
+		key = str( key )
 		if key in self.__dict__:
-			if  key != "__data__" and \
+			if key != "__data__" and \
 				key != "__index__" and \
 				key != "__parent__":
 				del self.__dict__[key]
@@ -92,10 +92,11 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 	#[Object.__delitem__( Int|Str index )]: None
 	@final
 	def __delitem__( self, index:int|str ) -> None:
+		index = str( index )
 		if index in self.__dict__['__data__']:
 			del self.__dict__['__data__'][index]
 		elif index in self.__dict__:
-			if  index != "__data__" and \
+			if index != "__data__" and \
 				index != "__index__" and \
 				index != "__parent__":
 				del self.__dict__[index]
@@ -103,6 +104,7 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 	#[Object.__getattr__( self, name )]: Any
 	@final
 	def __getattr__( self, name ):
+		name = str( name )
 		if name in self.__dict__:
 			return self.__dict__[name]
 		elif name in self.__dict__['__data__']:
@@ -111,7 +113,7 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 	
 	#[Object.__getitem__( Str key )]: Any
 	@final
-	def __getitem__( self, key ):
+	def __getitem__( self, key ) -> any:
 		if key in self.__dict__['__data__']:
 			return self.__dict__['__data__'][key]
 		if key in self.__dict__:
@@ -120,12 +122,12 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 	
 	#[Object.__iter__()]: Object
 	@final
-	def __iter__( self ): return self
+	def __iter__( self ) -> Object: return self
 	
 	#[Object.__json__( Dict|List data )]: Dict
 	@final
-	def __json__( self, data=None ) -> dict:
-		if  data == None:
+	def __json__( self, data:dict|list=None ) -> dict:
+		if data == None:
 			data = self.dict()
 		match type( data ):
 			case "dict":
@@ -151,15 +153,15 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 	
 	#[Object.__next__()]: Any
 	@final
-	def __next__( self ):
+	def __next__( self ) -> any:
 		
 		# Get current index iteration.
 		index = self.__index__
 		
 		# Get object length.
-		length = self.len()
+		length = len( self )
 		try:
-			if  index < length:
+			if index < length:
 				self.__index__ += 1
 				return self[self.keys( index )]
 		except IndexError:
@@ -244,15 +246,15 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 	
 	#[Object.copy()]: Object
 	@final
-	def copy( self ): return self.__builder__( type( self ), self.dict() )
+	def copy( self ) -> Object: return self.__builder__( type( self ), self.dict() )
 
 	#[Object.delt( Int|Str index )]: None
 	@final
 	def delt( self, index:int|str ) -> None: self.__delitem__( index )
 	
-	#[Object.dict()]: Dict
+	#[Object.dict()]: Dict[str:any]
 	@final
-	def dict( self ) -> dict:
+	def dict( self ) -> dict[str:any]:
 
 		"""
 		Return Dictionary of Object
@@ -263,12 +265,12 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 		data = {}
 		copy = self.__dict__['__data__']
 		for key in copy.keys():
-			if  isinstance( copy[key], Object ):
+			if isinstance( copy[key], Object ):
 				data[key] = copy[key].dict()
 			elif isinstance( copy[key], list ):
 				data[key] = []
 				for item in copy[key]:
-					if  isinstance( item, Object ):
+					if isinstance( item, Object ):
 						data[key].append( item.dict() )
 					else:
 						data[key].append( item )
@@ -280,7 +282,7 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 	@final
 	def dump( self ) -> str: return self.__repr__()
 
-	#[Object.empty()]
+	#[Object.empty()]: Bool
 	@final
 	def empty( self ) -> bool: return self.__len__() == 0
 	
@@ -294,15 +296,15 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 	
 	#[Object.idxs()]: List<Int>
 	@final
-	def idxs( self ) -> list: return [ idx for idx in range( len( self ) ) ]
+	def idxs( self ) -> list[int]: return [ idx for idx in range( len( self ) ) ]
 	
 	#[Object.keys()]: List<Str>
 	@final
-	def keys( self, index=None ) -> list: return self.keys()[index] if isinstance( index, int ) else  list( self.__dict__['__data__'].keys() )
+	def keys( self, index=None ) -> list[str]: return self.keys()[index] if isinstance( index, int ) else list( self.__dict__['__data__'].keys() )
 	
 	#[Object.get()]: Any
 	@final
-	def get( self, key ): return self.__getitem__( key )
+	def get( self, key ) -> any: return self.__getitem__( key )
 	
 	#[Object.len()]: Int
 	@final
@@ -347,6 +349,7 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 			if "__index__" not in excepts:
 				excepts.append( "__index__" )
 			for key in data.keys():
+				key = str( key )
 				value = data[key]
 				if isinstance( value, dict ):
 					define = typeof( self )
@@ -356,7 +359,8 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 						value = Object( value )
 				elif isinstance( value, list ):
 					for i in range( len( value ) ):
-						if isinstance( value[i], dict ): value[i] = Object( value[i] )
+						if isinstance( value[i], dict ):
+							value[i] = Object( value[i] )
 				if key in self.__dict__:
 					if key == "__except__":
 						if isinstance( value, list ):
@@ -379,7 +383,7 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 					if isinstance( self.__dict__['__data__'][key], Object ) and isinstance( value, ( dict, Object ) ):
 						name = typeof( self.__dict__['__data__'][key] )
 						diff = typeof( value )
-						if  name != "Object" and name != "ObjectBuilder" or \
+						if name != "Object" and name != "ObjectBuilder" or \
 							diff != "Object" and diff != "ObjectBuilder" or \
 							name != diff:
 							self.__dict__['__data__'][key] = value
@@ -394,8 +398,7 @@ class Object( MutableMapping[KeyType, ValType], Generic[KeyType, ValType] ):
 				else:
 					self.__dict__['__data__'][key] = value
 		elif isinstance( data, list ):
-			for i in range( len( data ) ):
-				self.set({ str( i ): data[i] })
+			raise ReportError( "Functionality for set multiple value on class {} is deprecated".format( typeof( self ) ) )
 		elif isinstance( data, Object ):
 			for key in data.keys():
 				self.set({ key: data[key] })
