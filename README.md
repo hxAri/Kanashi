@@ -15,61 +15,62 @@ Kanashī itself is a translation of the word from Japan **悲しい** which mean
 This program was created to be used by anyone, not to be sold for anyone's profit!
 
 ## Features
-* **Access Manager**
+* **Access Manager**</br/>
   This allows you to retrieve information about each application and also web information connected to your Instagram account
 * **Approve && Ignore Request Follow**
-* **Bestie && Un-bestie**
+* **Bestie && Un-bestie**</br/>
   Make user as bestie or remove from bestie
 * **Block && Unblock**
-* **Bypassing Checkpoints**
+* **Bypassing Checkpoints**</br/>
   Currently under construction
-* **CGI**
+* **CGI**</br/>
   Interactive Command Graphical user interface
-* **Direct Message Inbox**
+* **Direct Message Inbox**</br/>
   Fetch direct messages inbox
 * **Direct Presence**
 * **Download Media**
-* **Exploration**
+* **Exploration**</br/>
   Fetch Instagram explore contents
-* **Favorite && Un-Favorite**
+* **Favorite && Un-Favorite**</br/>
   Make user as favorite or remove from favorite
 * **Follow && Unfollow**
-* **Follower && Following**
+* **Follower && Following**</br/>
   Fetch followers and also following users
-* **Friendship**
+* **Friendship**</br/>
   Show user friendship status
-* **Friendship Show Many**
+* **Friendship Show Many**</br/>
   Show multiple users friendship status
-* **Graphql**
+* **Graphql**</br/>
   Create our custome graphql request
-* **Inbox**
+* **Inbox**</br/>
   Fetch inbox notifications
 * **Logout**
-* **Media**
+* **Media**</br/>
   Fetch any instagram media e.g feed, story, highlight story, profile-picture, etc
-* **Multiple Accounts**
+* **Multiple Accounts**</br/>
   Support for login multiple accounts
-* **Mute && Un-Mute**
+* **Mute && Un-Mute**</br/>
   Mute or un-mute user feed and story
-* **Notification Settings**
+* **Notification Settings**</br/>
   Fetch notification settings include sms and push
-* **Pending Request Follow**
+* **Pending Request Follow**</br/>
   Fetch pending request follows
-* **Privacy && Security Settings**
+* **Privacy && Security Settings**</br/>
   Fetch privacy and security settings info
-* **Profile**
+* **Profile**</br/>
   Fetch user profile
-* **Remember Cookie**
+* **Remember Cookie**</br/>
   SignIn with cookies
-* **Settings**
+* **Settings**</br/>
   Application settings can be configured and customized
-* **SignIn**
+* **SignIn**</br/>
   SignIn manual with username and password
-* **Story**
+* **Story**</br/>
   Fetch user timeline feed tray reel story and highlighted story
-* **Story Feed**
+* **Story Feed**</br/>
   Fetch timeline feed tray reel story
 * **Switch Account**
+  Simple switch another saved account
 
 ## Requirements
 * Python **>=3.10.4**
