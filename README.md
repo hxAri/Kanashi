@@ -15,61 +15,61 @@ Kanashī itself is a translation of the word from Japan **悲しい** which mean
 This program was created to be used by anyone, not to be sold for anyone's profit!
 
 ## Features
-* **Access Manager**</br/>
+* **Access Manager**<br/>
   This allows you to retrieve information about each application and also web information connected to your Instagram account
 * **Approve && Ignore Request Follow**
-* **Bestie && Un-bestie**</br/>
+* **Bestie && Un-bestie**<br/>
   Make user as bestie or remove from bestie
 * **Block && Unblock**
-* **Bypassing Checkpoints**</br/>
+* **Bypassing Checkpoints**<br/>
   Currently under construction
-* **CGI**</br/>
+* **CGI**<br/>
   Interactive Command Graphical user interface
-* **Direct Message Inbox**</br/>
+* **Direct Message Inbox**<br/>
   Fetch direct messages inbox
 * **Direct Presence**
 * **Download Media**
-* **Exploration**</br/>
+* **Exploration**<br/>
   Fetch Instagram explore contents
-* **Favorite && Un-Favorite**</br/>
+* **Favorite && Un-Favorite**<br/>
   Make user as favorite or remove from favorite
 * **Follow && Unfollow**
-* **Follower && Following**</br/>
+* **Follower && Following**<br/>
   Fetch followers and also following users
-* **Friendship**</br/>
+* **Friendship**<br/>
   Show user friendship status
-* **Friendship Show Many**</br/>
+* **Friendship Show Many**<br/>
   Show multiple users friendship status
-* **Graphql**</br/>
+* **Graphql**<br/>
   Create our custome graphql request
-* **Inbox**</br/>
+* **Inbox**<br/>
   Fetch inbox notifications
 * **Logout**
-* **Media**</br/>
+* **Media**<br/>
   Fetch any instagram media e.g feed, story, highlight story, profile-picture, etc
-* **Multiple Accounts**</br/>
+* **Multiple Accounts**<br/>
   Support for login multiple accounts
-* **Mute && Un-Mute**</br/>
+* **Mute && Un-Mute**<br/>
   Mute or un-mute user feed and story
-* **Notification Settings**</br/>
+* **Notification Settings**<br/>
   Fetch notification settings include sms and push
-* **Pending Request Follow**</br/>
+* **Pending Request Follow**<br/>
   Fetch pending request follows
-* **Privacy && Security Settings**</br/>
+* **Privacy && Security Settings**<br/>
   Fetch privacy and security settings info
-* **Profile**</br/>
+* **Profile**<br/>
   Fetch user profile
-* **Remember Cookie**</br/>
+* **Remember Cookie**<br/>
   SignIn with cookies
-* **Settings**</br/>
+* **Settings**<br/>
   Application settings can be configured and customized
-* **SignIn**</br/>
+* **SignIn**<br/>
   SignIn manual with username and password
-* **Story**</br/>
+* **Story**<br/>
   Fetch user timeline feed tray reel story and highlighted story
-* **Story Feed**</br/>
+* **Story Feed**<br/>
   Fetch timeline feed tray reel story
-* **Switch Account**
+* **Switch Account**<br/>
   Simple switch another saved account
 
 ## Requirements
