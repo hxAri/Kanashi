@@ -27,25 +27,59 @@
 from typing import final
 
 from kanashi.object import Object
+from kanashi.typing.active import Active
+from kanashi.typing.checkpoint import Checkpoint
+from kanashi.typing.two_factor import TwoFactor
 from kanashi.typing.typing import Typing
 
 
-#[kanashi.typing.inbox.Inbox]
+#[kanashi.typing.notification.Notification]
 @final
-class Inbox( Typing ):
+class Notification( Typing ):
 
-	#[Inbox.__items__]: List<Dict|List|Object|Str>
+	#[Notification.__items__]: List<Dict|List|Object|Str>
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
-			"counts",
-			"last_checked",
-			"priority_stories",
-			"new_stories",
-			"old_stories",
-			"continuation_token",
-			"subscription",
-			"is_last_page",
-			"partition"
 		]
+	
+	#[Notification.__mapping__]: Dict|Object
+	@property
+	def __mapping__( self ) -> dict|Object:
+		return {
+		}
+	
+
+#[kanashi.typing.notification.NotificationPush]
+@final
+class NotificationPush( Typing ):
+
+	#[NotificationPush.__items__]: List<Dict|List|Object|Str>
+	@property
+	def __items__( self ) -> list[dict|list|Object]:
+		return [
+		]
+	
+	#[NotificationPush.__mapping__]: Dict|Object
+	@property
+	def __mapping__( self ) -> dict|Object:
+		return {
+		}
+
+
+#[kanashi.typing.notification.NotificationSMS]
+@final
+class NotificationSMS( Typing ):
+
+	#[NotificationSMS.__items__]: List<Dict|List|Object|Str>
+	@property
+	def __items__( self ) -> list[dict|list|Object]:
+		return [
+		]
+	
+	#[NotificationSMS.__mapping__]: Dict|Object
+	@property
+	def __mapping__( self ) -> dict|Object:
+		return {
+		}
 	

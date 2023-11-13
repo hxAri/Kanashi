@@ -2,7 +2,7 @@
 
 #
 # @author Ari Setiawan
-# @create 23.05-2022
+# @create 23.05-2022 13:44
 # @github https://github.com/hxAri/Kanashi
 #
 # Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
@@ -76,6 +76,7 @@ class Typing( Object ):
 	#[Typing.__mapper__( Dict|Object properties, Any values )]: Any
 	@final
 	def __mapper__( self, properties:dict|Object, values:any ) -> any:
+		if not isinstance( values, ( dict, list, Object ) ): return values 
 		for key in list( properties.keys() ):
 			if key in values:
 				if isinstance( properties[key], type ):
@@ -121,12 +122,11 @@ class Typing( Object ):
 			return value
 		if isinstance( value, ( dict, list, Object ) ):
 			if isinstance( value, dict ):
-				indexs = value.keys()
-				indexs = list( indexs )
+				indexs = list( value.keys() )
 			elif isinstance( value, Object ):
 				indexs = value.keys()
 			else:
-				indexs = [ index for index in range( len( value ) ) ]
+				indexs = [ idx for idx in range( len( value ) ) ]
 			for i in range( len( indexs ) ):
 				index = indexs[i]
 				value[index] = self.__resolver__( value[index] )

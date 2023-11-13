@@ -27,16 +27,15 @@
 from typing import final
 
 from kanashi.object import Object
-from kanashi.readonly import Readonly
 from kanashi.typing.typing import Typing
 from kanashi.typing.user import User
 
 
-#[kanashi.typing.pending.Pending]
-@final
-class Pending( Readonly, User ):
+#[kanashi.typing.follow.Follower]
+class Follower( Typing, User ):
 
-	#[Pending.__items__]: List<Dict|List|Object|Str>
+	#[Follower.__items__]: List<Dict|List|Object|Str>
+	@final
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
@@ -44,7 +43,6 @@ class Pending( Readonly, User ):
 			"fbid_v2",
 			"full_name",
 			"has_anonymous_profile_picture",
-			"id",
 			"is_possible_bad_actor",
 			"is_possible_scammer",
 			"is_private",
@@ -60,68 +58,45 @@ class Pending( Readonly, User ):
 		]
 	
 
-#[kanashi.typing.pending.Pendings]
-@final
-class Pendings( Typing ):
+#[kanashi.typing.follow.Followers<Follower>]
+class Followers( Typing ):
 
-	#[Pendings.__items__]: List<Dict|List|Object|Str>
+	#[Followers.__items__]: List<Dict|List|Object|Str>
+	@final
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
 			"big_list",
-            "friend_requests",
-            "global_blacklist_sample",
-            "next_max_id",
-            "page_size",
-			"sections",
-            {
-				"suggested_users": [
-                	"suggestions"
-				]
-            },
-            "users"
+			"has_more",
+			"next_max_id",
+			"page_size",
+			"should_limit_list_of_followers",
+			"show_spam_follow_request_tab",
+			"use_clickable_see_more",
+			"users"
 		]
 	
-	#[Pendings.__mapping__]: Dict|Object
+	#[Followers.__mapping__]: Dict|Object
 	@property
 	def __mapping__( self ) -> dict|Object:
 		return {
-			"users": Pending
+			"users": Follower
 		}
 	
-	#[Pendings.__nested__]: Bool
-	@property
-	def __nested__( self ) -> bool: return False
 
-	#[Pendings.bigList]: Bool
-	@property
-	def bigList( self ) -> bool: return self['big_list']
+#[kanashi.typing.follow.Following]
+@final
+class Following( Follower ): ...
+	
 
-	#[Pendings.friendRequests]: List<Object>
-	@property
-	def friendRequests( self ) -> list[Object]: return self['friend_requests']
+#[kanashi.typing.follow.Followings<Following>]
+@final
+class Followings( Followers ):
 
-	#[Pendings.globalBlacklistSample]: Any
+	#[Followings.__mapping__]: Dict|Object
 	@property
-	def globalBlacklistSample( self ) -> any: return self['global_blacklist_sample']
-
-	#[Pendings.nextMaxId]: Str
-	@property
-	def nextMaxId( self ) -> str: return self['next_max_id']
-
-	#[Pendings.pageSize]: Int
-	@property
-	def pageSize( self ) -> int: return self['page_size']
-
-	#[Pendings.sections]: Any
-	@property
-	def sections( self ) -> any: return self['sections']
-
-	#[Pendings.suggestions]: List<User>
-	@property
-	def suggestions( self ) -> list[User]: return self['suggestions']
-
-	#[Pendings.users]: List<Pending>
-	@property
-	def users( self ) -> list[Pending]: return self['users']
+	def __mapping__( self ) -> dict|Object:
+		return {
+			"users": Following
+		}
 	

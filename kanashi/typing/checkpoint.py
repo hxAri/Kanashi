@@ -2,7 +2,7 @@
 
 #
 # @author Ari Setiawan
-# @create 23.05-2022
+# @create 23.05-2022 13:44
 # @github https://github.com/hxAri/Kanashi
 #
 # Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
@@ -45,5 +45,5 @@ class Checkpoint( Typing, Readonly ):
 	
 	#[Checkpoint.url]: Str
 	@property
-	def url( self ): return self.checkpoint_url if "checkpoint_url" in self else ""
+	def url( self ) -> str: return self.checkpoint_url if "checkpoint_url" in self else ""
 	

@@ -27,25 +27,48 @@
 from typing import final
 
 from kanashi.object import Object
+from kanashi.readonly import Readonly
 from kanashi.typing.typing import Typing
 
 
-#[kanashi.typing.inbox.Inbox]
-@final
-class Inbox( Typing ):
+#[kanashi.typing.media.Media]
+class Media( Typing ):
 
-	#[Inbox.__items__]: List<Dict|List|Object|Str>
-	@property
-	def __items__( self ) -> list[dict|list|Object]:
-		return [
-			"counts",
-			"last_checked",
-			"priority_stories",
-			"new_stories",
-			"old_stories",
-			"continuation_token",
-			"subscription",
-			"is_last_page",
-			"partition"
-		]
+	#[kanashi.typing.media.Media.Type]
+	@final
+	class Type( Readonly ):
+
+		""" Media Type """
+
+		#[Type( Int type )]: None
+		def __init__( self, type:int ) -> None:
+
+			"""
+			Construct method of class Type.
+
+			:params Int type
+
+			:return None
+			"""
+
+			match type:
+				case 26552: name = "Story Tray Reel"
+				case 66545: name = "Story Profile"
+				case 81656: name = "Story Highlight"
+				case _:
+					raise ValueError( "Unknown media type" )
+			
+			self.__name__ = name
+			self.__type__ = type
+		
+		#[Type.name]: Str
+		@property
+		def name( self ) -> str: return self.__name__
+
+		#[Type.value]: Int
+		@property
+		def value( self ) -> int: return self.__type__
 	
+	STORY_HIGHLIGHT = Type( 81656 )
+	STORY_PROFILE = Type( 66545 )
+	STORY_TRAY_REEL = Type( 26552 )

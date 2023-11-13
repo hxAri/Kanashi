@@ -2,7 +2,7 @@
 
 #
 # @author Ari Setiawan
-# @create 23.05-2022
+# @create 23.05-2022 13:44
 # @github https://github.com/hxAri/Kanashi
 #
 # Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
@@ -33,7 +33,7 @@ from kanashi.typing.user import User
 
 #[Profile.typing.profile.Profile]
 @final
-class Profile( User ):
+class Profile(  Typing,User ):
 
 	#[Profile.__items__]: List<Dict|List|Object|Str>
 	@property
@@ -976,7 +976,7 @@ class Profile( User ):
 	
 	#[Kanashi.id]: Str
 	@property
-	def id( self ) -> str: return self['id'] if "id" in self else None
+	def id( self ) -> str: return self['id'] if "id" in self else self.pk
 	
 	#[Kanashi.includeDirectBlacklistStatus]: Bool
 	@property
@@ -1280,7 +1280,7 @@ class Profile( User ):
 	
 	#[Kanashi.pk]: Str
 	@property
-	def pk( self ) -> str: return self['pk'] if "pk" in self else None
+	def pk( self ) -> str: return self['pk'] if "pk" in self else self.id
 	
 	#[Kanashi.pkId]: Str
 	@property

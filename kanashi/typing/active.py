@@ -2,7 +2,7 @@
 
 #
 # @author Ari Setiawan
-# @create 23.05-2022
+# @create 23.05-2022 13:44
 # @github https://github.com/hxAri/Kanashi
 #
 # Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
@@ -35,7 +35,7 @@ from kanashi.utility import typeof
 
 #[kanashi.typing.active.Active]
 @final
-class Active( Readonly, User ):
+class Active( Readonly, Typing, User ):
 
 	#[Active.__nested__]: Bool
 	@property

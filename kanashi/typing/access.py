@@ -27,25 +27,59 @@
 from typing import final
 
 from kanashi.object import Object
+from kanashi.typing.active import Active
+from kanashi.typing.checkpoint import Checkpoint
+from kanashi.typing.two_factor import TwoFactor
 from kanashi.typing.typing import Typing
 
 
-#[kanashi.typing.inbox.Inbox]
+#[kanashi.typing.access.AccessManager<AccessManagerApps, AccessManagerOAuth>]
 @final
-class Inbox( Typing ):
+class AccessManager( Typing ):
 
-	#[Inbox.__items__]: List<Dict|List|Object|Str>
+	#[AccessManager.__items__]: List<Dict|List|Object|Str>
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
-			"counts",
-			"last_checked",
-			"priority_stories",
-			"new_stories",
-			"old_stories",
-			"continuation_token",
-			"subscription",
-			"is_last_page",
-			"partition"
 		]
+	
+	#[AccessManager.__mapping__]: Dict|Object
+	@property
+	def __mapping__( self ) -> dict|Object:
+		return {
+		}
+	
+
+#[kanashi.typing.access.AccessManagerApps]
+@final
+class AccessManagerApps( Typing ):
+
+	#[AccessManagerApps.__items__]: List<Dict|List|Object|Str>
+	@property
+	def __items__( self ) -> list[dict|list|Object]:
+		return [
+		]
+	
+	#[SignI.__mapping__]: Dict|Object
+	@property
+	def __mapping__( self ) -> dict|Object:
+		return {
+		}
+	
+
+#[kanashi.typing.access.AccessManagerOAuth]
+@final
+class AccessManagerOAuth( Typing ):
+
+	#[AccessManagerOAuth.__items__]: List<Dict|List|Object|Str>
+	@property
+	def __items__( self ) -> list[dict|list|Object]:
+		return [
+		]
+	
+	#[AccessManagerOAuth.__mapping__]: Dict|Object
+	@property
+	def __mapping__( self ) -> dict|Object:
+		return {
+		}
 	

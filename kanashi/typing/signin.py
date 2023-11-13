@@ -2,7 +2,7 @@
 
 #
 # @author Ari Setiawan
-# @create 23.05-2022
+# @create 23.05-2022 13:44
 # @github https://github.com/hxAri/Kanashi
 #
 # Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
@@ -27,10 +27,13 @@
 from typing import final
 
 from kanashi.object import Object
+from kanashi.typing.active import Active
+from kanashi.typing.checkpoint import Checkpoint
+from kanashi.typing.two_factor import TwoFactor
 from kanashi.typing.typing import Typing
 
 
-#[kanashi.typing.signin.SignIn]
+#[kanashi.typing.signin.SignIn<User>]
 @final
 class SignIn( Typing ):
 
@@ -47,4 +50,17 @@ class SignIn( Typing ):
 			"two_factor",
 			"user"
 		]
+	
+	#[SignIn.__mapping__]: Dict|Object
+	@property
+	def __mapping__( self ) -> dict|Object:
+		return {
+			"checkpoint": Checkpoint,
+			# "cookies": Cookies,
+			# "headers": Headers,
+			# "request": Request,
+			# "response": Response,
+			"two_factor": TwoFactor,
+			"user": Active
+		}
 	

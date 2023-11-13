@@ -27,25 +27,25 @@
 from typing import final
 
 from kanashi.object import Object
+from kanashi.typing.active import Active
+from kanashi.typing.checkpoint import Checkpoint
+from kanashi.typing.two_factor import TwoFactor
 from kanashi.typing.typing import Typing
 
 
-#[kanashi.typing.inbox.Inbox]
+#[kanashi.typing.privacy.Privacy]
 @final
-class Inbox( Typing ):
+class Privacy( Typing ):
 
-	#[Inbox.__items__]: List<Dict|List|Object|Str>
+	#[Privacy.__items__]: List<Dict|List|Object|Str>
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
-			"counts",
-			"last_checked",
-			"priority_stories",
-			"new_stories",
-			"old_stories",
-			"continuation_token",
-			"subscription",
-			"is_last_page",
-			"partition"
 		]
+	
+	#[Privacy.__mapping__]: Dict|Object
+	@property
+	def __mapping__( self ) -> dict|Object:
+		return {
+		}
 	

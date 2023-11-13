@@ -2,7 +2,7 @@
 
 #
 # @author Ari Setiawan
-# @create 23.05-2022
+# @create 23.05-2022 13:44
 # @github https://github.com/hxAri/Kanashi
 #
 # Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
@@ -24,15 +24,29 @@
 #
 
 
+from kanashi.typing.access import AccessManager, AccessManagerApps, AccessManagerOAuth
 from kanashi.typing.active import Active
 from kanashi.typing.checkpoint import Checkpoint
 from kanashi.typing.direct import Direct
-from kanashi.typing.explore import Explore
+from kanashi.typing.explore import (
+	Explore, 
+	ExploreClip, 
+	ExploreClipItem, 
+	ExploreClipMedia, 
+	ExploreFillItem, 
+	ExploreFillMedia, 
+	ExploreLayout, 
+	ExploreSection 
+)
 # from kanashi.typing.feed import 
+from kanashi.typing.follow import Follower, Followers, Following, Followings
 from kanashi.typing.friendship import Friendship, FriendshipShowMany
 from kanashi.typing.inbox import Inbox
 from kanashi.typing.logout import Logout
+from kanashi.typing.media import Media
+from kanashi.typing.notification import Notification, NotificationSMS, NotificationPush
 from kanashi.typing.pending import Pending, Pendings
+from kanashi.typing.privacy import Privacy
 from kanashi.typing.profile import Profile
 from kanashi.typing.setting import Settings
 from kanashi.typing.signin import SignIn
@@ -49,5 +63,6 @@ from kanashi.typing.story import (
 	StoryProfileEdge, 
 	StoryReel
 )
+from kanashi.typing.typing import Typing
 from kanashi.typing.two_factor import TwoFactor, TwoFactorInfo
 from kanashi.typing.user import User
