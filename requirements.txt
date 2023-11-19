@@ -1,2 +1,2 @@
 pytz>=2022.1
-requests>=2.31.0
+yutiriti>=1.0.0
