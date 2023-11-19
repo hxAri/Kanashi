@@ -23,7 +23,7 @@
 # not for SPAM.
 #
 
-from kanashi import Config, File
+from backup import Config, File
 from setuptools import find_packages, setup
 
 
