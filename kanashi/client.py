@@ -23,139 +23,240 @@
 # not for SPAM.
 #
 
-from datetime import datetime
-from re import match
-from time import sleep
 
-from kanashi.decorator import logged
+from random import choice
+from re import match
+from typing import final
+from yutiriti import ( 
+	AuthError, 
+	Object, 
+	Readonly, 
+	Cookie, 
+	Cookies, 
+	droper, 
+	Headers, 
+	Request, 
+	RequestRequired, 
+	String, 
+	typeof
+)
+
+from kanashi.config import Config
 from kanashi.error import *
-from kanashi.explore import Explore
-from kanashi.inbox import Inbox
-from kanashi.object import Object
-from kanashi.profile import Profile
-from kanashi.request import Request, RequestRequired
-from kanashi.utility import Cookie, droper, String, typedef, typeof
+from kanashi.pattern import Pattern
+from kanashi.typing import *
+from kanashi.utility import (
+	avoidForMySelf, 
+	encpaswd, 
+	logged, 
+	isUserId
+)
 
 
 #[kanashi.client.Client]
-class Client( RequestRequired ):
+class Client( RequestRequired, Readonly ):
+
+	# Default client browser user agent.
+	BROWSER = "Mozilla/5.0 (Linux; Android 4.4.1; [HM NOTE|NOTE-III|NOTE2 1LTETD) AppleWebKit/535.42 (KHTML, like Gecko)  Chrome/112.0.5615.137 Mobile Safari/600.3"
 	
-	# Response dropkeys.
-	Drops = Object({
-		"direct": [],
-		"friendship": {
-			"show": [
-				"blocking",
-				"followed_by",
-				"following",
-				"incoming_request",
-				"is_bestie",
-				"is_blocking_reel",
-				"is_eligible_to_subscribe",
-				"is_feed_favorite",
-				"is_guardian_of_viewer",
-				"is_muting_notes",
-				"is_muting_reel",
-				"is_private",
-				"is_restricted",
-				"is_supervised_by_viewer",
-				"muting",
-				"outgoing_request",
-				"subscribed"
-			],
-			"many": []
-		},
-		"inbox": [
-			"counts",
-			"last_checked",
-			"priority_stories",
-			"new_stories",
-			"old_stories",
-			"continuation_token",
-			"subscription",
-			"is_last_page",
-			"partition"
-		],
-		"profile": {
-			"api": {
-				"graphql": "user"
-			},
-			"web": "user"
-		}
-	})
-	
-	# Instagram Graphql Query.
-	Graphql = Object({
-		"query": {
-			"media": {
-				"profile": {
-					"hash": None,
-					"id": None
-				}
-			},
-			"profile": {
-				"hash": "d4d88dc1500312af6f937f7b804c68c3"
-			}
-		}
-	})
-	
-	#[Client( Request request, Mixed **kwargs )]: None
-	def __init__( self, request=None, **kwargs ):
-		
+	# Default header settings for requests.
+	HEADERS = {
+		"Accept": "*/*",
+		"Accept-Encoding": "gzip, deflate, br",
+		"Accept-Language": "en-US,en;q=0.9",
+		"Authority": "www.instagram.com",
+		"Connection": "close",
+		"Origin": "https://www.instagram.com",
+		"Referer": "https://www.instagram.com/",
+		"Sec-Fetch-Dest": "empty",
+		"Sec-Fetch-Mode": "cors",
+		"Sec-Fetch-Site": "same-origin",
+		"User-Agent": "Mozilla/5.0 (Linux; Android 4.4.1; [HM NOTE|NOTE-III|NOTE2 1LTETD) AppleWebKit/535.42 (KHTML, like Gecko)  Chrome/112.0.5615.137 Mobile Safari/600.3",
+		"Viewport-Width": "980",
+		"X-Asbd-Id": "198387",
+		"X-IG-App-Id": "1217981644879628",
+		"X-IG-WWW-Claim": "hmac.AR04Hjqeow3ipAWpAcl8Q5Dc7eMtKr3Ff08SxTMJosgMAh-z",
+		"X-Instagram-Ajax": "1007625843",
+		"X-Requested-With": "XMLHttpRequest"
+	}
+
+	#[Client( Active active, Config config, Request request )]
+	def __init__( self, active:Active=None, config:Config=None, request:Request=None ) -> None:
+
 		"""
-		Construct method of class Client
-		
+		Construct method of class Client.
+
+		:params Active active
+			Authenticated client
+		:params Config config
+			Appication configuration
 		:params Request request
 			Instance of class Request
-		:params Mixed **kwargs
-			Client options
 		
 		:return None
+		:raises TypeError
+			Raise when the value of parameter
+			active and request is invalid value type
 		"""
-		
-		if  not isinstance( request, Request ):
+
+		self.__except__:list[str] = [
+			"__active__",
+			"__caching__",
+			"__cookies__",
+			"__headers__",
+			"__request__",
+			"__session__"
+		]
+		if config is not None:
+			if isinstance( config, str ):
+				config = Config( config )
+			elif not isinstance( config, Config ):
+				raise TypeError( "Invalid \"config\" parameter, value must be type Config, {} passed".format( typeof( config ) ) )
+		else:
+			config = Config()
+		if len( config.settings ) <= 0:
+			config.load()
+		if request is not None:
+			if not isinstance( request, Request ):
+				raise TypeError( "Invalid \"request\" parameter, value must be type Request, {} passed".format( typeof( request ) ) )
+		else:
 			request = Request()
+		if active is not None:
+			if not isinstance( active, Active ):
+				raise TypeError( "Invalid \"active\" parameter, value must be type Active, {} passed".format( typeof( active ) ) )
+		elif config.settings.signin.active in config.settings.signin.switch:
+			active = Active( config.settings.signin.switch[config.settings.signin.active] )
+		if isinstance( active, Active ):
+			request.headers.update( active.session.headers.dict() )
+			request.headers.update({ "User-Agent": active.session.browser })
+			cookies = active.session.cookies
+			for cookie in cookies.keys():
+				Cookie.set( request.cookies, cookie, cookies[cookie] )
+		else:
+			request.headers.update( Client.HEADERS )
+			if config.settings.browser.default != None:
+				browser = config.settings.browser.default
+			else:
+				browser = choice( config.settings.browser.randoms )
+			request.headers.update({ "User-Agent": browser })
 		
-		# Instances of class from Request
-		self.request = request
-		
-		# Instagram user info for signin.
-		self.id = kwargs.pop( "id", None )
-		self.username = kwargs.pop( "username", None )
-		self.password = kwargs.pop( "password", None )
+		self.__active__:Active|None = active
+		self.__config__:Config = config
+		self.__setting__:Settings = config.settings
+		self.__request__:Request = request
 	
-	#[Client.approve( Int id, Bool approve )]: Object
+	#[Client.access()]: AccessManager<AccessManagerApps, AccessManagerOAuth>
 	@logged
-	def approve( self, id, approve=None ):
+	def access( self ) -> AccessManager:
+
+		"""
+		Restore Application Manager Access and
+		OAuth Authentication to your account.
+
+		:return AccessManager<AccessManagerApps, AccessManagerOAuth>
+		:raises ClientError
+			When something wrong, please to check the request response history
+		"""
+
+		#[Client.access$.apps( Self@Client self )]: AccessManagerApps
+		def apps( self ) -> dict:
+			self.headers.update({
+				"Origin": "https://www.instagram.com",
+				"Referer": "https://www.instagram.com/accounts/manage_access/"
+			})
+			request = self.request.get( "https://www.instagram.com/api/v1/accounts/manage_access/web_info/" )
+			content = request.json()
+			status = request.status
+			if status == 200:
+				return content
+			raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching account access info [{status}]" )
+
+		#[Client.access$.oauth( Self@Client self )]: AccessManagerOAuth
+		def oauth( self ) -> dict:
+			self.headers.update({
+				"Origin": "https://www.instagram.com",
+				"Referer": "https://www.instagram.com/accounts/manage_access/"
+			})
+			request = self.request.get( "https://www.instagram.com/api/v1/oauth/platform_tester_invites/" )
+			content = request.json()
+			status = request.status
+			if status == 200:
+				return content
+			raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching OAuth Platform Tester Invites [{status}]" )
+		
+		return AccessManager({
+			"apps": apps( self ),
+			"oauth": oauth( self )
+		})
+	
+	#[Client.active]: Active
+	@final
+	@property
+	def active( self ) -> Active|None: return self.__active__
+
+	#[Client.activate( Active active, Request request )]: None
+	@final
+	def activate( self, active:Active, request:Request=None ) -> None:
+		if not isinstance( active, Active ):
+			raise TypeError( "Invalid \"active\" parameter, value must be type Active, {} passed".format( typeof( active ) ) )
+		if request is not None:
+			if not isinstance( request, Request ):
+				raise TypeError( "Invalid \"request\" parameter, value must be type Request, {} passed".format( typeof( request ) ) )
+		else:
+			request = Request(
+				cookies=active.session.cookies,
+				headers=active.session.headers
+			)
+		self.__active__:Active|None = active
+		self.__request__:Request = request
+	
+	#[Client.approve( Int|Str|User user, Bool approve )]: Friendship
+	@avoidForMySelf
+	def approve( self, user:int|str|User, approve:bool=True ) -> Friendship:
 		
 		"""
 		Approve or ignore request follow from user.
 		
-		:params Int id
-			User id to be approve or ignore
+		:parans Int|Str|User user
 		:params Bool approve
 			Approve action
 		
-		:return Object
-			Representation approve or ignore user results
+		:return Friendship
+			Approve or ignore result represent
 		:raises ValueError
-			When the user id or approve parameter is invalid
-		raises ClientError
-			When something wrong, please to check the request response history
+			When the approve parameter is invalid
+		:raises FriendshipError
+			When the user does not request follow your account
+			When you will approve yourself
+		:raises TypeError
+			When the approve does not passed when new Profile instance crated
 		"""
+
+		if user is None:
+			raise ValueError( "User can't be empty" )
+		elif isinstance( user, id ):
+			id = user
+		elif isinstance( user, str ):
+			user = self.user( username=user, count=1 )
+			id = user.id if "id" in user else user.pk
+		elif isinstance( user, User ):
+			if "incoming_request" in user:
+				if not user.incoming_request:
+					raise FriendshipError( "This user does not sent request to follow your account" )
+			id = user.id if "id" in user else user.pk
+		else:
+			raise TypeError( "Invalid \"user\" parameter, value must be type Int|str|User, {} passed".format( typeof( user ) ) )
 		
-		if  self.isUserId( id ):
-			id = int( id )
-		if  typedef( id, int, False ):
-			raise ValueError( "Invalid id parameter, value must be type int or id valid numeric string, {} passed".format( typeof( approve ) ) )
-		if  typedef( approve, bool, False ):
-			raise ValueError( "Invalid approve parameter, value must be type bool, {} passed".format( typeof( approve ) ) )
+		if approve is None:
+			raise ValueError( "Follow request consent cannot be empty" )
+		elif not isinstance( approve, bool ):
+			raise TypeError( "Invalid \"approve\" parameter, value must be type Bool, {} passed".format( typeof( approve ) ) )
 		
 		action = "Approve request"
-		target = "https://www.instagram.com/api/v1/web/friendships/{}/approve/"
-		if  not approve:
+		target = f"https://www.instagram.com/api/v1/web/friendships/{id}/approve/"
+		if not approve:
 			action = "Ignore request"
-			target = "https://www.instagram.com/api/v1/web/friendships/{}/ignore/"
+			target = f"https://www.instagram.com/api/v1/web/friendships/{id}/ignore/"
 		
 		# Update request headers.
 		self.headers.update({
@@ -163,111 +264,238 @@ class Client( RequestRequired ):
 			"Referer": "https://www.instagram.com/",
 			"Content-Type": "application/x-www-form-urlencoded"
 		})
-		
+
 		# Trying to approve/ ignore request follow.
-		request = self.request.post( target.format( id ), data={} )
-		status = request.status_code
-		if  status == 200:
-			response = request.json()
-			if  "status" in response and response['status'] == "ok":
-				return Object({
-					"id": id,
-					"approve": approve,
-					"ignoring": True if approve is False else False
-				})
-			else:
-				raise ClientError( response['message'] if "message" in response and response['message'] else f"There was an error when {action} follow" )
+		request = self.request.post( target, data={} )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return Friendship({ "id": id, "approve": approve, "ignoring": True if approve is False else False, **content })
 		else:
-			raise ClientError( f"An error occurred while {action} follow [{status}]" )
+			raise FriendshipError( content['message'] if "message" in content and content['message'] else f"There was an error when {action} follow" )
 	
-	def attempt( self, fullname, usermail, username, password ):
-		
-		# Update request headers.
-		self.headers.update( **{
-			"Content-Type": "application/x-www-form-urlencoded",
-			"Origin": "https://www.instagram.com",
-			"Referer": "https://www.instagram.com/"
-		})
-		self.request.post( "https://www.instagram.com/api/v1/web/accounts/web_create_ajax/attempt/", data={
-			"email": usermail,
-			"enc_password": self.encpasw( password ),
-			"first_name": fullname,
-			"username": username,
-			"opt_into_one_tap": False
-		})
+	#[Client.attemp()]: Any
+	def attemp( self ) -> any: ...
 	
-	#[Client.authenticated]: Bool
+	#[Client.authenticated]: bool
+	@final
 	@property
-	def authenticated( self ):
-		
+	def authenticated( self ) -> bool:
+
 		"""
-		Return if user is authenticated.
+		Return if client is authenticated.
 
 		:return Bool
+			Return True if client is authenticated
+			Return False otherwise
 		"""
-		
-		if  isinstance( self.id, str ):
-			if  not self.isUserId( self.id ):
+
+		if isinstance( self.active, Active ):
+			if isinstance( self.active.id, str ):
+				if not isUserId( self.active.id ):
+					return False
+			if "ds_user_id" not in self.cookies:
 				return False
-			self.id = int( self.id )
-		if  not isinstance( self.id, int ):
-			return False
-		if  "X-CSRFToken" not in self.headers:
-			return False
-		if  "csrftoken" not in self.cookies:
-			return False
-		else:
-			if  self.cookies['csrftoken'] != self.headers['X-CSRFToken']:
+			elif self.active.id != int( self.cookies['ds_user_id'] ):
 				return False
-		if  "ds_user_id" not in self.cookies:
-			return False
-		else:
-			if  int( self.cookies['ds_user_id'] ) != int( self.id ):
+			elif "User-Agent" not in self.headers:
 				return False
-		return True
+			elif self.active.session.browser != self.headers['User-Agent']:
+				return False
+			elif "X-CSRFToken" not in self.headers:
+				return False
+			elif "csrftoken" not in self.cookies:
+				return False
+			elif self.cookies['csrftoken'] != self.headers['X-CSRFToken']:
+				return False
+			elif self.cookies['csrftoken'] != self.active.csrftoken:
+				return False
+			return True
+		return False
 	
-	#[Client.csrftoken]: String
+	#[Client.config]: Config
+	@final
 	@property
-	def csrftoken( self ):
-		
+	def config( self ) -> Config: return self.__config__
+	
+	#[Client.csrftoken]
+	@final
+	@property
+	def csrftoken( self ) -> list|str:
+
 		"""
-		Return csrftoken prelogin.
+		Return active csrftoken or crsftoken prelogin.
 		
-		:return String
-			Csrftoken prelogin
+		:return Str
+			String of csrftoken value
+			List of request object and csrftoken
 		:raises CsrftokenError
 			When csrftoken is not available
 		"""
+
+		if not self.authenticated:
+			self.headers.update({
+				"Origin": "https://www.instagram.com",
+				"Referer": "https://www.instagram.com/accounts/login/"
+			})
+			try:
+				target = "https://i.instagram.com/api/v1/si/fetch_headers"
+				return self.request.options( target ).cookies['csrftoken']
+			except KeyError as e:
+				raise CsrftokenError( "Csrftoken prelogin is not available", prev=e )
+		else:
+			return self.active.csrftoken
+	
+	#[Client.checkpoint( Str url, Request request, Cookies|Dict|Object|Str cookies, Dict|Headers headers, Int choices )]: Object
+	@final
+	def checkpoint( self, url:str, request:Request=None, cookies:Cookies|dict|Object|str=None, headers:dict|Headers|Object=None, choices:int=1 ) -> Object:
+
+		"""
+		Bypass Checkpoint URL.
+
+		Ohhh! Sorry i did not expect this bro :v
+
+		Note that this method may not necessarily work
+		But it will be better if you try it
+
+		:params Str url
+			Checkpoint url
+		:params Request request
+			Request instance, Forward instance requests when
+			you are hit by a checkpoint during login
+		:params Cookies|Dict|Object|Str cookies
+			For manual usage without Request instance
+		:params Dict|Headers headers
+			For manual usage without Request instance
+		:params Int choices
+			Your choices requests
 		
-		self.headers.update({
+		:return Object
+		"""
+
+		if url is None:
+			raise ValueError( "Url can't be empty" )
+		elif not isinstance( url, str ):
+			raise TypeError( "Invalid \"url\" parameter, value must be type Str, {} passed".format( typeof( url ) ) )
+		else:
+			search = match( r"^(?:\/challenge\/action\/(?P<challenge>[^\n]+))$", url )
+			if search is not None:
+				challenge = search.group( "challenge" )
+			else:
+				raise ValueError( "Invalid checkpoint challenge URL" )
+		if request is None:
+			if cookies is None:
+				raise ValueError( "Cookie can't be empty" )
+			if not isinstance( cookies, ( Cookies, dict, Object, str ) ):
+				raise TypeError( "Invalid \"cookies\" parameter, value must be type Cookies|Dict|Object|Str, {} passed".format( typeof( cookies ) ) )
+			elif isinstance( cookies, str ):
+				cookies = Cookie.simple( cookies )
+			elif isinstance( cookies, Headers ):
+				cookies = dict( cookies )
+			if isinstance( cookies, ( dict, Object ) ):
+				for require in [ "csrftoken" ]:
+					if require not in cookies:
+						raise SignInError( f"Invalid cookie, there is no \"{require}\" in the cookie" )
+			if headers is None:
+				raise ValueError( "Headers can't be empty" )
+			if not isinstance( cookies, ( Cookies, dict, Object, str ) ):
+				raise TypeError( "Invalid \"headers\" parameter, value must be type Dict|Headers|Object, {} passed".format( typeof( headers ) ) )
+			if isinstance( headers, Headers ):
+				headers = dict( headers )
+			elif isinstance( headers, Object ):
+				headers = headers.dict()
+			request = Request( cookies=cookies, headers=headers, timeout=self.settings.timeout )
+		
+		# Update Request Headers.
+		request.headers.update({
+			"Content-Type": "application/x-www-form-urlencoded",
+			"X-Csrftoken": cookies['csrftoken'],
 			"Origin": "https://www.instagram.com",
-			"Referer": "https://www.instagram.com/"
+			"Referer": f"https://www.instagram.com/challenge/action/{challenge}"
 		})
-		try:
-			return self.request.get( "https://i.instagram.com/api/v1/si/fetch_headers" ).cookies['csrftoken']
-		except KeyError as e:
-			raise CsrftokenError( "Csrftoken prelogin is not available" )
-		pass
-	
-	#[Client.direct()]: Object
+		return request.post( f"https://www.instagram.com/api/v1/challenge/web/action/{challenge}", data={ "choice": choices })
+
+	#[Client.destruct( Bool default )]: None
+	@final
 	@logged
-	def direct( self ):
-		pass
+	def destruct( self, default:bool=False ) -> None:
+
+		"""
+		Destroy the current active login session.
+
+		:params Bool default
+			Also delete the login session data in the configuration
+		
+		:return None
+		"""
+
+		if default is True:
+			if self.settings.signin.active == self.active.username:
+				self.settings.signin.active = None
+			if self.active.username in self.settings.signin.switch:
+				self.settings.signin.switch.delt( self.active.username )
+		self.__active__ = None
+		self.__request__ = Request( headers=Client.HEADERS, timeout=self.settings.timeout )
 	
-	#[Client.encpasw( String password )]: String
-	def encpasw( self, password ):
-		return "#PWD_INSTAGRAM_BROWSER:0:{}:{}".format( int( datetime.now().timestamp() ), password )
-	
-	#[Client.explore( Int maxId, Bool includeFixedDestinations, Bool isNonpersonalizedExplore, Bool isPrefetch, Bool omitCoverMedia )]: Object
+	#[Client.direct( Bool persistentBadging, Str folder, Int limit, Int threadMessageLimit, Int|Str cursor )]: Direct
 	@logged
-	def explore( self, maxId=0, includeFixedDestinations=True, isNonpersonalizedExplore=False, isPrefetch=False, omitCoverMedia=False ):
+	def direct( self, persistentBadging:bool=True, folder:str="", limit:int=5, threadMessageLimit:int=1, cursor:int|str=None ) -> Direct:
+
+		"""
+		Get direct message inbox.
+
+		:params Int|Str cursor
+			Next page request of direct message inbox
+
+		:return Direct<DirectThread<User>>
+		:raises ClientError
+			When something wrong, please to check the request response history
+		:raise TypeError
+			When the parameter value is invalid value
+		"""
+
+		params = {
+			"folder": folder,
+			"limit": limit,
+			"persistentBadging": str( persistentBadging ),
+			"thread_message_limit": threadMessageLimit
+		}
+		if cursor is not None:
+			if isinstance( cursor, ( int, str ) ):
+				params = { "cursor": cursor, "persistentBadging": params['persistentBadging'] }
+			else:
+				raise TypeError( "Invalid \"cursor\" parameter, value must be type Int|Str, {} passed".format( typeof( next ) ) )
+
+		# Update request headers.
+		self.headers.update({
+			"Origin": "https://www,.instagram.com",
+			"Referer": "https://www.instagram.com/inbox/"
+		})
+
+		# Trying to get direct message inbox.
+		request = self.request.get( "https://www.instagram.com/api/v1/direct_v2/inbox/", params=params )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return Direct( content )
+		else:
+			raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching direct message inbox [{status}]" )
+	
+	#[Client.direct()]: Direct
+	@logged
+	def directPresence( self, persistence:bool=None, cache:bool=False ) -> Object:
+		return self.request.get( "https://www.instagram.com/api/v1/direct_v2/get_presence/" )
+	
+	#[Client.explore( Int maxId, Bool includeFixedDestinations, Bool isNonPersonalizedExplore, Bool isPrefetch, Bool omitCoverMedia )]: Explore
+	@logged
+	def explore( self, maxId:int=0, includeFixedDestinations:bool=True, isNonPersonalizedExplore:bool=False, isPrefetch:bool=False, omitCoverMedia:bool=False ) -> Explore:
 		
 		"""
-		Get contents Instagram explore
+		Get contents of Instagram explore
 
 		:params Int maxId
 		:params Bool includeFixedDestinations
-		:params Bool isNonpersonalizedExplore
+		:params Bool isNonPersonalizedExplore
 		:params Bool isPrefetch
 		:params Bool omitCoverMedia
 
@@ -285,29 +513,150 @@ class Client( RequestRequired ):
 		# Trying to get contents from instagram explore.
 		request = self.request.get( "https://www.instagram.com/api/v1/discover/web/explore_grid/", params={
 			"include_fixed_destinations": includeFixedDestinations,
-			"is_nonpersonalized_explore": isNonpersonalizedExplore,
+			"is_nonpersonalized_explore": isNonPersonalizedExplore,
 			"is_prefetch": isPrefetch,
 			"max_id": maxId,
 			"module": "explore_popular",
 			"omit_cover_media": omitCoverMedia
 		})
-		status = request.status_code
-		if  status == 200:
-			response = request.json()
-			if  "status" in response and response['status'] == "ok":
-				return Explore(
-					request=self.request,
-					explore=response,
-					# methods={}
-				)
-			else:
-				raise ClientError( response['message'] if "message" in response and response['message'] else "There was an error when getting contents from instagram explore" )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return Explore( content )
 		else:
-			raise ClientError( f"An error occurred while fetching contents from instagram explore [{status}]" )
+			raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching contents from instagram explore [{status}]" )
 	
-	#[Client.friendship( Int id )]: Object
+	#[Client.followers( Int|Str|User user, Int count, Int nextMaxId )]: Followers<Follower>
 	@logged
-	def friendship( self, id ):
+	def followers( self, user:int|str|User, count:int=12, nextMaxId:int=None ) -> Followers:
+
+		"""
+		"""
+
+		# Default URL Referer
+		referer = "https://www.instagram.com/explore/"
+
+		if user is None:
+			raise ValueError( "User can't be empty" )
+		if isinstance( user, int ): ...
+		elif isinstance( user, str ):
+			if match( Pattern.ID ) is None:
+				if match( Pattern.USERNAME, user ) is None:
+					raise ValueError( "Invalid username" )
+				referer = f"https://www.instagram.com/{user}/followers/"
+				user = self.user( username=user, count=1 )
+				user = user.id if "id" in user else user.pk
+		elif isinstance( user, User ):
+			if "username" in user or user.id is None:
+				referer = f"https://www.instagram.com/{user.username}/followers/"
+			if "id" not in user:
+				if "pk" not in user or "pk" or user.pk is None:
+					raise ValueError( "The User object does not have a user primary key" )
+				user = user.pk
+			else:
+				user = user.id
+		else:
+			raise TypeError( "Invalid \"user\" parameter, value must be type Int|Str|User, {} passed".format( typeof( user ) ) )
+
+		if count <= 0:
+			raise ValueError( "The maximum number of counts cannot be less than 0" )
+		if count >= 100:
+			raise ValueError( "The maximum number of counts cannot exceed 100" )
+
+		# Update request headers.
+		self.headers.update({
+			"Origin": "https://www.instagram.com",
+			"Referer": referer
+		})
+
+		# Request parameters.
+		params = { "count": count }
+
+		# If next maximal id is available.
+		if nextMaxId is not None:
+			if not isinstance( nextMaxId, ( int, str ) ):
+				raise TypeError( "Invalid \"nextMaxId\" paramater, value must be type Int|Str, {} passed".format( typeof( nextMaxId ) ) )
+			elif isinstance( nextMaxId, str ):
+				if match( Pattern.ID, nextMaxId ) is None:
+					raise ValueError( "Invalid next maximal id value" )
+			params['max_id'] = nextMaxId
+
+		# Trying to get user followers.
+		request = self.request.get( f"https://www.instagram.com/api/v1/friendships/{user}/followers/", params=params )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return Followers( content )
+		else:
+			raise FollowerError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user followers [{status}]" )
+	
+	#[Client.following( Int|Str|User user, Int count, Int nextMaxId )]: Followings<Following>
+	@logged
+	def following( self, user:int|str|User, count:int=12, nextMaxId:int=None ) -> Followings:
+
+		"""
+		"""
+
+		# Default URL Referer
+		referer = "https://www.instagram.com/explore/"
+
+		if user is None:
+			raise ValueError( "User can't be empty" )
+		if isinstance( user, int ): ...
+		elif isinstance( user, str ):
+			if match( Pattern.ID ) is None:
+				if match( Pattern.USERNAME, user ) is None:
+					raise ValueError( "Invalid username" )
+				referer = f"https://www.instagram.com/{user}/following/"
+				user = self.user( username=user, count=1 )
+				user = user.id if "id" in user else user.pk
+		elif isinstance( user, User ):
+			if "username" in user or user.id is None:
+				referer = f"https://www.instagram.com/{user.username}/following/"
+			if "id" not in user:
+				if "pk" not in user or "pk" or user.pk is None:
+					raise ValueError( "The User object does not have a user primary key" )
+				user = user.pk
+			else:
+				user = user.id
+		else:
+			raise TypeError( "Invalid \"user\" parameter, value must be type Int|Str|User, {} passed".format( typeof( user ) ) )
+
+		if count <= 0:
+			raise ValueError( "The maximum number of counts cannot be less than 0" )
+		if count >= 100:
+			raise ValueError( "The maximum number of counts cannot exceed 100" )
+
+		# Update request headers.
+		self.headers.update({
+			"Origin": "https://www.instagram.com",
+			"Referer": referer
+		})
+
+		# Request parameters.
+		params = { "count": count }
+
+		# If next maximal id is available.
+		if nextMaxId is not None:
+			if not isinstance( nextMaxId, ( int, str ) ):
+				raise TypeError( "Invalid \"nextMaxId\" paramater, value must be type Int|Str, {} passed".format( typeof( nextMaxId ) ) )
+			elif isinstance( nextMaxId, str ):
+				if match( Pattern.ID, nextMaxId ) is None:
+					raise ValueError( "Invalid next maximal id value" )
+			params['max_id'] = nextMaxId
+
+		# Trying to get user followings.
+		request = self.request.get( f"https://www.instagram.com/api/v1/friendships/{user}/following/", params=params )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return Followings( content )
+		else:
+			raise FollowerError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user following [{status}]" )
+	
+	#[Client.friendship( Int id )]: Friendship
+	@logged
+	def friendship( self, id:int ) -> Friendship:
 		
 		"""
 		Get user friendship info.
@@ -315,11 +664,10 @@ class Client( RequestRequired ):
 		:params Int id
 			User id
 		
-		return Object
-			Representation of friendship results
+		:return Friendship
+		:raises ClientError
+			When something wrong, please to check the request response history
 		"""
-		
-		self.sleep()
 		
 		# Update request headers.
 		self.headers.update( **{
@@ -329,19 +677,16 @@ class Client( RequestRequired ):
 		
 		# Trying to restrieve user friendship.
 		request = self.request.get( f"https://www.instagram.com/api/v1/friendships/show/{id}" )
-		status = request.status_code
-		if  status == 200:
-			response = request.json()
-			if  "status" in response and response['status'] == "ok":
-				return Object( droper( response, Client.Drops.friendship.show ) )
-			else:
-				raise FriendshipError( response['message'] if "message" in response and response['message'] else "There was an error when getting friendship info" )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return Friendship( content )
 		else:
-			raise FriendshipError( f"An error occurred while fetching the friendship [{status}]" )
+			raise FriendshipError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the friendship [{status}]" )
 	
-	#[Client.friendshipShowMay( String username, List<Int> ids, Mixed **kwargs )]: Object
+	#[Client.friendshipShowMay( String username, List<Int> ids, Mixed **kwargs )]: FriendshipShowMany
 	@logged
-	def friendshipShowMany( self, username, ids=[], **kwargs ):
+	def friendshipShowMany( self, username:str, ids:list[int|str]=[], **kwargs ) -> FriendshipShowMany:
 		
 		"""
 		Friendship Show Many information of user based id from followers or following list.
@@ -359,69 +704,79 @@ class Client( RequestRequired ):
 			:kwargs Bool following
 				If id from following
 		
-		:return Object
-			Representation of request results.
+		:return FriendshipShowMany
+		:raises FriendshipError
+			When something wrong, please to check the request response history
 		:raises ValueError
 			When the user id is empty
 			When the user id is invalid
 			When the ids parameter is invalid
 			When the user id more than 32 ids
-		:raises ClientError
-			When something wrong, please to check the request response history
 		"""
 		
-		if  typedef( ids, list, False ):
+		if not isinstance( ids, list ):
 			raise ValueError( "Invalid ids parameter, value must be type list<int>, {} passed".format( typeof( ids ) ) )
-		else:
-			if  len( ids ) <= 0:
-				raise ValueError( "User ids can't be empty" )
-			if  len( ids ) > 32:
-				raise ValueError( "User ids must be less than 32 ids" )
-			for i, id in enumerate( ids ):
-				if  not self.isUserId( id ):
-					raise ValueError( "Invalid user id in list of ids, user id must be int|numeric string, {} passed on ids[{}]".format( typeof( id ), i ) )
-				ids[i] = int( id )
-			
-			# Default source path is followers.
-			source = "followers"
-			if  kwargs.pop( "following", False ):
-				source = "following"
-			
-			# Update request headers.
-			self.headers.update({
-				"Content-Type": "application/x-www-form-urlencoded",
-				"Origin": "https://www.instagram.com",
-				"Referer": "https://www.instagram.com/{}/{}/".format( username, source )
-			})
-			
-			# Trying to get more data.
-			request = self.request.post( "https://www.instagram.com/api/v1/friendships/show_many/", data={ "user_ids": ids } )
-			status = request.status_code
-			if status == 200:
-				response = request.json()
-				print( request )
-			else:
-				raise FriendshipError( f"An error occurred while fetching the friendship information of users [{status}]" )
-	
-	#[Client.graphql( Mixed **kwargs )]: Object
-	@logged
-	def graphql( self, **kwargs ):
+		if len( ids ) <= 0:
+			raise ValueError( "User ids can't be empty" )
+		if len( ids ) > 32:
+			raise ValueError( "User ids must be less than 32 ids" )
+		for i, id in enumerate( ids ):
+			if not isUserId( id ):
+				raise ValueError( "Invalid user id in list of ids, user id must be int|numeric string, {} passed on ids[{}]".format( typeof( id ), i ) )
+			ids[i] = int( id )
 		
-		"""
-		Get data from graphql query.
-		"""
+		# Update request headers.
+		self.headers.update({
+			"Content-Type": "application/x-www-form-urlencoded",
+			"Origin": "https://www.instagram.com",
+			"Referer": "https://www.instagram.com/{}/{}/".format( username, "followers" if "followers" in kwargs else "following" )
+		})
+		
+		# Trying to get more data.
+		request = self.request.post( "https://www.instagram.com/api/v1/friendships/show_many/", data={ "user_ids": ids } )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return FriendshipShowMany( content )
+		else:
+			raise FriendshipError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the friendship information of users [{status}]" )
 	
-	#[Client.inbox()]: Inbox
 	@logged
-	def inbox( self ):
+	def graphql( self, binding:any=Object, **kwargs ) -> any:
+
+		"""
+		"""
+
+		# Default graphql URL.
+		url = "https://www.instagram.com/graphql/query/"
+
+		# Default request method.
+		method = kwargs.pop( "method", "GET" )
+
+		# Trying sent graphql request.
+		request = self.request.request( method=method, url=url, **kwargs )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return binding( content )
+		else:
+			raise ClientError( f"Something wrong when sent graphql request [{status}]" )
+	
+	#[Client.inbox( Str continuationToken )]: Inbox
+	@logged
+	def inbox( self, continuationToken:str=None ) -> Inbox:
 		
 		"""
 		Get news inbox notifications.
+
+		:params Str continuationToken
+			Next page request of inbox notification
 		
-		:return Object
-			Representation of inbox results
+		:return Inbox
 		:raises ClientError
 			When something wrong, please to check the request response history
+		:raises TypeError
+			when the parameter value is invalid value type
 		"""
 		
 		# Update request headers.
@@ -430,79 +785,81 @@ class Client( RequestRequired ):
 			"Origin": "https://www.instagram.com",
 			"Referer": "https://www.instagram.com/"
 		})
+
+		if continuationToken is not None:
+			if not isinstance( continuationToken, str ):
+				raise TypeError( "Invalid \"continuationToken\" parameter, value must be tyoe Str, {} passed".format( typeof( continuationToken ) ) )
+			raise NotImplementedError( "Action for {}$.continuationToken does not implemented".format( self.inbox ) )
 		
 		# Trying to get news inbox notifications.
 		request = self.request.post( "https://www.instagram.com/api/v1/news/inbox/", data={} )
-		status = request.status_code
+		content = request.json()
+		status = request.status
 		if status == 200:
-			response = request.json()
-			if "status" in response and response['status'] == "ok":
-				return Inbox( self.request, droper( response, Client.Drops.inbox ) )
-			else:
-				raise ClientError( response['message'] if "message" in response and response['message'] else "There was an error when getting news inbox" )
+			return Inbox( content )
 		else:
-			raise ClientError( f"An error occurred while fetching the news inbox notifications [{status}]" )
+			raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the news inbox notifications [{status}]" )
 	
-	#[Client.isUserId( String id )]: Bool
-	def isUserId( self, id ):
-		
-		"""
-		Return if string is valid id numeric string.
-		
-		:params String id
-		
-		:return Bool
-		"""
-		
-		return bool( match( r"^[1-9]{1}[0-9]{9,10}$", str( id ) ) )
-	
-	#[Client.logout()]: Object
+	#[Client.logout()]
 	@logged
-	def logout( self ):
-		
-		"""
-		Logout instagram account.
-		
-		:return Object
-			Representation of logout results
-		"""
-		
-		pass
-	
-	#[Client.media()]: Media|MediaCollection
+	def logout( self ): ...
+
+	#[Client.media()]
 	@logged
-	def media( self ):
-		pass
-	
-	#[Client.mediaById( Int id )]: Media
+	def media( self, target:int|str, flag:Media.Type|Story.Type ): ...
+
+	#[Client.notification( Str channel )]: Notification
 	@logged
-	def mediaById( self, id ):
-		if  not isinstance( id, int ):
-			if  match( r"^\d+$", f"{id}" ) is None:
-				raise ValueError( "Invalid id prameter, value must be type int or valid numeric" )
-		
+	def notification( self, channel:str ) -> Notification:
+
+		"""
+		"""
+
+		if channel is None:
+			raise ValueError( "Channel can't be empty" )
+		elif not isinstance( channel, str ):
+			raise TypeError( "Invalid \"channel\" parameter, value must be type Str, {} passed".format( typeof( channel ) ) )
+		else:
+			channel = channel.strip()
+			match channel:
+				case "email-sms" | "email_sms":
+					referer = "emails/settings"
+				case "push":
+					referer = "push/web/settings"
+				case _:
+					raise ValueError( "Invalid channel notification type" )
+
 		# Update request headers.
 		self.headers.update({
 			"Origin": "https://www.instagram.com",
-			"Referer": "https://www.instagram.com/explore/"
+			"Referer": f"https://www.instagram.com/{referer}/"
 		})
-		
-		# Trying to get media by id.
-		request = self.request.get( f"https://www.instagram.com/api/v1/media/{id}/info/" )
-		print( request )
-	
-	#[Client.pending()]: List<Object>
+
+		# Trying to get notification setting.
+		request = self.request.get( "https://www.instagram.com/api/v1/notifications/settings/", params={ "channels": channel } )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return NotificationPush( content ) if channel == "push" else NotificationSMS( content )
+		raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching notification settings [{status}]" )
+
+	#[Client.pending( Str nextMaxId )]: Pendings<Pending>
 	@logged
-	def pending( self ):
+	def pending( self, nextMaxId:str=None ) -> Pendings:
 		
 		"""
 		Get pending request follow from users.
+
+		:params Str nextMaxId
+			Next page request of pending request follow
 		
 		:return List
 			List object of pending request follow
 		:raises ClientError
 			When something wrong e.g data user doest not
 			available or error on request json responses
+		:raises TypeError
+			When the parameter value is invalid value
 		"""
 		
 		# Update request headers.
@@ -510,416 +867,702 @@ class Client( RequestRequired ):
 			"Origin": "https://www.instagram.com",
 			"Referer": "https://www.instagram.com/"
 		})
+
+		if nextMaxId is not None:
+			if not isinstance( nextMaxId, str ):
+				raise NotImplementedError( "Action for {}$.nextMaxId does not implemented".format( self.pending ) )
 		
 		# Trying to get request follow pending.
 		request = self.request.get( "https://www.instagram.com/api/v1/friendships/pending/" )
-		status = request.status_code
-		if  status == 200:
-			response = request.json()
-			if  "users" in response:
-				users = []
-				for user in response['users']:
-					users.append( Object({ **user, "id": user['pk'] }) )
-				return users
-			else:
-				raise ClientError( response['message'] if "message" in response and response['message'] else "There was an error when getting request follow pending" )
-		else:
-			raise ClientError( f"An error occurred while fetching the request pending [{status}]" )
+		content = request.json()
+		# content = File.json( "requests/api/v1/friendships/pending/response 2023-10-20 03:21:13.854085.json" )['response']['content']
+		status = request.status
+		# status = 200
+		if status == 200:
+			return Pendings({ **content, "users": [ { **user, "id": user['pk'] if "id" not in user else user['id'] } for user in content['users'] ] })
+		raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the request pending [{status}]" )
 	
-	#[Client.profile( Int id, String url, String username )]: Profile
+	#[Client.privacy()]: Privacy
 	@logged
-	def profile( self, id=None, url=None, username=None ):
-		
+	def privacy( self ) -> Privacy:
+
 		"""
-		Return user profile information by id|url|username
+		"""
+
+		# Update request headers.
+		self.headers.update({
+			"Origin": "https://www.instagram.com",
+			"Referer": choice([
+				"https://www.instagram.com/accounts/what_you_see/",
+				"https://www.instagram.com/accounts/who_can_see_your_content/",
+				"https://www.instagram.com/accounts/how_others_can_interact_with_you/"
+			])
+		})
 		
-		:params Int id
-			Get profile info by id
-		:params String url
-			Get profile info by url string
-		:params String username
-			Get profile info by username
+		# Trying to get privacy setting.
+		request = self.request.get( "hhttps://www.instagram.com/api/v1/accounts/privacy_and_security/web_info/" )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return Privacy( content )
+		raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching privacy settings [{status}]" )
+	
+	#[Client.profile( Int|Str username )]: Profile
+	@logged
+	def profile( self, username:int|str ) -> Profile:
+
+		"""
+		Get user profile info by username or user ids.
+
+		:params Int|Str username
+			Int for user id, and Str for username.
+			But if Str is containts valid user id, it will convert to Int.
 		
 		:return Profile
-			Information about the user profile
 		:raises TypeError
-			When the id is invalid numeric string
-			When the url is invalid url string
+			When the parameter value is invalid value
 		:raises UserError
 			When the user data does not available
 			When there are unexpected error found
 		:raises UserNotFoundError
-			When the user not found
+			When the user is not found
 		:raises ValueError
-			When the id|url|username is empty
+			When the username is empty
 		"""
-		
-		if  not isinstance( id, int ) and \
-			not isinstance( id, str ) and \
-			not isinstance( url, str ) and \
-			not isinstance( username, str ):
-			raise ValueError( "id|url|username required" )
-		
-		if  isinstance( id, str ):
-			if  not self.isUserId:
-				raise TypeError( "Invalid id value, id must be int or valid numeric string" )
-			id = int( id )
-			username = None
-		if  isinstance( id, int ):
-			profile = self.profileById( id )
-			profile = {
-				**profile,
-				**self.profileByUsername( profile['username'] )
-			}
-		if  isinstance( url, str ):
-			if  valid := match( r"^https?\:/{2}(?:www\.)instagram\.com\/(?P<username>[a-zA-Z0-9_\.]{1,30})\/{0,1}(?:\?[^\n]+)?$", url ):
-				username = valid.group( "username" )
-			else:
-				raise TypeError( "Invalid url parameter, value must be valid profle url string" )
-		if  isinstance( username, str ):
-			profile = self.profileByUsername( username )
-			profile = {
-				**profile,
-				**self.profileById( profile['id'] )
-			}
-		if  self.id != profile['id']:
-			friendship = self.friendship( profile['id'] )
-			friendship.dict()
-		else:
-			friendship = {}
-		return Profile(
-			request=self.request,
-			methods={
-				"approve": self.approve,
-				"authenticated": lambda: self.authenticated,
-				"friendship": self.friendship,
-				"friendshipShowMany": self.friendshipShowMany,
-				"graphql": self.graphql,
-				"media": self.media
-			},
-			profile={
-				**profile,
-				**friendship
-			},
-			viewer=Object({
-				"id": self.id,
-				"username": self.username
+
+		#[Client.profile$.getByUid( Request session, Int id )]: Dict
+		def getByUid( session:Request, id:int ) -> dict:
+
+			"""
+			Get user info by id.
+			
+			:params Request session
+				Authenticated request session
+			:params Int id
+				User id profile
+			
+			:return Dict
+				Profile info
+			:raises UserError
+				When the user data does not available
+				When there are unexpected error found
+			:raises UserNotFoundError
+				When the user not found
+			"""
+
+			# Update request headers.
+			session.headers.update({
+				"Origin": "https://www.instagram.com",
+				"Referer": "https://www.instagram.com/explore/"
 			})
-		)
-	
-	#[Client.profileById( Int id )]: Dict
-	@logged
-	def profileById( self, id ):
-		
-		"""
-		Get user info by id.
-		
-		:params Int id
-			User id profile
-		
-		:return Dict
-			Profile info
-		:raises UserError
-			When the user data does not available
-			When there are unexpected error found
-		:raises UserNotFoundError
-			When the user not found
-		"""
-		
-		self.sleep()
-		
-		# Update request headers.
-		self.headers.update({
-			"Origin": "https://www.instagram.com",
-			"Referer": "https://www.instagram.com/"
-		})
-		
-		# Trying to retrieve user info.
-		request = self.request.get( f"https://i.instagram.com/api/v1/users/{id}/info/?profile_picture=true" )
-		status = request.status_code
-		match status:
-			case 200:
-				response = request.json()
-				if  "user" in response and response['user'] and \
-					"username" in response['user'] and response['user']['username']:
-					return response['user']
-				else:
-					raise UserError( f"Target \"{id}\" user found but user data not available" )
-			case 404:
+			
+			# Trying to retrieve user info.
+			request = session.get( f"https://i.instagram.com/api/v1/users/{id}/info/?profile_picture=true" )
+			content = request.json()
+			status = request.status
+			if status == 200:
+				if "user" in content and content['user']:
+					if "username" in content['user'] and content['user']['username']:
+						return content['user']
+				raise UserError( f"Target \"{id}\" user found but user data is not available" )
+			elif status == 404:
 				raise UserNotFoundError( f"Target \"{id}\" user not found" )
-			case _:
-				raise UserError( f"An error occurred while fetching the user [{status}]" )
-	
-	#[Client.profileByUsername( String username )]: Dict
-	@logged
-	def profileByUsername( self, username ):
+			else:
+				raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user [{status}]" )
 		
-		"""
-		Get user info by username.
-		
-		:params String username
-			Username profile
-		
-		:return Dict
-			Profile info
-		:raises UserError
-			When the user data does not available
-			When there are unexpected error found
-		:raises UserNotFoundError
-			When the user not found
-		"""
-		
-		self.sleep()
-		
-		# Update request headers.
-		self.headers.update({
-			"Origin": "https://www.instagram.com",
-			"Referer": f"https://www.instagram.com/{username}/"
-		})
-		
-		# Trying to retrieve user info.
-		request = self.request.get( f"https://www.instagram.com/{username}?__a=1&__d=dis" )
-		status = request.status_code
-		match status:
-			case 200:
-				response = request.json()
-				profile = None
-				if  "graphql" in response:
-					return response['graphql']['user']
-				else:
+		#[Client.profile$.getByUname( Request session, Str username )]
+		def getByUname( session:Request, username:str ) -> dict:
+
+			"""
+			Get user info by username.
+			
+			:params Request session
+				Authenticated request session
+			:params String username
+				Username profile
+			
+			:return Dict
+				Profile info
+			:raises UserError
+				When the user data does not available
+				When there are unexpected error found
+			:raises UserNotFoundError
+				When the user not found
+			"""
+
+			# Update request headers.
+			session.headers.update({
+				"Origin": "https://www.instagram.com",
+				"Referer": f"https://www.instagram.com/{username}/"
+			})
+			
+			# Trying to retrieve user info.
+			request = session.get( f"https://www.instagram.com/{username}?__a=1&__d=dis" )
+			content = request.json()
+			status = request.status
+			if status == 200:
+				if "graphql" not in content:
 					raise UserError( f"Target \"{username}\" user found but user data not available" )
-			case 404:
+				return content['graphql']['user']
+			elif status == 404:
 				raise UserNotFoundError( f"Target \"{username}\" user not found" )
-			case _:
-				raise UserError( f"An error occurred while fetching the user [{status}]" )
-	
-	#[Client.signin( String username, String password, String csrftoken, Object|String|Dict cookies, String browser )]: Object
-	def signin( self, username, password, csrftoken=None, cookies=None, browser=None ):
+			else:
+				raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user [{status}]" )
+
+		if username is None:
+			raise ValueError( "Username can't be empty" )
+		elif not isinstance( username, ( int, str ) ):
+			raise TypeError( "Invalid \"username\" parameter, value must be type Int|Str, {} passed".format( typeof( username ) ) )
+		elif isinstance( username, int ):
+			profile = getByUid( self.request, username )
+		else:
+			profile = getByUid( self.request, int( username ) ) \
+				if isUserId( username ) \
+				else getByUname( self.request, username )
+		if "id" not in profile:
+			profile['id'] = profile['pk']
+		if "pk" not in profile:
+			profile['pk'] = profile['id']
+		
+		if int( profile['id'] ) != int( self.active.id ):
+			friendship = self.friendship( profile['id'] )
+		
+		viewer = { "viewer": droper( self.active, [ "id", "fullname", "username" ]) }
+		friendship = { 
+			"blocking": False,
+			"followed_by": False,
+			"following": False,
+			"incoming_request": False,
+			"is_bestie": False,
+			"is_blocking_reel": False,
+			"is_eligible_to_subscribe": False,
+			"is_feed_favorite": False,
+			"is_guardian_of_viewer": False,
+			"is_muting_notes": False,
+			"is_muting_reel": False,
+			"is_private": False,
+			"is_restricted": False,
+			"is_supervised_by_viewer": False,
+			"muting": False,
+			"outgoing_request": False,
+			"subscribed": False,
+		}
+		return Profile({
+			**friendship,
+			**profile,
+			**viewer
+		})
+
+	#[Client.remember( Str browser, Cookies|Dict|Object|Str cookies, Dict|Headers|Object headers )]: SignIn
+	def remember( self, browser:str, cookies:Cookies|dict|Object|str, headers:dict|Headers|Object ) -> SignIn:
+
+		"""
+		Remembering login credential.
+
+		:params Str browser
+		:params Str username
+		:params Cookies|Dict|Object|Str cookies
+		:params Dict|Headers|Object headers
+
+		:return SignIn
+		:raises AuthError|RequestAuthError
+			When the login credentials, cookies or headers is invalid or expired
+		:raises SignInError
+			When an error occurs while logging in
+		:raises TypeError
+			When the parameter value is invalid value type
+		:raises ValueError
+			When the value is required or can't be empty
+		"""
+
+		# if username is None:
+		# 	raise ValueError( "Username can't be empty" )
+		# if not isinstance( username, str ):
+		# 	raise TypeError( "Invalid \"username\" parameter, value type must be Str, {} passed".format( typeof( username) ) )
+		if headers is None:
+			headers = Client.HEADERS
+		if not isinstance( headers, ( dict, Headers ) ):
+			raise TypeError( "Invalid \"headers\" parameter, value must be type Dict|Headers, {} passed".format( typeof( headers ) ) )
+		if isinstance( headers, Headers ):
+			headers = dict( headers )
+		if isinstance( headers, Object ):
+			headers = headers.dict()
+		headers = {
+			**Client.HEADERS,
+			**headers
+		}
+		if browser is not None:
+			if not isinstance( browser, str ):
+				raise TypeError( "Invalid \"browser\" parameter, value must be type Str, {} passed".format( typeof( browser ) ) )
+		else:
+			if "User-Agent" not in self.headers:
+				if self.settings.browser.default is not None:
+					browser = self.settings.browser.default
+				elif Client.BROWSER is not None:
+					browser = Client.BROWSER
+				else:
+					browser = choice( self.settings.browser.randoms )
+			else:
+				browser = headers['User-Agent']
+		if cookies is None:
+			raise ValueError( "Cookies can't be empty" )
+		if not isinstance( cookies, ( Cookies, dict, Object, str ) ):
+			raise TypeError( "Invalid \"headers\" parameter, value must be type Cookies|Dict|Object|Str, {} passed".format( typeof( cookies ) ) )
+		if isinstance( cookies, str ):
+			cookies = Cookie.simple( cookies )
+		if isinstance( cookies, Headers ):
+			cookies = dict( cookies )
+		if isinstance( cookies, ( dict, Object ) ):
+			for require in [ "ds_user_id", "csrftoken", "sessionid" ]:
+				if require not in cookies:
+					raise SignInError( f"Invalid cookie, there is no \"{require}\" in the cookie" )
+
+		session = Request( 
+			timeout=self.settings.timeout,
+			cookies=cookies, 
+			headers={
+				**headers,
+				**{
+					"Origin": "https://www.instagram.com",
+					"Referer": "https://www.instagram.com/accounts/edit/",
+					"User-Agent": browser,
+					"X-CSRFToken": cookies['csrftoken']
+				}
+			}
+		)
+
+		try:
+			request = session.get( f"https://www.instagram.com/api/v1/accounts/edit/web_form_data/" )
+			content = request.json()
+			status = request.status
+			if status == 200:
+				return SignIn({
+					"authenticated": True,
+					"user": {
+						"id": request.cookies['ds_user_id'],
+						"fullname": f"{content['form_data']['first_name']} {content['form_data']['last_name']}".strip(),
+						"username": content['form_data']['username'],
+						"usermail": content['form_data']['email'],
+						"password": None,
+						"csrftoken": cookies['csrftoken'],
+						"sessionid": cookies['sessionid'],
+						"session": {
+							"browser": browser,
+							"cookies": dict( session.cookies ),
+							"headers": dict( session.headers )
+						},
+						"request": session
+					}
+				})
+			elif status == 401:
+				raise AuthError( "Failed to remember login credentials" )
+			else:
+				raise SignInError( content['message'] if "message" in content and content['message'] else "An error occured while checking user credential" )
+		except AuthError as e:
+			raise AuthError( "Failed to remember login credentials", prev=e )
+
+	#[Client.settings]: Setting
+	@final
+	@property
+	def settings( self ) -> Settings: return self.__setting__
+
+	#[Client.signin( Str browser, String username, String password )]: SignIn
+	def signin( self, browser:str, username:str, password:str ) -> SignIn:
 		
 		"""
-		Client login with username and password or remember with cookie.
-		
-		:params String username
-			Username, Email Address or Phone number
-		:params String password
-			Your instagram password
-		:params String csrftoken
-			Csrftoken prelogin
-		:params Object|String|Dict cookies
-			Log in using the login information on the computer
-		:params String browser
-			if you log in using cookies, try to provide your browser's User Agent
-		
-		:return Object
-			Representation of login results
+		Client login with username and password.
+
+		:params Str browser
+		:params Str username
+		:params Str password
+
+		:return SignIn
+		:raises LockedError
+			When the account is checpoint on login, but Instagram has lock the account
 		:raises PasswordError
 			When the username is found but the password is invalid
 		:raises SignInError
 			When an error occurs while logging in
 		:raises SpamError
 			When you try to login too many times
+		:raises TypeError
+			When the parameter value is invalid value type
 		:raises UserNotFoundError
-			When the username is not found
-		:raises ValueError
-			When the cookies invalid value
+			When the username is not found, or the account or 
+			IP Address has ben takedown by Instagram
 		"""
-		
-		result = Object({
-			"checkpoint": None,
-			"two_factor": None,
-			"remember": False,
-			"success": False,
-			"verify": False,
-			"signin": {
-				"id": None,
-				"fullname": None,
-				"username": username,
-				"password": password,
-				"csrftoken": csrftoken,
-				"sessionid": None
-			},
-			"result": None
-		})
-		
-		if  cookies != None:
-			if  isinstance( cookies, Object ):
-				cookies = cookies.dict()
-			if  isinstance( cookies, str ):
-				cookies = Cookie.simple( cookies )
-			if  isinstance( cookies, dict ):
-				try:
-					id = cookies['ds_user_id']
-					csrftoken = cookies['csrftoken']
-					sessionid = cookies['sessionid']
-				except KeyError as e:
-					raise SignInError( "Invalid cookie, there is no \"{}\" in the cookie".format( str( e ) ), prev=e )
-				for i, cookie in enumerate( cookies ):
-					Cookie.set( self.cookies, cookie, cookies[cookie], domain=".instagram.com", path="/" )
-			else:
-				raise ValueError( "Invalid cookie, value must be Dict|Str|Object, {} passed".format( type( cookies ).__name__ ) )
-			
-			# Update request headers.
-			self.headers.update({
-				"Origin": "https://www.instagram.com",
-				"Referer": "https://www.instagram.com/",
-				"X-CSRFToken": csrftoken
-			})
-			
-			# Trying to check if cookies is valid.
-			request = self.request.get( f"https://i.instagram.com/api/v1/users/{id}/info/" )
-			cookies = dict( request.cookies )
-			status = request.status_code
-			if  status == 200:
-				response = request.json()
-				if  "ds_user_id" in cookies or \
-					"sessionid" in cookies or \
-					"csrftoken" in cookies:
-					if  "user" in response:
-						if  isinstance( response['user'], dict ):
-							if  "username" in response['user']:
-								username = response['user']['username']
-							if  "full_name" in response['user']:
-								result.set({ "signin": { "fullname": response['user']['full_name'] } })
-					result.set({
-						"remember": True,
-						"success": True,
-						"signin": {
-							"id": id,
-							"username": username,
-							"csrftoken": csrftoken,
-							"sessionid": sessionid
-						}
-					})
-				else:
-					raise SignInError( response['message'] if "message" in response and response['message'] else "There was an error remembering the user" )
-			else:
-				raise SignInError( "Cookies are invalid or have expired" )
+
+		if browser is not None:
+			if not isinstance( browser, str ):
+				raise TypeError( "Invalid \"browser\" parameter, value must be type Str, {} passed".format( typeof( browser ) ) )
 		else:
-			if  not isinstance( username, str ):
-				if  not isinstance( self.username, str ):
-					raise SignInError( "Username can't be empty" )
-				username = self.username
-			if  not isinstance( password, str ):
-				if  not isinstance( self.password, str ):
-					raise SignInError( "Password can't be empty" )
-			if  not isinstance( csrftoken, str ):
-				try:
-					csrftoken = self.headers['X-CSRFToken']
-				except( AttributeError, KeyError ):
-					csrftoken = self.csrftoken
-			
-			# Update request headers.
-			self.headers.update({
-				"Content-Type": "application/x-www-form-urlencoded",
-				"Origin": "https://www.instagram.com",
-				"Referer": "https://www.instagram.com/accounts/login/",
-				"X-CSRFToken": csrftoken
-			})
-			
-			# Trying to log in.
-			signin = self.request.post( "https://www.instagram.com/accounts/login/ajax/", allow_redirects=True, data={
-				"username": username,
-				"enc_password": self.encpasw( password ),
-				"queryParams": {},
-				"optIntoOneTap": "false"
-			})
-			
-			# Get response json from login.
-			response = signin.json()
-			
-			if  "checkpoint_url" in response:
-				result.set({ "checkpoint": response })
-			elif "two_factor_required" in response:
-				result.set({
-					"two_factor": {
-						"cookies": signin.cookies,
-						"headers": signin.headers,
-						"info": response['two_factor_info']
-					}
-				})
-			elif "user" in response:
-				if  response['user']:
-					if  "authenticated" in response and response['authenticated']:
-						try:
-							result.set({
-								"success": True,
-								"signin": {
-									"id": response['userId'],
-									"csrftoken": signin.cookies['csrftoken'],
-									"sessionid": signin.cookies['sessionid']
-								}
-							})
-						except KeyError as e:
-							raise SignInError( "Invalid json user info", prev=e )
-					else:
-						raise PasswordError( f"Incorrect password for user \"{username}\", or may have been changed" )
+			if "User-Agent" not in self.headers:
+				if self.settings.browser.default is not None:
+					browser = self.settings.browser.default
+				elif Client.BROWSER is not None:
+					browser = Client.BROWSER
 				else:
-					raise UserNotFoundError( f"User \"{username}\" not found, or may be missing" )
-			elif "spam" in response:
-				raise SpamError( "Oops! Looks like you are considered Spam!" )
-			elif "status" in response and "message" in response:
-				raise SignInError( response['message'] )
-			else:
-				raise SignInError( "An error occurred while signing in" )
+					browser = choice( self.settings.browser.randoms )
 		
-		# If the user has actually successfully logged in.
-		if  result.success:
-			if  not isinstance( browser, str ):
-				browser = self.headers['User-Agent']
+		# To avoid collisions according to csrftoken.
+		request = Request( headers=Client.HEADERS, timeout=self.settings.timeout )
+
+		# For avoid incompatible User-Agent with csrftoken.
+		request.headers.update({ "User-Agent": browser })
+
+		if self.authenticated:
+			active = self.active
+			self.__active__ = None
+			session = self.request
+			self.__request__ = request
 			
-			# Encode password if is available.
-			password = "hex[b64]\"{}\"".format( String.encode( password ) ) if password else None
-			result.set({
-				"signin": {
-					"id": result.signin.id,
-					"username": result.signin.username
-				},
-				"result": {
-					"id": result.signin.id,
-					"fullname": result.signin.fullname,
-					"username": result.signin.username if result.signin.username else username,
+			# Tring get csrftoken
+			csrftoken = self.csrftoken
+
+			# Backing up previous active session.
+			self.__active__ = active
+			self.__request__ = session
+		else:
+			csrftoken = self.csrftoken
+		
+		# Update request headers.
+		request.headers.update({
+			"Origin": "https://www.instagram.com",
+			"Referer": "https://www.instagram.com/",
+			"User-Agent": browser,
+			"X-CSRFToken": csrftoken,
+			"Content-Type": "application/x-www-form-urlencoded",
+		})
+
+		# Trying to login instagram account.
+		signin = request.post( "https://www.instagram.com/api/v1/web/accounts/login/ajax/", allow_redirects=True, data={
+			"username": username,
+			"enc_password": encpaswd( password ),
+			"queryParams": {},
+			"optIntoOneTap": "false"
+		})
+		content = signin.json()
+		if "authenticated" in content:
+			if content['authenticated'] is False:
+				raise PasswordError( f"Incorrect password for user \"{username}\", or may have been changed" )
+			id = signin.cookies['ds_user_id']
+			password = "hex[b64]\"{}\"".format( String.encode( password ) )
+			csrftoken = signin.cookies['csrftoken']
+			sessionid = signin.cookies['sessionid']
+			return SignIn({
+				"authenticated": True,
+				"user": {
+					"id": id,
+					"fullname": None,
+					"username": username,
+					"usermail": None,
 					"password": password,
+					"csrftoken": csrftoken,
+					"sessionid": sessionid,
 					"session": {
 						"browser": browser,
-						"cookies": {
-							**dict( self.cookies ),
-							**dict( self.request.response.cookies )
-						},
-						"headers": {
-							**dict( self.headers ),
-							**{
-								"X-CSRFToken": self.request.response.cookies['csrftoken'],
-								"Cookie": Cookie.string( self.cookies )
-							}
-						},
-						"csrftoken": result.signin.csrftoken,
-						"sessionid": result.signin.sessionid
-					}
+						"cookies": dict( signin.cookies ),
+						"headers": dict( request.headers )
+					},
+					"request": request
 				}
 			})
+		elif "checkpoint_url" in content:
+			if "lock" in content and content['lock'] is True:
+				raise LockedError( "Your account has been checkpointed and locked by Instagram" )
+			return SignIn({
+				"authenticated": False, 
+				"checkpoint": Checkpoint( content ),
+				"request": request,
+				"response": signin
+			})
+		elif "spam" in content:
+			raise SpamError( "Oops! Looks like you are considered Spam! Please try again later" )
+		elif "two_factor_required" in content:
+			raise ClientError( "Two Factor Authentication required" )
+		else:
+			raise UserNotFoundError( f"User \"{username}\" not found, or may be missing" )
+
+	#[Client.story( Int|List[Int|Str]|Story target, Story.Type flag )]: Story
+	@logged
+	def story( self, target:int|list[int|str]|Story, flag:Story.Type=None ) -> Story:
+
+		"""
+		Get story info or media.
+
+		Retrieve Instagram stories based on URLs, This also includes
+		the URL of the user's profile, shared stories and the like,
+		the ID from the story and the user's id, and also the
+		user's username.
+
+		Please note, if you use username or id, this will not return the media
+		story directly, but you will also have to resend the request, it is highly
+		recommended to use user id instead of username.
+
+		:params Int|List[Int|Str]|Story target
+		:params Story.Type flag
+
+		:return StoryFeedTrayReels<StoryFeedTrayReel:reels<StoryItem<User>[],User>,StoryFeedTrayReel:media<StoryItem<User>[],User>>|
+				StoryHighlights<StoryHightlight:reels<StoryItem<User>[],User>,StoryHightlight:media<StoryItem<User>[],User>>|
+				StoryProfile<Chaining[],StoryProfileEdge<User>[],StoryReel<User>>
+		"""
+
+		#[Cient.story$.getByProfile( Int id, Str username, Story.Type flag )]: StoryProfile<Chaining[],StoryProfileEdge<User>[],StoryReel<User>>
+		def getByProfile( id:int=None, username:str=None, flag:Story.Type=Story.PROFILE ) -> StoryProfile:
 			
-		return result
-	
-	#[Client.sleep( Int delay )]: None
-	def sleep( self, delay=1.6 ):
+			"""
+			Get story info by username or id.
+
+			Please note, if you use username or id, this will not return the media
+			story directly, but you will also have to resend the request, it is highly
+			recommended to use user id instead of username.
+
+			:params Int id
+			:params Str username
+
+			:return StoryProfile<Chaining[],StoryProfileEdge<User>[],StoryReel<User>>
+			"""
+
+			headers = {
+				"Origin": "https://www.instagram.com",
+				"Referer": "https://www.instagram.com/"
+			}
+			variables = {
+				"query_hash": "d4d88dc1500312af6f937f7b804c68c3",
+				"include_chaining": "false",
+				"include_suggested_users": "false",
+				"include_logged_out_extras": "false",
+				"include_live_status": "false",
+				"include_reel": "true",
+				"include_highlight_reels": "true"
+			}
+
+			if flag == Story.HIGHLIGHT:
+				variables['include_reel'] = "false"
+			elif flag == Story.TIMELINE:
+				variables['include_highlight_reels'] = "false"
+			if id is None:
+				profile = self.user( username=username, count=3 )
+				headers['Referer'] = f"https://www.instagram.com/{username}/"
+				variables['user_id'] = profile.id
+			else:
+				variables['user_id'] = id
+			
+			# Trying to get data from graphql.
+			return self.graphql( binding=StoryProfile, headers=headers, params=variables )
+
+			# if "reel" in graphql:
+			# 	for key in [ "owner", "user" ]:
+			# 		if key in graphql['reel']:
+			# 			graphql['reel'][key] = User( graphql['reel'][key] )
+			# 	graphql['reel'] = StoryReel( graphql['reel'] )
+			# if "edge_highlight_reels" in graphql:
+			# 	for i in range( len( graphql.edge_highlight_reels.edges ) ):
+			# 		graphql.edge_highlight_reels.edges[i] = StoryProfileEdge( graphql.edge_highlight_reels.edges[i] )
+			# 		if "owner" in graphql.edge_highlight_reels.edges[i]:
+			# 			graphql.edge_highlight_reels.edges[i]['owner'] = User( graphql.edge_highlight_reels.edges[i]['owner'] )
+			
+			# return graphql
+
+		if target is None:
+			raise ValueError( "Story target id or url required" )
+		elif isinstance( target, int ):
+			if flag is None:
+				raise StoryError( "Unknown story type" )
+			elif not isinstance( flag, Story.Type ):
+				raise TypeError( "Invalid \"flag\" parameter, value must be type Story.Type, {} passed".format( typeof( flag ) ) )
+			if flag == Story.PROFILE:
+				return getByProfile( id=target )
+			return self.story( target=[target], flag=flag )
+		elif isinstance( target, str ):
+			capt = match( Pattern.STORY, target )
+			if capt is not None:
+				groups = capt.groupdict()
+				if "profile" in groups and groups['profile'] is not None:
+					return getByProfile( username=groups['profile'], flag=Story.PROFILE if flag is None else flag )
+				elif "username" in groups and groups['username'] is not None:
+					return getByProfile( username=groups['username'], flag=Story.PROFILE if flag is None else flag )
+				elif "timeline" in groups and groups['timeline'] is not None:
+					profile = getByProfile( username=groups['user'], flag=Story.TIMELINE )
+					return self.story( target=[profile.reel.latest_reel_media], flag=Story.TIMELINE )
+				elif "highlight" in groups and groups['highlight'] is not None:
+					return self.story( target=[groups['highlight']], flag=Story.HIGHLIGHT )
+				else:
+					return self.story( target=[groups['id']], flag=flag )
+			raise StoryError( "Invalid story ids, or url" )
+		elif isinstance( target, list ):
+			if flag is None:
+				raise StoryError( "Unknown story type" )
+			elif flag == Story.PROFILE:
+				raise StoryError( "Unsupported for get story from multiple story" )
+			elif not isinstance( flag, Story.Type ):
+				raise TypeError( "Invalid \"flag\" parameter, value must be type Story.Type, {} passed".format( typeof( flag ) ) )
+			for i in range( len( target ) ):
+				ids = target[i]
+				if flag == Story.HIGHLIGHT:
+					if match( r"^highlight\:", str( ids ) ) is None:
+						ids = f"highlight:{ids}"
+				if match( r"^reel_ids\=", str( ids ) ) is None:
+					target[i] = f"reel_ids={ids}"
+		elif isinstance( target, StoryFeed ):
+			return self.story( target=[ tray.id for tray in target.tray ], flag=Story.TIMELINE )
+		elif isinstance( target, StoryFeedTray ):
+			return self.story( target=[ target.id ], flag=Story.TIMELINE )
+		elif isinstance( target, StoryProfile ):
+			if flag == Story.PROFILE:
+				return self.story( target=target.reel.id, flag=Story.PROFILE )
+			return self.story( target=[ highlight.id for highlight in target.edge_highlight_reels.edges ], flag=Story.HIGHLIGHT )
+		elif isinstance( target, StoryProfileEdge ):
+			return self.story( target=target.id, flag=Story.HIGHLIGHT )
+		elif isinstance( target, StoryReel ):
+			return self.story( target=target.id, flag=Story.PROFILE )
+		elif isinstance( target, StoryItem ):
+			raise TypeError( "Objects are item values, you can't do this" )
+		elif isinstance( target, ( StoryFeedTrayReel, StoryHighlight, StoryHighlights ) ):
+			raise TypeError( "Unable to get story from {}, because the object contains a list of story items".format( typeof( target ) ) )
+		else:
+			raise TypeError( "Invalid \"target\" parameter, value must be type Story, {} passed".format( typeof( target ) ) )
+		
+		# Update request headers.
+		self.headers.update({
+			"Origin": "https://www.instagram.com",
+			"Referer": "https://www.instagram.com/"
+		})
+
+		# "query_hash": "297c491471fff978fa2ab83c0673a618"
+		# "reel_ids": "3220634093712374533"
+
+		# Trying get story media.
+		request = self.request.get( "https://www.instagram.com/api/v1/feed/reels_media/?{}".format( "\x26".join( target ) ) )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			# wrapper = StoryFeedTrayReel if flag == Story.TIMELINE else StoryHighlight
+			# results = StoryFeedTrayReels if flag == Story.TIMELINE else StoryHighlights
+			# for key in list( content['reels'].keys() ):
+			# 	for i in range( len( content['reels'][key]['items'] ) ):
+			# 		content['reels'][key]['items'][i]['user'] = User( content['reels'][key]['items'][i]['user'] )
+			# 		content['reels'][key]['items'][i] = StoryItem( content['reels'][key]['items'][i] )
+			# 	content['reels'][key]['user'] = User( content['reels'][key]['user'] )
+			# 	content['reels'][key] = wrapper( content['reels'][key] )
+			# for i in range( len( content['reels_media'] ) ):
+			# 	for u in range( len( content['reels_media'][i]['items'] ) ):
+			# 		content['reels_media'][i]['items'][u]['user'] = User( content['reels_media'][i]['items'][u]['user'] )
+			# 		content['reels_media'][i]['items'][u] = StoryItem( content['reels_media'][i]['items'][u] )
+			# 	content['reels_media'][i]['user'] = User( content['reels_media'][i]['user'] )
+			# 	content['reels_media'][i] = wrapper( content['reels_media'][i] )
+			# return results( content )
+			return StoryFeedTrayReels( content ) if flag == Story.TIMELINE else StoryHighlights( content )
+		else:
+			raise StoryError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching story media info [{status}]" )
+
+	#[Client.stories( Bool isFollowingFeed )]: StoryFeed<StoryFeedTray>
+	@logged
+	def stories( self, isFollowingFeed:bool=False ) -> StoryFeed:
+
+		"""
+		Get feed stories.
+
+		:params Bool isFollowingFeed
+			Default is False
+
+		:return StoryFeed
+		:raises StoryError
+			When something wrong, please to check the request response history
+		"""
+
+		# Update request headers.
+		self.headers.update({
+			"Origin": "https://www.instagram.com",
+			"Referer": "https://www.instagram.com/"
+		})
+
+		# Trying to get feed story.
+		request = self.request.get( "https://www.instagram.com/api/v1/feed/reels_tray", params={ "is_following_feed": f"{isFollowingFeed}".lower() } )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			# content = StoryFeed( content )
+			# for i in range( len( content.tray ) ):
+			# 	content.tray[i] = StoryFeedTray( content.tray[i] )
+			# 	for key in [ "owner", "user" ]:
+			# 		if key in content.tray[i][key]:
+			# 			content.tray[i][key] = User( content.tray[i][key] )
+			return StoryFeed( content )
+		else:
+			raise StoryError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching feed story [{status}]" )
+
+	#[Client.switch( Str username, Bool save )]: None
+	def switch( self, username:str, save:bool=True ) -> None:
 		
 		"""
-		Delay for avoid SPAM or Block from request.
-		
-		:params Int delay
-			Time to sleep, delay must be >=1.4s
+		Change current authenticated user.
+
+		:params Str username
+		:params Bool save
+			Allow changes to be saved in the configuration file.
 		
 		:return None
+		:raises TypeError
+			When the parameter value is invalid value type
 		:raises ValueError
-			When delay is less than one or equal one
+			When the username is empty or user not found
 		"""
-		
-		if  delay >= 1.4:
-			sleep( delay )
+
+		if username is None:
+			raise ValueError( "Username can't be empty" )
+		if not isinstance( username, str ):
+			raise TypeError( "Invalid \"username\" parameter, value must be type Str, {} passed".format( typeof( username ) ) )
+		if username not in self.settings.signin.switch:
+			raise TypeError( "There is no saved account with username {}".format( username ) )
+		self.settings.signin.default = username
+		self.activate( Active( self.settings.signin.switch[username] ) )
+		if save:
+			self.config.save()
+	
+	#[Client.user( Str username )]: User
+	@logged
+	def user( self, username:str, count:int=3 ) -> User:
+
+		"""
+		Get simple user info.
+
+		:params Str username
+		:params Int count
+			Default is 12
+
+		:return User
+		:raises TypeError
+			When the parameter value is invalid value
+		:raises UserError
+			When the user data does not available
+			When there are unexpected error found
+		:raises UserNotFoundError
+			When the user is not found
+		:raises ValueError
+			When the username is empty
+		"""
+
+		if username is None:
+			raise ValueError( "Username can't be empty" )
+		elif not isinstance( username, str ):
+			raise TypeError( "Invalid \"username\" parameter, value must be type Str, {} passed".format( typeof( username ) ) )
+
+		# Updating request headers.
+		self.headers.update({
+			"Origin": "https://www.instagram.com",
+			"Referer": f"https://www.instagram.com/{username}/"
+		})
+
+		# Trying to get user info.
+		request = self.request.get( f"https://www.instagram.com/api/v1/feed/user/{username}/username/", params={ "count": count } )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			if "user" in content:
+				return User({ **content, "id": content['user']['pk'] })
+			raise UserNotFoundError( f"Target \"{username}\" user not found" )
+		elif status == 404:
+			raise UserNotFoundError( f"Target \"{username}\" user not found" )
 		else:
-			raise ValueError( "Delay must be greater or equals >=1.4s" )
-	
-	#[Client.verify()]: Object
-	def verify( self ):
-		pass
-	
+			raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user [{status}]" )

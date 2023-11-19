@@ -23,201 +23,86 @@
 # not for SPAM.
 #
 
-#[kanashi.error.Throwable]
-class Throwable( Exception ):
-	
-	#[Throwable( String message, Int code, Context throw, BaseException prev, List group, Function|Method callback, **data )]
-	def __init__( self, message, code=0, throw=None, prev=None, group=[], callback=None, **data ):
-		
-		# Exception message.
-		self.message = message
-		
-		# Exception code.
-		self.code = code
-		
-		# Exception thrown.
-		self.throw = throw
-		
-		# Exception previous.
-		self.prev = prev
-		
-		# Sxception groups.
-		self.group = group
-		
-		# Exception callback.
-		self.callback = callback
-		
-		# Exception data passed.
-		self.data = data
-		
-		# Call parent constructor.
-		super().__init__( message, code )
-	
 
-#[kanashi.error.Alert]
-class Alert( Throwable, Warning ):
-	pass
-	
-
-#[kanashi.erorr.Error]
-class Error( Throwable, TypeError ):
-	pass
-	
-
-#[kanashi.error.AuthError]
-class AuthError( Error ):
-	
-	"""
-	Raise when there is an authentication error.
-	This error will be thrown more often because,
-	almost all reactions require authentication.
-	"""
-	
+from yutiriti import Error
 
 #[kanashi.error.FriendshipError]
-class FriendshipError( Error ):
-	pass
-	
+class FriendshipError( Error ): ...
 
 #[kanashi.error.BestieError]
-class BestieError( FriendshipError ):
-	pass
-	
+class BestieError( FriendshipError ): ...
 
 #[kanashi.error.BlockError]
-class BlockError( FriendshipError ):
-	pass
-	
+class BlockError( FriendshipError ): ...
 
 #[kanashi.error.FavoriteError]
-class FavoriteError( FriendshipError ):
-	pass
-	
+class FavoriteError( FriendshipError ): ...
+
+#[kanashi.error.FeedError]
+class FeedError( Error ): ...
 
 #[kanashi.error.ClientError]
-class ClientError( Error ):
-	pass
-	
+class ClientError( Error ): ...
+
+#[kanashi.error.CursorError]
+class CursorError( Error ): ...
+
+#[kanashi.error.GraphqlError]
+class GraphqlError( ClientError ): ...
 
 #[kanashi.error.FollowError]
-class FollowError( FriendshipError ):
-	
-	"""
-	Raise when there is an error while
-	following or unfollowing
-	"""
-	
+class FollowError( FriendshipError ): ...
+
+#[kanashi.error.FollowerError]
+class FollowerError( FriendshipError ): ...
 
 #[kanashi.error.LikeError]
-class LikeError( Error ):
-	pass
-	
+class LikeError( Error ): ...
+
+#[kanashi.error.LockedError]
+class LockedError( Error ): ...
 
 #[kanashi.error.CommentError]
-class CommentError( Error ):
-	pass
-	
+class CommentError( Error ): ...
 
 #[kanashi.error.RemoveError]
-class RemoveError( Error ):
-	pass
-	
+class RemoveError( Error ): ...
 
 #[kanashi.error.MediaError]
-class MediaError( Error ):
-	pass
-	
+class MediaError( Error ): ...
 
 #[kanashi.error.MediaNotFoundError]
-class MediaNotFoundError( Error ):
-	pass
-	
-
-#[kanashi.error.ReportError]
-class ReportError( Error ):
-	pass
-	
+class MediaNotFoundError( Error ): ...
 
 #[kanashi.error.RestrictError]
-class RestrictError( FriendshipError ):
-	pass
-	
+class RestrictError( FriendshipError ): ...
 
 #[kanashi.error.UserError]
-class UserError( Error ):
-	pass
-	
+class UserError( Error ): ...
 
 #[kanashi.error.UserNotFoundError]
-class UserNotFoundError( UserError ):
-	pass
-	
+class UserNotFoundError( UserError ): ...
 
 #[kanashi.error.SignInError]
-class SignInError( Error ):
-	pass
-	
+class SignInError( Error ): ...
 
 #[kanashi.error.CsrftokenError]
-class CsrftokenError( Error ):
-	
-	"""
-	Raises when there is no CSRFToken relogin
-	"""
-	
+class CsrftokenError( Error ): ...
 
 #[kanashi.error.ConfigError]
-class ConfigError( Error ):
-	pass
-	
+class ConfigError( Error ): ...
 
 #[kanashi.error.PasswordError]
-class PasswordError( UserError ):
-	
-	"""
-	Raise when the user inputs the wrong password
-	"""
-	
+class PasswordError( UserError ): ...
 
 #[kanashi.error.ProfileError]
-class ProfileError( Error ):
-	pass
-	
+class ProfileError( Error ): ...
 
 #[kanashi.error.SpamError]
-class SpamError( Error ):
-	
-	"""
-	Increases when too many login attempts,
-	which is recommended not to do too many
-	login attempts.
-	
-	But it can also be possible when something
-	else is also done too often to experiment.
-	"""
-	
+class SpamError( Error ): ...
 
-#[kanashi.error.RequestError]
-class RequestError( Error ):
-	
-	"""
-	Raise when there is an error during request
-	"""
-	
+#[kanashi.error.StoryError]
+class StoryError( Error ): ...
 
-#[kanashi.error.RequestAuthError]
-class RequestAuthError( AuthError, RequestError ):
-	
-	"""
-	Raise when login authentication is required.
-	"""
-	
-
-#[kanashi.error.RequestDownloadError]
-class RequestDownloadError( RequestError ):
-	
-	"""
-	Raise when there is an error while
-	downloading the file or contents.
-	"""
-	
+#[kanashi.error.StoryNotFoundError]
+class StoryNotFoundError( StoryError ): ...

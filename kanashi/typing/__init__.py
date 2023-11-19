@@ -2,7 +2,7 @@
 
 #
 # @author Ari Setiawan
-# @create 23.05-2022 13:44
+# @create 23.05-2022
 # @github https://github.com/hxAri/Kanashi
 #
 # Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
@@ -63,6 +63,5 @@ from kanashi.typing.story import (
 	StoryProfileEdge, 
 	StoryReel
 )
-from kanashi.typing.typing import Typing
 from kanashi.typing.two_factor import TwoFactor, TwoFactorInfo
 from kanashi.typing.user import User

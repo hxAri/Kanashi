@@ -28,36 +28,45 @@ from datetime import datetime
 from pytz import utc as UTC
 from re import findall, match
 from typing import final
+from yutiriti import (
+	AuthError, 
+	File, 
+	Object, 
+	Readonly, 
+	Cookies, 
+	Headers, 
+	Request, 
+	RequestError, 
+	RequestRequired, 
+	Text, 
+	Throwable, 
+	tree, 
+	typeof, 
+	ITP,
+	Yutiriti 
+)
 
 from kanashi.client import Client
 from kanashi.config import Config
 from kanashi.error import *
-from kanashi.object import Object
 from kanashi.pattern import Pattern
-from kanashi.readonly import Readonly
-from kanashi.request import (
-	Cookies, 
-	Headers, 
-	Request, 
-	RequestRequired
-)
 from kanashi.typing import *
 from kanashi.utility import *
 
 
 #[kanashi.kanashi.Kanashi]
-class Kanashi( RequestRequired, Readonly, Utility ):
-	
+class Kanashi( RequestRequired, Readonly, Yutiriti ):
+
 	#[Kanashi()]: None
 	@final
 	def __init__( self ) -> None:
-		
+
 		"""
 		Construct method of class Kanashi
 
 		:return None
 		"""
-		
+
 		self.__except__:list[str] = [
 			"__active__",
 			"__caching__",
@@ -76,19 +85,20 @@ class Kanashi( RequestRequired, Readonly, Utility ):
 			"profile": {},
 			"searchs": {}
 		})
-		
+
 		self.__config__:Config = Config( Config.FILENAME )
 		self.configLoad()
-		
+
 		# Initialize Request Instance.
 		self.__request__:Request = Request( history=True, timeout=self.settings.timeout )
-		
+
 		# Initialize Client Instance.
 		self.__client__:Client = Client( config=self.config, request=self.request )
 	
 	#[Kanashi.about()]: None
 	@final
 	def about( self ) -> None:
+		self.banner
 		display = [ "helpers", "version", "license" ]
 		displayLength = len( display )
 		outputs = []
@@ -229,7 +239,7 @@ class Kanashi( RequestRequired, Readonly, Utility ):
 	@final
 	@property
 	def active( self ) -> Active: return self.client.active
-	
+
 	#[Kanashi.approve( User user, Bool approve, Bool confirm, Callable callback )]: None
 	@final
 	@logged
@@ -263,12 +273,26 @@ class Kanashi( RequestRequired, Readonly, Utility ):
 					return
 				self.output( self.approve, f"Successfully {action} follow requests from {display}" )
 				self.previous( callback )
-	
+
 	#[Kanashi.authenticated]: Bool
 	@final
 	@property
 	def authenticated( self ) -> bool: return self.client.authenticated
-	
+
+	#[Kanashi.banner]: Str
+	@final
+	@property
+	def banner( self ) -> str:
+		
+		"""
+        Return string of Kanashī Banner/ Logo.
+        I hope you does not replace this bro!
+
+        :return Str
+        """
+
+		return "\x1b[1;38;5;32m\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x20\x3b\x3b\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x20\x3b\x3b\x3b\x20\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x20\x20\x3b\x20\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x1b[1;38;5;111m\x3b\x3b\x3b\x20\x20\x20\x3b\x3b\x20\x20\x1b[1;38;5;32m\x3b\x3b\x3b\x20\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x1b[1;38;5;111m\x3b\x3b\x3b\x3b\x20\x20\x3b\x3b\x20\x20\x20\x20\x1b[1;38;5;32m\x3b\x3b\x20\x20\x20\x20\x3b\x20\x3b\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x1b[1;38;5;111m\x3b\x3b\x20\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x1b[1;38;5;32m\x3b\x3b\x20\x20\x20\x20\x3b\x3b\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x1b[1;38;5;111m\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x1b[1;38;5;32m\x3b\x20\x3b\x3b\x20\x3b\x3b\x3b\x3b\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x20\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x1b[1;38;5;111m\x3b\x3b\x3b\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x1b[1;38;5;32m\x3b\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x1b[1;38;5;111m\x3b\x3b\x3b\x3b\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x1b[1;38;5;32m\x3b\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x1b[1;38;5;111m\x3b\x20\x3b\x3b\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x1b[1;38;5;32m\x3b\x3b\x3b\x3b\x20\x20\x20\x3b\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x20\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x20\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x3b\x20\x20\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x20\x3b\x3b\x3b\x3b\x3b\x20\x20\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x3b\x3b\x3b\x20\x20\x20\x20\x20\x3b\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x1b[0m"
+
 	#[Kanashi.bestie( Profile profile, Bool ask )]: None
 	@final
 	@logged
@@ -310,28 +334,28 @@ class Kanashi( RequestRequired, Readonly, Utility ):
 		
 		challenge = self.thread( "Getting info of Checkpoint URL", self.client.checkpoint( url=url, request=request, cookies=cookies, headers=headers ) )
 		print( challenge )
-	
+
 	#[Kanashi.choicer()]: Callable
 	@final
 	def choicer( self ) -> callable: ...
-	
+
 	#[Kanashi.clean()]: None
 	@final
 	def clean( self ) -> None:
 		self.thread( "Clear request records", self.request.clean )
 		self.output( self.clean, "The request log has been cleaned up" )
 		self.previous( self.main, ">>>" )
-	
+
 	#[Kanashi.client]: Client
 	@final
 	@property
 	def client( self ) -> Client: return self.__client__
-	
+
 	#[Kanashi.config]: Config
 	@final
 	@property
 	def config( self ) -> Config: return self.__config__
-	
+
 	#[Kanashi.configLoad()]: None
 	@final
 	def configLoad( self ) -> None:
@@ -356,7 +380,7 @@ class Kanashi( RequestRequired, Readonly, Utility ):
 		if not isinstance( self.config.settings, Object ):
 			self.close( e, "Operation cannot be continued" )
 		pass
-	
+
 	#[Kanashi.configuration( Int flag )]: None
 	@final
 	def configuration( self, flag:int=0 ) -> None:
@@ -451,7 +475,7 @@ class Kanashi( RequestRequired, Readonly, Utility ):
 			self.main()
 		else:
 			self.configuration()
-	
+
 	#[Kanashi.cookie()]: None
 	@final
 	@logged
@@ -819,11 +843,11 @@ class Kanashi( RequestRequired, Readonly, Utility ):
 	@logged
 	def logout( self ) -> None:
 		raise NotImplementedError( "Method {} is not initialized or implemented".format( self.logout ) )
-	
+
 	#[Kanashi.main()]: None
 	def main( self ) -> None:
 		raise NotImplementedError( "Method {} is not initialized or implemented".format( self.main ) )
-	
+
 	#[Kanashi.media( List<Media>|Media|Profile|User media, Int|Str target, Callable callback, Media.Type|Media.Type ftype )]: None
 	@final
 	@logged
@@ -1075,7 +1099,7 @@ class Kanashi( RequestRequired, Readonly, Utility ):
 	@logged
 	def profile( self, username:int|str=None, profile:Profile=None ) -> None:
 		raise NotImplementedError( "Method {} is not initialized or implemented".format( self.profile ) )
-	
+
 	#[Kanashi.remember( Str browser, Cookies|Dict|Object|Str cookies, Dict|Headers|Object headers )]: SignIn
 	@final
 	def remember( self, browser:str=None, cookies:Cookies|dict|Object|str=None, headers:dict|Headers|Object=None ) -> None:
@@ -1157,7 +1181,7 @@ class Kanashi( RequestRequired, Readonly, Utility ):
 	@final
 	@property
 	def settings( self ) -> Settings: return self.config.settings
-	
+
 	#[Kanashi.signin( Str browser, String username, String password, Bool ask )]: None
 	@final
 	def signin( self, browser:str=None, username:str=None, password:str=None, ask=True ) -> None:
@@ -1411,7 +1435,7 @@ class Kanashi( RequestRequired, Readonly, Utility ):
 		else:
 			raise TypeError( "Invalid \"story\" parameter, value must be type Story, {} passed".format( typeof( story ) ) )
 		...
-	
+
 	#[Kanashi.support()]: None
 	@final
 	def support( self ) -> None:

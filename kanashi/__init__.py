@@ -24,16 +24,9 @@
 #
 
 
+from kanashi.client import Client
 from kanashi.error import *
-from kanashi.service import *
 from kanashi.kanashi import Kanashi
-from kanashi.main import Main
-from kanashi.object import Object
-from kanashi.service import *
-from kanashi.readonly import Readonly
-from kanashi.request import (
-	Request, 
-	RequestRequired
-)
+from kanashi.pattern import Pattern
 from kanashi.typing import *
 from kanashi.utility import *

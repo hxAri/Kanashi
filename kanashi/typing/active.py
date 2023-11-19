@@ -2,7 +2,7 @@
 
 #
 # @author Ari Setiawan
-# @create 23.05-2022 13:44
+# @create 23.05-2022
 # @github https://github.com/hxAri/Kanashi
 #
 # Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
@@ -25,12 +25,9 @@
 
 
 from typing import final
+from yutiriti import  Object, Readonly, Typing
 
-from kanashi.object import Object
-from kanashi.readonly import Readonly
-from kanashi.typing.typing import Typing
 from kanashi.typing.user import User
-from kanashi.utility import typeof
 
 
 #[kanashi.typing.active.Active]

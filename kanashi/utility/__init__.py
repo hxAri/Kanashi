@@ -24,21 +24,6 @@
 #
 
 
-from kanashi.utility.common import (
-	classmethods, 
-	droper, 
-	encpaswd, 
-	isUserId, 
-	typedef, 
-	typeof 
-)
-from kanashi.utility.cookie import Cookie
+from kanashi.utility.common import encpaswd, isUserId
 from kanashi.utility.decorator import avoidForMySelf, logged
-from kanashi.utility.file import File
-from kanashi.utility.json import JSON, JSONError
-from kanashi.utility.path import Path
-from kanashi.utility.string import Binary, String
-from kanashi.utility.text import Text
-from kanashi.utility.thread import Thread
-from kanashi.utility.tree import tree
-from kanashi.utility.utility import Utility
+

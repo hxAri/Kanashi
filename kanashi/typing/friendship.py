@@ -2,7 +2,7 @@
 
 #
 # @author Ari Setiawan
-# @create 23.05-2022 13:44
+# @create 23.05-2022
 # @github https://github.com/hxAri/Kanashi
 #
 # Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
@@ -25,9 +25,7 @@
 
 
 from typing import final
-
-from kanashi.object import Object
-from kanashi.typing.typing import Typing
+from yutiriti import Object, Typing
 
 
 #[kanashi.typing.friendship.Friendship]
