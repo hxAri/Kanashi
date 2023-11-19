@@ -1,12 +1,12 @@
 
 ![Kanashī · Logo](https://raw.githubusercontent.com/hxAri/hxAri/main/public/images/1654820424;51ydWrxRcv.png)
 
-Please note that this is not fully finished or not ready to use, if you are interested in using it please I don't require you to wait for this to finish because I am also busy.
-
 ## Abouts
 Kanashī is an independent open source project without any organizational involvement in it, this project is used to perform Instagram Login via the Command Line, it is capable of taking and also performing actions like Instagram Web in general however, not everything can be done here.
 
 Because this is an open source project, the creators and developers of this project will not tolerate or be held responsible if it happens to any Instagram account that is used to log in or any user profiles that you collect information through this program.
+
+If possible Kanashī might be built as a module for Python3, in other words this would remove features such as Interactive Command Line, and currently some of the program code has been split and moved to **[Yūtiriti](https://github.com/hxari/Yutiriti)** as a Kanashī dependency module, this aims to focus Kanashī on the program, thank you
 
 ## History
 Kanashī itself is a translation of the word from Japan **悲しい** which means Sadness, I built this program for the sadness that I have experienced so far, if you are wondering why that is? Don't ask! Just use this program if you are interested, no need to think about anyone's sadness or even me.
@@ -76,6 +76,7 @@ This program was created to be used by anyone, not to be sold for anyone's profi
 * Python **>=3.10.4**
 * [Pytz](https://github.com/stub42/pytz) **>=2022.1**
 * [Requests](https://github.com/psf/requests) **>=2.31.0**
+* [Yūtiriti](https://github.com/hxari/Yutiriti) **>=1.0.0**
 
 ## Installation
 Installing Kanashī is very easy, please clone or download this repository archive
@@ -104,21 +105,21 @@ cd Kanashi && chmod +x main && ./main
 #### # SignIn Manual
 I do not recommend logging in manually using the main account.
 ```py
-from kanashi import Client, SignInError, Throwable
+from kanashi import Client, SignInError
 
 client = Client()
 try:
-	signin = client.signin( browser=str, username=str, password=str )
-	if signin.authenticated is True:
-		print( signin.user )
-	elif "checkpoint" in signin:
-		print( signin.checkpoint )
-	elif "two_factor" in signin:
-		print( signin.two_factor )
-	else:
-		raise SignInError( "Something wrong!" )
-except Throwable as e:
-	print( e )
+    signin = client.signin( browser=str, username=str, password=str )
+    if signin.authenticated is True:
+        print( signin.user )
+    elif "checkpoint" in signin:
+        print( signin.checkpoint )
+    elif "two_factor" in signin:
+        print( signin.two_factor )
+    else:
+        raise SignInError( "Something wrong!" )
+except Exception as e:
+    print( e )
 ```
 
 #### # SignIn Cookie
