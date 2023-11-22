@@ -1103,11 +1103,16 @@ class Profile(  Typing,User ):
 
 	#[Profile.isMySelf]: Bool
 	@property
-	def isMySelf( self ) -> bool: return self.id == int( self.viewer.id )
+	def isMySelf( self ) -> bool:
+		if "viewer" in self:
+			id = self.viewer.id if "id" in self.viewer else 0
+			pk = self.id if "id" in self else self.pk if "pk" in self else 0
+			return id != 0 and pk != 0 and id == pk
+		return False
 	
 	#[Profile.isNotMySelf]: Bool
 	@property
-	def isNotMySelf( self ) -> bool: return self.isMySelf == False
+	def isNotMySelf( self ) -> bool: return self.isMySelf is False
 	
 	#[Kanashi.isNeedy]: Bool
 	@property
@@ -1476,3 +1481,4 @@ class Profile(  Typing,User ):
 	#[Kanashi.whatsappNumber]: Str
 	@property
 	def whatsappNumber( self ) -> str: return self['whatsapp_number'] if "whatsapp_number" in self else None
+

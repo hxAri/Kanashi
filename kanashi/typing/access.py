@@ -59,7 +59,7 @@ class AccessManagerApps( Typing ):
 		return [
 		]
 	
-	#[SignI.__mapping__]: Dict|Object
+	#[AccessManagerApps.__mapping__]: Dict|Object
 	@property
 	def __mapping__( self ) -> dict|Object:
 		return {
