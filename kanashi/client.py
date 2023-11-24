@@ -41,16 +41,12 @@ from yutiriti import (
 	typeof
 )
 
+from kanashi.common import encpaswd, isUserId
 from kanashi.config import Config
+from kanashi.decorator import avoidForMySelf, logged
 from kanashi.error import *
 from kanashi.pattern import Pattern
 from kanashi.typing import *
-from kanashi.utility import (
-	avoidForMySelf, 
-	encpaswd, 
-	logged, 
-	isUserId
-)
 
 
 #[kanashi.client.Client]
@@ -127,11 +123,11 @@ class Client( RequestRequired, Readonly ):
 		elif config.settings.signin.active in config.settings.signin.switch:
 			active = Active( config.settings.signin.switch[config.settings.signin.active] )
 		if isinstance( active, Active ):
-			request.headers.update( active.session.headers.dict() )
+			request.headers.update( active.session.headers.props() )
 			request.headers.update({ "User-Agent": active.session.browser })
 			cookies = active.session.cookies
 			for cookie in cookies.keys():
-				Cookie.set( request.cookies, cookie, cookies[cookie] )
+				Cookie.set( request.cookies, cookie, cookies[cookie], domain=".instagram.com", path="/" )
 		else:
 			request.headers.update( Client.HEADERS )
 			if config.settings.browser.default != None:
@@ -203,10 +199,9 @@ class Client( RequestRequired, Readonly ):
 			if not isinstance( request, Request ):
 				raise TypeError( "Invalid \"request\" parameter, value must be type Request, {} passed".format( typeof( request ) ) )
 		else:
-			request = Request(
-				cookies=active.session.cookies,
-				headers=active.session.headers
-			)
+			request = Request( headers=active.session.headers )
+			for cookie in active.session.cookies.keys():
+				Cookie.set( request.cookies, cookie, active.session.cookies[cookie], domain=".instagram.com", path="/" )
 		self.__active__:Active|None = active
 		self.__request__:Request = request
 	
@@ -403,7 +398,7 @@ class Client( RequestRequired, Readonly ):
 			if isinstance( headers, Headers ):
 				headers = dict( headers )
 			elif isinstance( headers, Object ):
-				headers = headers.dict()
+				headers = headers.props()
 			request = Request( cookies=cookies, headers=headers, timeout=self.settings.timeout )
 		
 		# Update Request Headers.
@@ -875,9 +870,7 @@ class Client( RequestRequired, Readonly ):
 		# Trying to get request follow pending.
 		request = self.request.get( "https://www.instagram.com/api/v1/friendships/pending/" )
 		content = request.json()
-		# content = File.json( "requests/api/v1/friendships/pending/response 2023-10-20 03:21:13.854085.json" )['response']['content']
 		status = request.status
-		# status = 200
 		if status == 200:
 			return Pendings({ **content, "users": [ { **user, "id": user['pk'] if "id" not in user else user['id'] } for user in content['users'] ] })
 		raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the request pending [{status}]" )
@@ -1086,7 +1079,7 @@ class Client( RequestRequired, Readonly ):
 		if isinstance( headers, Headers ):
 			headers = dict( headers )
 		if isinstance( headers, Object ):
-			headers = headers.dict()
+			headers = headers.props()
 		headers = {
 			**Client.HEADERS,
 			**headers
@@ -1160,6 +1153,144 @@ class Client( RequestRequired, Readonly ):
 				raise SignInError( content['message'] if "message" in content and content['message'] else "An error occured while checking user credential" )
 		except AuthError as e:
 			raise AuthError( "Failed to remember login credentials", prev=e )
+	
+	#[Client.savedCollectionList( List<Str> collectionTypes, Bool getCoverMediaLists, Int includePublicOnly, Str maxId )]: SavedCollectionList
+	@final
+	@logged
+	def savedCollectionList( self, collectionTypes:list[str] = [ "ALL_MEDIA_AUTO_COLLECTION", "MEDIA", "AUDIO_AUTO_COLLECTION" ], getCoverMediaLists:bool=True, includePublicOnly:int=0, maxId:str="" ) -> SavedCollectionList:
+
+		"""
+		"""
+
+		# Create request parameters.
+		parameters = {
+			"collection_types": collectionTypes,
+			"get_cover_media_lists": getCoverMediaLists,
+			"include_public_only": includePublicOnly,
+			"max_id": maxId
+		}
+
+		# Update request headers.
+		self.headers.update({
+			"Origin": "https://www.instagram.com",
+			"Referer": f"https://www.instagram.com/{self.active.username}/saved/"
+		})
+
+		# Trying to get collection lists.
+		request = self.request.get( "https://www.instagram.com/api/v1/collections/list/", params=parameters )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return SavedCollectionList( content )
+		else:
+			raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching collection list [{status}]" )
+	
+	#[Client.savedPosts()]: SavedPosts
+	@final
+	@logged
+	def savedPosts( self ) -> SavedPosts:
+		
+		"""
+		"""
+
+		# Update request headers.
+		self.headers.update({
+			"Origin": "https://www.instagram.com",
+			"Referer": f"https://www.instagram.com/{self.active.username}/saved/all-posts/"
+		})
+
+		# Trying to get saved posts.
+		request = self.request.get( "https://www.instagram.com/api/v1/feed/saved/posts/" )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return SavedPosts( content )
+		else:
+			raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching saved posts [{status}]" )
+	
+	#[Client.saveEdit( Str biography, Str email, Str externalUrl, Str firstName, Str phoneNumber, Str username )]: Bool
+	@final
+	@logged
+	def saveEdit( self, biography:str, email:str, externalUrl:str, firstName:str, phoneNumber:str, username:str ) -> bool:
+
+		"""
+		"""
+
+		# Create request payload.
+		payload = {
+			"biography": biography,
+			"chaining_enabled": "on",
+			"email": email,
+			"external_url": externalUrl,
+			"first_name": firstName,
+			"phone_number": phoneNumber,
+			"username": username
+		}
+
+		# Update request headers.
+		self.headers.update({
+			"Content-Type": "application/x-www-form-urlencoded",
+			"Origin": "https://www.instagram.com",
+			"Referer": "https://www.instagram.com/accounts/edit/"
+		})
+
+		# Trying to update gender.
+		request = self.request.post( "https://www.instagram.com/api/v1/web/accounts/edit/", data=payload )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return True
+		else:
+			raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while updating user info [{status}]" )
+	
+	#[Client.setGender( Int gender, Str custom )]: Bool
+	@final
+	@logged
+	def setGender( self, gender:int, custom:str=None ) -> bool:
+		
+		"""
+		Update or set account gender
+
+		:params Int gender
+		:params Str custom
+
+		:return Bool
+			True if success, otherwise if failed
+		:raises TypeError
+			When the parameter value is invalid value type
+		:raises UserError
+			When something wrong, please to check the request response history
+		:raises ValueError
+			When the gender is empty
+		"""
+
+		if gender is None:
+			raise ValueError( "Gender can't be empty" )
+		elif not isinstance( gender, int ):
+			raise TypeError( "Invalid \"gender\" parameter, value must be type Int, {} passed".format( typeof( gender ) ) )
+		
+		# Creating request payload.
+		payload = {
+			"custom": custom,
+			"gender": gender
+		}
+
+		# Update request headers.
+		self.headers.update({
+			"Content-Type": "application/x-www-form-urlencoded",
+			"Origin": "https://www.instagram.com",
+			"Referer": "https://www.instagram.com/accounts/edit/"
+		})
+
+		# Trying to update gender.
+		request = self.request.post( "https://www.instagram.com/api/v1/web/accounts/set_gender/", data=payload )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return True
+		else:
+			raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while updating gender [{status}]" )
+		
 
 	#[Client.settings]: Setting
 	@final
