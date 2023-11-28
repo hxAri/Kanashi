@@ -25,7 +25,7 @@
 
 
 from typing import final
-from yutiriti import Object
+from yutiriti.object import Object
 
 
 #[kanashi.typing.user.User]

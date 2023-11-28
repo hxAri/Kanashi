@@ -25,7 +25,9 @@
 
 
 from typing import final
-from yutiriti import Object, Readonly, Typing
+from yutiriti.object import Object
+from yutiriti.readonly import Readonly
+from yutiriti.typing import Typing
 
 
 #[kanashi.typing.two_factor.TwoFactor]

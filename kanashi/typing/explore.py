@@ -25,7 +25,8 @@
 
 
 from typing import final
-from yutiriti import Object, Typing
+from yutiriti.object import Object
+from yutiriti.typing import Typing
 
 from kanashi.typing.media import Media
 from kanashi.typing.user import User

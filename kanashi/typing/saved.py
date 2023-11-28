@@ -29,44 +29,36 @@ from yutiriti.object import Object
 from yutiriti.typing import Typing
 
 
-#[kanashi.typing.friendship.Friendship]
+#[kanashi.typing.saved.SavedPosts]
 @final
-class Friendship( Typing ):
+class SavedPosts( Typing ):
 
-	#[Friendship.__items__]: List<Dict|List|Object|Str>
+	#[SavedPosts.__items__]: List<Dict|List|Object|Str>
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
-			"approve",
-			"blocking",
-			"followed_by",
-			"following",
-			"ignoring",
-			"incoming_request",
-			"id",
-			"is_bestie",
-			"is_blocking_reel",
-			"is_eligible_to_subscribe",
-			"is_feed_favorite",
-			"is_guardian_of_viewer",
-			"is_muting_notes",
-			"is_muting_reel",
-			"is_private",
-			"is_restricted",
-			"is_supervised_by_viewer",
-			"muting",
-			"outgoing_request",
-			"subscribed"
 		]
 	
+	#[SavedPosts.__mapping__]: Dict|Object
+	@property
+	def __mapping__( self ) -> dict|Object:
+		return {
+		}
+	
 
-#[kanashi.typing.friendship.FriendshipShowMany]
+#[kanashi.typing.saved.SavedCollectionList]
 @final
-class FriendshipShowMany( Typing ):
+class SavedCollectionList( Typing ):
 
-	#[FriendshipShowMany.__items__]: List<Dict|List|Object|Str>
+	#[SavedCollectionList.__items__]: List<Dict|List|Object|Str>
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
 		]
+	
+	#[SavedCollectionList.__mapping__]: Dict|Object
+	@property
+	def __mapping__( self ) -> dict|Object:
+		return {
+		}
 	

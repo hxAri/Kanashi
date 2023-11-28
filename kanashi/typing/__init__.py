@@ -48,6 +48,7 @@ from kanashi.typing.notification import Notification, NotificationSMS, Notificat
 from kanashi.typing.pending import Pending, Pendings
 from kanashi.typing.privacy import Privacy
 from kanashi.typing.profile import Profile
+from kanashi.typing.saved import SavedCollectionList, SavedPosts
 from kanashi.typing.setting import Settings
 from kanashi.typing.signin import SignIn
 from kanashi.typing.story import (

@@ -25,7 +25,8 @@
 
 
 from typing import final
-from yutiriti import Object, Typing
+from yutiriti.object import Object
+from yutiriti.typing import Typing
 
 from kanashi.typing.active import Active
 from kanashi.typing.checkpoint import Checkpoint
