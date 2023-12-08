@@ -23,34 +23,48 @@
 # not for SPAM.
 #
 
-from backup import Config, File
-from setuptools import find_packages, setup
+
+from setuptools import setup
 
 
-# Module Requirements
-requirements = File.readline( "requirements.txt" )
+#[setup.reader( Str fname )]: Str
+def reader( fname:str ) -> str:
+	with open( fname, "r" ) as fopen:
+		fread = fopen.read()
+		fopen.close()
+	return fread
 
 # Setup Tool
 setup(
-    name = "kanashi",
-    author = Config.AUTHOR,
-    author_email = Config.AUTHOR_EMAIL,
-    version = Config.VERSION,
-    license = Config.LICENSE,
-    url = Config.REPOSITORY,
-    install_requires = requirements,
-    keywords = [
-        "instagram",
-        "instagram-login", "instagram-image",
-        "instagram-video", "instagram-feeds",
-        "instagram-story", "instagram-private",
-        "instagram-cookie", "instagram-session",
-        "linux",
-        "termux",
-        "android",
-    ],
-    description = "Kanashi is an open source project that can be used to login to real Instagram accounts via Linux Terminal and Android Termux.",
-    packages = find_packages(),
-    python_requires = ">=3.10.4",
-    include_package_data = True
+    name="kanashi",
+    version="1.0.0",
+    author="Ari Setiawan (hxAri)",
+    author_email="hxari@proton.me",
+    maintainer="Ari Setiawan (hxAri)",
+    maintainer_email="hxari@proton.me",
+    description="",
+    packages=['kanashi'],
+    # package_dir={ "": "src" },
+    provides_extra=reader( "requirements.txt" ).split( "\x0a" ),
+    long_description=reader( "README.md" ),
+    url="https://github.com/hxAri/Kanashi",
+    download_url="https://github.com/hxAri/Kanashi/archive/refs/heads/main.zip",
+    license="GNU General Public Licence v3",
+    license_file="LICENSE",
+    classifiers=[
+        "Environment :: CLI Environment",
+        "Intended Audience :: Developers",
+        "Licence :: GNU General Public Licence v3",
+        "Natural Language :: English",
+        "Operating System :: OS Independent",
+        "Topic :: Internet :: Command Line Interface",
+		"Topic :: Social Media :: Instagram Libraries",
+        "Topic :: Software Development :: Libraries",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3 :: Only"
+    ]
 )
