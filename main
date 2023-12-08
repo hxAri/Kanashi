@@ -1,0 +1,539 @@
+#!/usr/bin/env python
+
+#
+# @author Ari Setiawan
+# @create 23.05-2022
+# @github https://github.com/hxAri/Kanashi
+#
+# Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
+# Kanashī Licence under GNU General Public Licence v3
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# Kanashī is not affiliated with or endorsed, endorsed at all by
+# Instagram or any other party, if you use the main account to use this
+# tool we as Coders and Developers are not responsible for anything that
+# happens to that account, use it at your own risk, and this is Strictly
+# not for SPAM.
+#
+
+
+from typing import final
+from yutiriti.common import typeof
+from yutiriti.error import AuthError, Throwable, RequestError
+from yutiriti.readonly import Readonly
+from yutiriti.tree import tree
+
+from kanashi.decorator import logged
+from kanashi.kanashi import Kanashi
+from kanashi.typing import Profile, Story, User
+
+
+#[main.Main]
+@final
+class Main( Kanashi, Readonly ):
+
+	#[Main.main()]: None
+	def main( self ) -> None:
+		action = self.action( 
+			label=self.main,
+			actions={
+				"about": {
+					"action": self.about,
+					"output": "About Kanashī",
+					"prints": "e.g Authors, Version, License, etc"
+				},
+				"checkpoint": {
+					"signin": {
+						"require": False,
+						"include": False
+					},
+					"action": self.checkpoint,
+					"output": "Checkpoint URL",
+					"prints": "Baypass Checkpoint URL"
+				},
+				"clean": {
+					"action": self.clean,
+					"output": "Clear Response",
+					"prints": "Clear the entire request record"
+				},
+				"config": {
+					"action": self.configuration,
+					"output": "Kanashī Config",
+					"prints": "Kanashī configuration settings"
+				},
+				"cookie": {
+					"signin": True,
+					"action": self.cookie,
+					"output": "Cookie Session",
+					"prints": "Display login session cookies"
+				},
+				"direct": {
+					"signin": True,
+					"action": self.direct,
+					"output": "Direct Message",
+					"prints": "Display direct inbox messages"
+				},
+				"explore": {
+					"signin": True,
+					"action": self.explore,
+					"output": "Explore Media",
+					"prints": "Explore recommended media"
+				},
+				"inbox": {
+					"signin": True,
+					"action": self.inbox,
+					"output": "Inbox Notice",
+					"prints": "Display news inbox notifications"
+				},
+				"logout": {
+					"signin": True,
+					"action": self.logout,
+					"output": "Logout Account",
+					"prints": "Logout Instagram account"
+				},
+				"media": {
+					"signin": True,
+					"action": self.download,
+					"output": "Media Download",
+					"prints": "Download Instagram media"
+				},
+				"pending": {
+					"signin": True,
+					"action": self.pending,
+					"output": "Follow Pending",
+					"prints": "Approve or ignore follow requests"
+				},
+				"profile": {
+					"signin": True,
+					"action": self.profile,
+					"output": "Visit Profile",
+					"prints": "Visit profile account"
+				},
+				"remember": {
+					"action": self.remember,
+					"filter": self.authenticated,
+					"output": [
+						"Remember Credentials",
+						"Add another account"
+					],
+					"prints": "Remember or add login creadentials"
+				},
+				"saved": {
+					"signin": True,
+					"action": lambda: self.saved(),
+					"output": "Media Saved",
+					"prints": "Get media saved in your account"
+				},
+				"search": {
+					"signin": True,
+					"action": self.search,
+					"output": "Search Anything",
+					"prints": "Search posts, users, hashtags and more"
+				},
+				"setting": {
+					"signin": True,
+					"action": self.setting,
+					"output": "Setting Manager",
+					"prints": "Instagram account setting manager"
+				},
+				"signin": {
+					"signin": {
+						"require": False,
+						"include": False
+					},
+					"action": self.signin,
+					"output": "SignIn Account",
+					"prints": "SignIn manual with username and password"
+				},
+				"switch": {
+					"action": self.switch,
+					"allows": self.settings.signin.switch.len() >= 2 and self.authenticated or self.settings.signin.switch.len() >= 1 and not self.authenticated,
+					"output": "Switch Account",
+					"prints": "Switch to another saved accounts"
+				},
+				"story": {
+					"signin": True,
+					"action": self.story,
+					"output": "Story",
+					"prints": "Story info"
+				},
+				"support": {
+					"action": self.support,
+					"output": "Support Project",
+					"prints": "When you like this program and useful for you"
+				},
+				"exit": {
+					"action": lambda: self.exit( self.main, "Finish" ),
+					"output": "Exit",
+					"prints": [
+						"Close the program",
+						"Always use CTRL+D for shortcut"
+					]
+				}
+			}
+		)
+		try:
+			action()
+		except AuthError as e:
+			self.emit( e )
+		except NotImplementedError as e:
+			self.emit( e )
+			self.previous( self.main, ">>>" )
+
+	#[Main.profile( Int|Str username, Profile|User profile )]: None
+	@logged
+	def profile( self, username:int|str=None, profile:Profile|User=None ) -> None:
+		if profile is None:
+			if username is None:
+				self.output( self.profile, [
+					"\nThis tool is not used for illegal purposes like,",
+					"data theft and so on, please use it properly.",
+					"Please input >>> for back to  main page.",
+					"Please input the Username or User IDs"
+				])
+				username = self.input( "Username", default=self.active.username )
+				if username == ">>>":
+					return self.main()
+			elif not isinstance( username, ( int, str ) ):
+				raise TypeError( "Invalid \"username\" parameter, value must be type Int|Str, {} passed".format( typeof( username ) ) )
+			username = str( username )
+			username = username.lower()
+			if username not in self.cached.profile:
+				try:
+					profile = self.thread( f"Getting profile info for @{username}", lambda: self.client.profile( username=username ) )
+				except Throwable as e:
+					self.emit( e )
+					if isinstance( e, AuthError ):
+						self.destruct( True )
+						self.previous( self.main, ">>>" )
+					elif isinstance( e, RequestError ):
+						self.tryAgain( next=lambda: self.profile( username=username ), other=self.main )
+					else:
+						self.tryAgain( next=self.profile, other=self.main )
+				self.cached.profile[username] = profile
+				self.profile( username=username, profile=profile )
+			else:
+				self.profile( username=username, profile=self.cached.profile[username] )
+		elif not isinstance( profile, Profile ):
+			raise TypeError( "Invalid \"profile\" parameter, value must be type profile, {} passed".format( typeof( profile ) ) )
+		else:
+
+			stacks = {}
+			printf = [ "" ]
+			search = [
+				"id",
+				"self",
+				"account",
+				"username",
+				"fullname",
+				"pronouns",
+				"category",
+				"websites",
+				"statuses",
+				"entities",
+				"contexts"
+			]
+			
+			for line in search:
+				match line:
+					case "id":
+						value = profile.id
+					case "self":
+						value = profile.isMySelf
+					case "account":
+						account = []
+						if profile.isPrivate:
+							account.append( "Private" )
+						else:
+							account.append( "Public" )
+							if profile.isBusinessAccount:
+								account.append( "Business" )
+							if profile.isProfessionalAccount:
+								account.append( "Professional" )
+						value = "/".join( account )
+					case "username":
+						value = "\x1b[1;38;5;189m\x7b\x7d\x1b[0m".format( profile.username )
+					case "fullname":
+						value = "\x1b[1;37m\x7b\x7d\x1b[0m".format( profile.fullName )
+						if profile.isVerified:
+							value += "\x20\x1b[1;38;5;195m\u221a\x1b[0m"
+					case "pronouns":
+						value = profile.pronounsFormat if profile.pronounsFormat else None
+					case "category":
+						if profile.isProfessionalAccount:
+							value = profile.categoryName
+					case "websites":
+						if profile['bio_links']:
+							link = {}
+							if "title" in profile.bioLinks[0] and profile.bioLinks[0].title:
+								link['Title'] = profile.bioLinks[0].title
+							link['Type'] = profile.bioLinks[0].link_type.capitalize()
+							link['Url'] = "\x1b[1;38;5;81m{}\x1b[0m".format( profile.bioLinks[0].url )
+							value = link
+					case "statuses":
+						if profile.isNotMySelf:
+							value = {
+								"Block": {
+									"Blocked by owner": profile.hasBlockedViewer,
+									"Blocked by viewer": profile.blockedByViewer
+								},
+								"Follow": {
+									"Followed by owner": profile.followsViewer,
+									"Requested by owner": profile.incomingRequest,
+									"Followed by viewer": profile.followedByViewer,
+									"Requested by viewer": profile.requestedByViewer
+								},
+								"Muting": {
+									"Media": profile.isMutingMediaNotes,
+									"Notes": profile.isMutingNotes,
+									"Reel": profile.isMutingReel
+								},
+								"Bestie": profile.isBestie,
+								"Favorite": profile.isFeedFavorite,
+								"Restrict": profile.restrictedByViewer
+							}
+						else:
+							value = "Unavailable"
+					case "entities":
+						value = {
+							"Users": {
+								"Count": len( profile.biographyEntityUsers ),
+								"List": [ "@{}".format( user ) for user in profile.biographyEntityUsers ]
+							},
+							"Hashtags": {
+								"Count": len( profile.biographyEntityHashtags ),
+								"List": [ "#{}".format( hashtag ) for hashtag in profile.biographyEntityHashtags ]
+							}
+						}
+					case "contexts":
+						if profile.isNotMySelf:
+							value = {
+								"Linkeds": [],
+								"Facepiles": []
+							}
+							for user in profile.profileContextLinksWithUserIds:
+								if "username" in user:
+									value['Linkeds'].append( "@{}".format( user.username ) )
+							for user in profile.profileContextFacepileUsers:
+								if "username" in user:
+									value['Facepiles'].append( "@{}".format( user.username ) )
+					case _:
+						value = "Unavailable"
+				try:
+					stacks[line.capitalize()] = value
+				except NameError:
+					continue
+			
+			printf = [ *printf, *tree( stacks ).split( "\x0a" ) ]
+			biography = [ "\x20\x20{}".format( profile.biography[i:i+46].strip().replace( "\x0a", "\x0a\x20\x20\x20\x20\x20\x20" ) ) for i in range( 0, len( profile.biography ), 46 ) ] if profile.biography else [ "None" ]
+			
+			printf.append( "\x0a".join([
+				"--------------------------------------------------",
+				"-                    Biography                   -",
+				"--------------------------------------------------",
+				*biography,
+				"--------------------------------------------------"
+			]))
+			
+			edges = "\x0a".join([
+				"\n┌───────────┬─────────┬──────────┬───────────────┐",
+				"│   Posts   │  Felix  │  Saveds  │  Collections  │",
+				"├───────────┼─────────┼──────────┼───────────────┤",
+				"│ {} │ {} │ {} │ {} │",
+				"└───────────┴─────────┴──────────┴───────────────┘",
+				"--------------------------------------------------",
+				"┌─────────────────┬─────────────────┬────────────┐",
+				"│    Followers    │    Following    │   Mutual   │",
+				"├─────────────────┼─────────────────┼────────────┤",
+				"│ {} │ {} │ {} │",
+				"└─────────────────┴─────────────────┴────────────┘\n"
+			])
+
+			printf.append( edges.format(
+				f"{profile.edgeOwnerToTimelineMediaCount}".center( 9 ),
+				f"{profile.edgeFelixVideoTimelineCount}".center( 7 ),
+				f"{profile.edgeSavedMediaCount}".center( 8 ),
+				f"{profile.edgeMediaCollectionsCount}".center( 13 ),
+				f"{profile.edgeFollowedByCount}".center( 15 ),
+				f"{profile.edgeFollowCount}".center( 15 ),
+				f"{profile.edgeMutualFollowedByCount}".center( 10 ),
+			))
+			
+			action = self.action( 
+				label=self.profile,
+				prints=printf, 
+				info=False, 
+				actions={
+					"block": {
+						"signin": True,
+						"action": lambda: self.block( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"filter": profile.blockedByViewer,
+						"output": [
+							"Block User",
+							"Unblock User"
+						],
+						"prints": "Block or unblok this user"
+					},
+					"bestie": {
+						"signin": True,
+						"action": lambda: self.bestie( profile=profile ),
+						"allows": profile.isNotMySelf and profile.followedByViewer,
+						"filter": profile.isBestie,
+						"output": [
+							"Make Bestie",
+							"Remove Bestie"
+						],
+						"prints": "Make or remove this user as bestie"
+					},
+					"confirm": {
+						"signin": True,
+						"action": lambda: self.confirm( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"filter": profile.incomingRequest,
+						"output": "Confirm Request",
+						"prints": "Confirm or ignore request follow from user"
+					},
+					"favorite": {
+						"signin": True,
+						"action": lambda: self.favorite( profile=profile ),
+						"allows": profile.isNotMySelf and profile.followedByViewer,
+						"filter": profile.isFeedFavorite,
+						"output": [
+							"Make Favorite",
+							"Remove Favorite"
+						],
+						"prints": "Make or remove this user from favorite"
+					},
+					"follow": {
+						"signin": True,
+						"action": lambda: self.follow( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"filter": [
+							not profile.followedByViewer and not profile.requestedByViewer,
+							profile.followedByViewer,
+							profile.requestedByViewer
+						],
+						"output": [
+							"Follow User",
+							"Unfollow User",
+							"Unrequest User"
+						],
+						"prints": "Follow, unfollow or cancel request follow"
+					},
+					"remove": {
+						"signin": True,
+						"action": lambda: self.remove( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"filter": profile.followsViewer,
+						"output": "Remove Follower",
+						"prints": "Remove this user from follower list"
+					},
+					"report": {
+						"signin": True,
+						"action": lambda: self.report( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"output": "Report User",
+						"prints": "Report this user profile"
+					},
+					"muting": {
+						"follow": True,
+						"action": lambda: self.muting( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"output": "Mute User",
+						"prints": "Mute posts and stories from this user"
+					},
+					"restrict": {
+						"signin": True,
+						"action": lambda: self.restrict( profile=profile ),
+						"allows": profile.isNotMySelf,
+						"filter": profile.restrictedByViewer,
+						"output": [
+							"Restrict User",
+							"Unrestrict User"
+						],
+						"prints": "Restrict or unrestrict this user"
+					},
+					"followers": {
+						"signin": True,
+						"action": lambda: self.friendl( profile=profile, flags=1 ),
+						"filter": profile.isPrivate and profile.followedByViewer or profile.isPrivate is False or profile.isMySelf,
+						"output": "Profile Followers",
+						"prints": "Gets user follower accounts"
+					},
+					"following": {
+						"signin": True,
+						"action": lambda: self.friendl( profile=profile, flags=2 ),
+						"filter": profile.isPrivate and profile.followedByViewer or profile.isPrivate is False or profile.isMySelf,
+						"output": "Profile Following",
+						"prints": "Get user following accounts"
+					},
+					"mutuals": {
+						"signin": True,
+						"action": lambda: self.friendl( profile=profile, flags=4 ),
+						"allows": profile.isNotMySelf,
+						"output": "Profile Mutuals",
+						"prints": "Get mutual users from this user"
+					},
+					"suggest": {
+						"signin": True,
+						"action": lambda: self.friendl( profile=profile, flags=3 ),
+						"allows": profile.isNotMySelf,
+						"output": "Profile Suggest",
+						"prints": "Get suggested user from this user"
+					},
+					"medias": {
+						"signin": True,
+						"action": lambda: self.medias( profile=profile ),
+						"filter": profile.isPrivate and profile.followedByViewer or profile.isPrivate is False or profile.isMySelf,
+						"output": "Profile Media",
+						"prints": "Get media posts, reels, saveds, etc"
+					},
+					"saved": {
+						"signin": True,
+						"action": lambda: self.saved(),
+						"filter": profile.isMySelf,
+						"output": "Media Saved",
+						"prints": "Get media saved in your account"
+					},
+					"story": {
+						"signin": True,
+						"action": lambda: self.story( target=profile.id, flag=Story.Profile, callback=lambda: self.profile( profile=profile, username=username ) ),
+						"filter": profile.isPrivate and profile.followedByViewer or profile.isPrivate is False or profile.isMySelf,
+						"output": "Profile Story",
+						"prints": "Get profile highlight or timeline story"
+					},
+					"picture": {
+						"signin": True,
+						"action": lambda: self.picture( profile=profile ),
+						"output": "Profile Picture",
+						"prints": "Download profile picture"
+					},
+					"export": {
+						"signin": True,
+						"action": lambda: self.export( profile=profile ),
+						"output": "Export Profile",
+						"prints": "Save profile info as json file"
+					},
+					"main": {
+						"action": self.main,
+						"output": "Back to Main"
+					}
+				}
+			)
+			action()
+		pass
+	...
+	
+
+if  __name__ == "__main__":
+	main = Main()
+	main.main()
+	
