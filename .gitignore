@@ -8,22 +8,8 @@ __pycache__/
 backup/*
 onsaved/*
 requests/*
-schemas*
-schemas/*
-testing*
-testing/*
-wordlist*
-wordlist/*
-*.html
-*.webp
 *.json
-*.jpeg
-*.jpg
-*.png
-*.mp3
-*.mp4
 
 # Visual Studio Code
 .vscode
 .vscode/*
-
