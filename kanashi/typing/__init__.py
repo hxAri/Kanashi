@@ -39,8 +39,14 @@ from kanashi.typing.explore import (
 	ExploreSection 
 )
 # from kanashi.typing.feed import 
-from kanashi.typing.follow import Follower, Followers, Following, Followings
-from kanashi.typing.friendship import Friendship, FriendshipShowMany
+from kanashi.typing.follow import (
+	Follow, 
+	Follower, 
+	Followers, 
+	Following, 
+	Followings
+)
+from kanashi.typing.friendship import Friendship, FriendshipStatuses
 from kanashi.typing.inbox import Inbox
 from kanashi.typing.logout import Logout
 from kanashi.typing.media import Media
@@ -59,6 +65,7 @@ from kanashi.typing.story import (
 	StoryFeedTrayReels, 
 	StoryHighlight, 
 	StoryHighlights, 
+	StoryHighlightReels, 
 	StoryItem, 
 	StoryProfile, 
 	StoryProfileEdge, 

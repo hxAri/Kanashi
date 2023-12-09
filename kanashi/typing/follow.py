@@ -26,10 +26,56 @@
 
 from typing import final
 from yutiriti.object import Object
+from yutiriti.readonly import Readonly
 from yutiriti.typing import Typing
 
 from kanashi.typing.user import User
 
+
+#[kanashi.typing.follow.Follow]
+@final
+class Follow:
+
+	""" Follow Identity """
+
+	#[kanashi.typing.follow.Follow$.Type]
+	@final
+	class Type( Readonly ):
+
+		""" Follow Type """
+
+		#[Type( Int type )]: None
+		def __init__( self, type:int ) -> None:
+
+			"""
+			Construct method of class Type.
+
+			:params Int type
+
+			:return None
+			"""
+
+			match type:
+				case 78323: name = "Follow"
+				case 78263: name = "Unfollow"
+				case 79763: name = "Unrequest"
+				case _:
+					raise ValueError( "Unknown follow type" )
+			
+			self.__name__ = name
+			self.__type__ = type
+		
+		#[Type.name]: Str
+		@property
+		def name( self ) -> str: return self.__name__
+
+		#[Type.value]: Int
+		@property
+		def value( self ) -> int: return self.__type__
+	
+	FOLLOW = Type( 78323 )
+	UNFOLLOW = Type( 78263 )
+	UNREQUEST = Type( 79763 )
 
 #[kanashi.typing.follow.Follower]
 class Follower( Typing, User ):

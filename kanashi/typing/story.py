@@ -37,7 +37,7 @@ class Story( Typing ):
 
 	""" Story Identity """
 
-	#[kanashi.typing.story.Story.Type]
+	#[kanashi.typing.story.Story$.Type]
 	@final
 	class Type( Readonly ):
 
@@ -169,7 +169,9 @@ class StoryFeedTrayReels( Story, Typing ):
 	@property
 	def __mapping__( self ) -> dict|Object:
 		return {
-			"reels": StoryFeedTrayReel,
+			"reels": {
+				"*": StoryFeedTrayReel
+			},
 			"reels_media": StoryFeedTrayReel
 		}
 	
@@ -221,7 +223,9 @@ class StoryItem( Story, Typing ):
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
+			"accessibility_caption",
 			"archive_story_deletion_ts",
+			"attribution_content_url",
 			"can_play_spotify_audio",
 			"can_reply",
 			"can_reshare",
@@ -240,6 +244,8 @@ class StoryItem( Story, Typing ):
 			"created_from_add_yours_browsing",
 			"deleted_reason",
 			"device_timestamp",
+			"enable_media_notes_production",
+			"expiring_at",
 			"explore_hide_comments",
 			"fb_user_tags",
 			"filter_type",
@@ -248,7 +254,6 @@ class StoryItem( Story, Typing ):
 			"has_liked",
 			"has_shared_to_fb",
 			"has_translation",
-			"highlights_info",
 			"id",
 			"ig_media_sharing_disabled",
 			"image_versions2",
@@ -274,23 +279,26 @@ class StoryItem( Story, Typing ):
 			"is_visual_reply_commenter_notice_enabled",
 			"like_and_view_counts_disabled",
 			"likers",
-			"media_notes",
 			"media_type",
 			"music_metadata",
 			"number_of_qualities",
+			"open_carousel_submission_state",
 			"organic_tracking_token",
 			"original_height",
 			"original_media_has_visual_reply_media",
 			"original_width",
+			"owner",
 			"pk",
 			"product_suggestions",
 			"product_type",
 			"profile_grid_control_enabled",
 			"sharing_friction_info",
 			"shop_routing_user_id",
+			"should_render_soundwave",
 			"should_request_ads",
 			"show_one_tap_fb_share_tooltip",
-			"story_music_stickers",
+			"story_bloks_stickers",
+			"story_feed_media",
 			"strong_id__",
 			"supports_reel_reactions",
 			"taken_at",
@@ -305,6 +313,7 @@ class StoryItem( Story, Typing ):
 	@property
 	def __mapping__( self ) -> dict|Object:
 		return {
+			"owner": User,
 			"user": User
 		}
 	
@@ -365,18 +374,18 @@ class StoryHighlights( StoryFeedTrayReels, Typing ):
 		}
 
 
-#[kanashi.typing.story.StoryHighlighReels<StoryProfileEdge[]>]
+#[kanashi.typing.story.StoryHighlightReels<StoryProfileEdge[]>]
 @final
-class StoryHighlighReels( Story, Typing ):
+class StoryHighlightReels( Story, Typing ):
 
-	#[StoryHighlighReels.__items__]: List<Dict|List|Object|Str>
+	#[StoryHighlightReels.__items__]: List<Dict|List|Object|Str>
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
 			"edges"
 		]
 	
-	#[StoryHighlighReels.__mapping__]: Dict|Object
+	#[StoryHighlightReels.__mapping__]: Dict|Object
 	@property
 	def __mapping__( self ) -> dict|Object:
 		return {
@@ -384,7 +393,7 @@ class StoryHighlighReels( Story, Typing ):
 			"owner": User
 		}
 
-#[kanashi.typing.story.StoryProfile<Chaining[], StoryHighlighReels<StoryProfileEdge[]>, StoryReel>]
+#[kanashi.typing.story.StoryProfile<Chaining[], StoryHighlightReels<StoryProfileEdge[]>, StoryReel>]
 @final
 class StoryProfile( Story, Typing ):
 
@@ -413,7 +422,7 @@ class StoryProfile( Story, Typing ):
 	def __mapping__( self ) -> dict|Object:
 		return {
 			# "edge_chaining": Chaining,
-			"edge_highlight_reels": StoryHighlighReels,
+			"edge_highlight_reels": StoryHighlightReels,
 			"reel": StoryReel
 		}
 	
@@ -471,5 +480,4 @@ class StoryReel( Story, Typing ):
 			"user": User
 		}
 	
-
 

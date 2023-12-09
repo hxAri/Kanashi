@@ -60,13 +60,14 @@ class Friendship( Typing ):
 		]
 	
 
-#[kanashi.typing.friendship.FriendshipShowMany]
+#[kanashi.typing.friendship.FriendshipStatuses<Friendship>]
 @final
-class FriendshipShowMany( Typing ):
+class FriendshipStatuses( Typing ):
 
-	#[FriendshipShowMany.__items__]: List<Dict|List|Object|Str>
+	#[FriendshipStatuses.__items__]: List<Dict|List|Object|Str>
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
+			"frienship_statuses"
 		]
 	
