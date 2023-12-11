@@ -24,9 +24,14 @@
 #
 
 
-from kanashi.client import Client
-from kanashi.error import *
-from kanashi.kanashi import Kanashi
-from kanashi.pattern import Pattern
-from kanashi.typing import *
-from kanashi.utility import *
+from kanashi.constant import *
+from kanashi import (
+	decorator,
+	error,
+	client,
+	common,
+	config,
+	kanashi,
+	pattern,
+	typing
+)
