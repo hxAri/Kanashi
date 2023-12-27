@@ -28,30 +28,55 @@ from datetime import datetime
 from pytz import utc as UTC
 from re import findall, match
 from typing import final
-from yutiriti import (
+from yutiriti.common import typeof
+from yutiriti.error import (
 	AuthError, 
-	File, 
-	Object, 
-	Readonly, 
+	RequestError, 
+	RequestDownloadError, 
+	Throwable
+)
+from yutiriti.file import File
+from yutiriti.object import Object
+from yutiriti.readonly import Readonly
+from yutiriti.request import (
 	Cookies, 
 	Headers, 
-	Request, 
-	RequestError, 
-	RequestRequired, 
-	Text, 
-	Throwable, 
-	tree, 
-	typeof, 
-	ITP,
-	Yutiriti 
+	Request, RequestRequired
 )
+from yutiriti.text import Text
+from yutiriti.tree import ITP, tree
+from yutiriti.yutiriti import Yutiriti
 
 from kanashi.client import Client
 from kanashi.config import Config
-from kanashi.error import *
+from kanashi.decorator import avoidForMySelf, logged
+from kanashi.error import ConfigError, PasswordError
 from kanashi.pattern import Pattern
-from kanashi.typing import *
-from kanashi.utility import *
+from kanashi.typing import (
+	Active, 
+	Explore, 
+	ExploreClipItem, 
+	ExploreClipMedia, 
+	ExploreFillItem, 
+	ExploreFillMedia, 
+	Friendship, 
+	Media, 
+	Profile, 
+	Settings, 
+	Story, 
+	StoryFeed, 
+	StoryFeedTray, 
+	StoryFeedTrayReel, 
+	StoryFeedTrayReels, 
+	StoryHighlight, 
+	StoryHighlightReels, 
+	StoryHighlights, 
+	StoryItem, 
+	StoryProfile, 
+	StoryProfileEdge, 
+	StoryReel, 
+	User
+)
 
 
 #[kanashi.kanashi.Kanashi]
@@ -60,12 +85,6 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 	#[Kanashi()]: None
 	@final
 	def __init__( self ) -> None:
-
-		"""
-		Construct method of class Kanashi
-
-		:return None
-		"""
 
 		self.__except__:list[str] = [
 			"__active__",
@@ -230,10 +249,10 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 					action['prints'] = [action['prints']]
 				outputs.append( action['prints'] )
 		
-		self.output( self.action, [ *self.__outputs__, *prints, outputs ] if info else [ *prints, outputs ] )
-		option = self.input( label, number=True, default=[ idx +1 for idx in range( len( options ) ) ] )
+		self.output( label if callable( label ) else self.action, [ *self.__outputs__, *prints, outputs ] if info else [ *prints, outputs ] )
+		option = self.input( label if label is not None else self.action, number=True, default=[ idx +1 for idx in range( len( options ) ) ] )
 		
-		return actions[options[option -1 ]]['action']
+		return actions[options[( option -1 )]]['action']
 	
 	#[Kanashi.active]: Active
 	@final
@@ -387,35 +406,38 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 		if not isinstance( flag, int ):
 			raise ValueError()
 		if flag == 0:
-			action = self.action( actions={
-				"lists": {
-					"action": lambda: self.configuration( flag=1 ),
-					"output": "List available User-Agent"
-				},
-				"browser": {
-					"action": lambda: self.configuration( flag=2 ),
-					"output": "Change default User-Agent",
-					"prints": [
-						"This will only change the main",
-						"configuration, this will not affect",
-						"the configuration of the logged in account"
-					]
-				},
-				"timeout": {
-					"action": lambda: self.configuration( flag=3 ),
-					"output": "Update request timeout",
-					"prints": "Change default request timeouts"
-				},
-				"randoms": {
-					"action": lambda: self.configuration( flag=4 ),
-					"output": "Add or remove browser lists"
-				},
-				"cancel": {
-					"action": lambda: self.main(),
-					"output": "Cancel",
-					"prints": "Back to main"
+			action = self.action( 
+				label=self.configuration,
+				actions={
+					"lists": {
+						"action": lambda: self.configuration( flag=1 ),
+						"output": "List available User-Agent"
+					},
+					"browser": {
+						"action": lambda: self.configuration( flag=2 ),
+						"output": "Change default User-Agent",
+						"prints": [
+							"This will only change the main",
+							"configuration, this will not affect",
+							"the configuration of the logged in account"
+						]
+					},
+					"timeout": {
+						"action": lambda: self.configuration( flag=3 ),
+						"output": "Update request timeout",
+						"prints": "Change default request timeouts"
+					},
+					"randoms": {
+						"action": lambda: self.configuration( flag=4 ),
+						"output": "Add or remove browser lists"
+					},
+					"cancel": {
+						"action": lambda: self.main(),
+						"output": "Cancel",
+						"prints": "Back to main"
+					}
 				}
-			})
+			)
 			action()
 		elif flag == 1:
 			self.output( self.configuration, [ "", self.settings.browser.randoms ] )
@@ -536,6 +558,7 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 				online = datetime.fromtimestamp( int( thread.last_seen_at[thread.last_seen_at.keys()[0]].timestamp ) / 1000000 )
 				action = self.action(
 					info=False,
+					label=self.direct,
 					prints=[
 						"\nInviter is @{}".format( thread.inviter.username ),
 						"Thread direct message of {} \u00b7 {}".format( thread.thread_title, f"@{thread.users[0].username}" if thread.users[0].full_name else thread.users[0].pk ),
@@ -589,6 +612,7 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 			direct = self.cached.message
 			action = self.action( 
 				info=False,
+				label=self.direct,
 				prints=[
 					"\nTotal direct threads message inbox is {}".format( len( direct.inbox.threads ) ),
 					"Total direct pending request message is {}\n".format( direct.pending_requests_total )
@@ -621,13 +645,23 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 	@logged
 	def download( self, url:str, save:str=None, callback:callable=None ) -> None:
 		callback = callback if callable( callback ) else self.main
-		raise NotImplementedError( "Method {} is not initialized or implemented".format( self.download ) )
+		if save is None:
+			save = self.input( "Filename" )
+		self.thread( f"Downloading {url}", lambda: self.request.download( url=url, name=save ) )
+		try:
+			self.output( self.download, [
+				"\nSuccessfully download {}".format( url ),
+				"Saved as {}".format( save )
+			])
+			self.previous( callback, ">>>" )
+		except RequestDownloadError as e:
+			self.emit( e )
+			self.tryAgain( next=lambda: self.download( url=url, save=save, callback=callback ), other=callback )
 	
 	#[Kanashi.explore( int flag )]: None
 	@final
 	@logged
 	def explore( self, flag:int=0 ) -> None:
-		self.cached.explore = Explore( File.json( "requests/api/v1/discover/web/explore_grid/response 2023-10-29 23:07:32.419220.json" )['response']['content'] )
 		explore = self.cached.explore
 		try:
 			if flag == 1:
@@ -670,7 +704,6 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 						self.explore( flag=1 )
 				else:
 					self.explore()
-					all
 			elif flag == 2:
 				self.output( self.explore, f"Session paging token: \"{explore.session_paging_token}\"" )
 				self.previous( self.explore, ">>>" )
@@ -696,9 +729,10 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 					self.output( self.explore, "The explore items section has been updated" )
 					self.previous( self.explore, ">>>" )
 			else:
-				if explore is not None:	
+				if isinstance( explore, Explore ):	
 					action = self.action( 
 						info=False, 
+						label=self.explore,
 						prints=[
 							"\nAutoload more contents is {}:{}".format( explore.next_max_id, "available" if explore.more_available else "unavailable" ),
 							"Please select the action:\n",
@@ -746,7 +780,6 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 	@final
 	@logged
 	def inbox( self, flag:int=0, next:bool=False ) -> None:
-		self.cached.notices = Inbox( File.json( "/home/be-arisetiawan/Documents/self/personal/coding/Python/Kanashi/requests/api/v1/news/inbox/response 2023-10-29 16:58:14.218894.json" )['response']['content'] )
 		try:
 			if self.cached.notices is None:
 				self.cached.notices = self.thread( "Getting notification inbox", self.client.inbox )
@@ -808,7 +841,7 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 			for key in counts.keys():
 				prints.append( "  [{}] => {}".format( counts[key], Text.fromSnakeToTitle( key ) ) )
 			prints.append( "\nPlease select action" )
-			action = self.action( info=False, prints=prints, actions={
+			action = self.action( info=False, label=self.inbox, prints=prints, actions={
 				"top": {
 					"action": lambda: self.inbox( flag=1 ),
 					"output": "Priority Notification",
@@ -852,6 +885,135 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 	@final
 	@logged
 	def media( self, media:list[Media]|Media|Profile|User=None, target:int|str=None, ftype:Media.Type|Story.Type=None, callback:callable=None ) -> None:
+		
+		#[Kanashi.media$.create( List<Media>|Media|Profile|User media )]: Dict<Str, Any>|List<Dict<Str, Any>>
+		def create( media:list[Media]|Media|Profile|User ) -> dict[str:any]|list[dict[str:any]]:
+			
+			#[Kanashi.media$.create$.builder( Media media, Int space, Int indent, Int length, Int i )]: Dict<Str, Any>
+			def builder( media:Media, space:int, indent:int, length:int, i:int ) -> dict[str:any]:
+				pk = media.pk if "pk" in media else media.id
+				if "owner" in media:
+					struct = {
+						f"{i+1}:{pk}": f"Owner @{media.owner.username}",
+						**profile( media.owner )
+					}
+				elif "user" in media:
+					struct = {
+						f"{i+1}:{pk}": f"User @{media.user.username}",
+						**profile( media.user )
+					}
+				else:
+					struct = { f"{i+1}": pk }
+				if "product_type" in media:
+					struct['metype'] = "\x1b[1;37m{}\x1b[0m".format( Text.fromSnakeToTitle( media.product_type ) )
+					if "code" in media:
+						struct['interface'] = "https://www.instagram.com/{}/{}".format( "reels" if media.product_type == "clips" else "p", media.code )
+				if "algorithm" in media:
+					struct['algorithm'] = "\x1b[1;37m{}\x1b[0m".format( Text.fromSnakeToTitle( media.algorithm ) )
+				if "commerciality_status" in media:
+					struct['commercial'] = "\x1b[1;37m{}\x1b[0m".format( Text.fromSnakeToTitle( media.commerciality_status ) )
+				if "comment_count" in media:
+					struct['comments'] = media.comment_count
+				if "play_count" in media:
+					struct['plays'] = media.play_count
+				if "like_count" in media:
+					struct['likes'] = media.like_count
+				if "has_liked" in media:
+					struct['liked'] = media.has_liked
+				if "top_likers" in media:
+					struct['likers'] = [ f"@{liker}" for liker in media.top_likers ]
+				if "usertags" in media and "in" in media.usertags:
+					struct['taggeds'] = [ profile( tag.user ) for tag in media.usertags['in'] ]
+				if "caption" in media and media.caption:
+					struct['created'] = datetime.fromtimestamp( media.caption.created_at, tz=UTC )
+					if media.caption.text:
+						struct['caption'] = {
+							"edited": media.caption_is_edited,
+							"entity": {
+								"hashtags": [ f"#{hashtag}" for hashtag in findall( Pattern.HASHTAG_MULTILINE, media.caption.text ) ],
+								"mentions": [ f"@{user}" for user in findall( Pattern.USERNAME_MULTILINE, media.caption.text ) ]
+							},
+							"text": []
+						}
+						parts = media.caption.text.split( "\x0a" )
+						for part in parts:
+							if len( part ) <= 0:
+								struct['caption']['text'].append( "\x20" ); continue
+							for u in range( 0, len( part ), 90 ):
+								struct['caption']['text'].append( part[u:u+90].strip( "\x20" ) )
+						if i != ( length -1 ):
+							struct['caption']['text'] = "\x0a\u2502{}\u2502{}".format( "\x20" *space, "\x20" *indent ).join( struct['caption']['text'] )
+						else:
+							struct['caption']['text'] = "\x0a{}\u2502{}".format( "\x20" * ( space if space % 2 == 0 else space +1 ), "\x20" *indent ).join( struct['caption']['text'] )
+				elif "taken_at" in media:
+					struct['created'] = datetime.fromtimestamp( media.taken_at, tz=UTC )
+				if "clips_metadata" in media and media.clips_metadata and media.clips_metadata.original_sound_info:
+					metadata = media.clips_metadata
+					struct['audio'] = {}
+					struct['audio'][metadata.original_sound_info.audio_asset_id] = "\x1b[1;37m{}\x1b[0m".format( Text.fromSnakeToTitle( metadata.audio_type ) )
+					struct['audio']['title'] = "\x1b[1;37m{}\x1b[0m".format( metadata.original_sound_info.original_audio_title )
+					struct['audio']['artist'] = {
+						"pk": metadata.original_sound_info.ig_artist.pk,
+						"account": {
+							"private": metadata.original_sound_info.ig_artist.is_private,
+						},
+						"fullname": metadata.original_sound_info.ig_artist.full_name,
+						"username": metadata.original_sound_info.ig_artist.username	
+					}
+					struct['audio']['created'] = datetime.fromtimestamp( metadata.original_sound_info.time_created, tz=UTC )
+					struct['audio']['consumption'] = {
+						"bookmarked": metadata.original_sound_info.consumption_info.is_bookmarked
+					}
+				struct['video'] = "video_versions" in media
+				return struct
+			
+			if isinstance( media, list ):
+				return [ builder( media[i], 3, 11, length, i ) for i in range( length ) ]
+			return builder( media, 0, 11, 1, 0 )
+			
+		#[Kanashi.media$.friendship( Object|Friendship status )]: Dict<Str, Bool>
+		def friendship( status:Object|Friendship ) -> dict[str:any]:
+			struct = {}
+			keyset = [
+				"approve",
+				"blocking",
+				"followed_by",
+				"following",
+				"ignoring",
+				"incoming_request",
+				"is_bestie",
+				"is_blocking_reel",
+				"is_eligible_to_subscribe",
+				"is_feed_favorite",
+				"is_guardian_of_viewer",
+				"is_muting_notes",
+				"is_muting_reel",
+				"is_private",
+				"is_restricted",
+				"is_supervised_by_viewer",
+				"is_verified",
+				"muting",
+				"outgoing_request",
+				"subscribed"
+			]
+			for key in keyset:
+				if key in status:
+					struct[key.split( "\x5f" ).pop()] = status[key]
+			return struct
+			
+		#[Kanashi.media$.profile( Object|User user )]: Dict<Str, Any>
+		def profile( user:Object|User ) -> dict[str:any]:
+			keyset = "id:{}".format( user.id if "id" in user else user.pk if "pk" in user else 0 )
+			struct = {
+				keyset: f"@{user.username}",
+				"fullname": user.full_name if "full_name" in user else None,
+				"friendship": {
+					**friendship( user.friendship_status if "friendship_status" in user else Object({}) ),
+					**friendship( user )
+				}
+			}
+			return struct
+			
 		callback = callback if callable( callback ) else self.main
 		if media is None:
 			if target is None:
@@ -863,8 +1025,8 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 						groups = capture.groupdict()
 						if "id" in groups and groups['id']:
 							self.output( self.media, [
-								"\nLooks like you have entered your ID",
-								"but Kanashi doesn't know what ID it is\n", [
+								"\nLooks like you have entered Primary Key but",
+								"Kanashi doesn't know what Primary Key it is\n", [
 									"Post", [
 										"Primary key for Instagram posts"
 									],
@@ -888,7 +1050,7 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 							select = self.input( "Type", defaulty=[ 1, 2, 3, 4, 5, 6 ], number=True )
 						else:
 							...
-						# Add Handle for check Id type
+							# Add Handle for check Id type
 					else:
 						media = None
 				...
@@ -904,37 +1066,12 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 					if isinstance( item, ExploreFillItem ):
 						self.media( media=[ item.media for item in media ], callback=callback )
 					elif isinstance( item, ExploreFillMedia ):
-						structs = []
 						length = len( media )
-						for i in range( length ):
-							item = media[i]
-							struct = { f"{i+1}:{item.pk}": f"Owner @{item.owner.username}" }
-							struct['Algorithm'] = "\x1b[1;37m{}\x1b[0m".format( Text.fromSnakeToTitle( item.algorithm ) )
-							struct['Comercial'] = "\x1b[1;37m{}\x1b[0m".format( Text.fromSnakeToTitle( item.commerciality_status ) )
-							struct['Interface'] = "https://www.instagram.com/p/{}".format( item.code )
-							if item.caption:
-								if item.caption.text:
-									struct['Created'] = datetime.fromtimestamp( item.caption.created_at, tz=UTC )
-									struct['Caption'] = []
-									struct['Entity'] = {
-										"Hashtag": [ f"#{hashtag}" for hashtag in findall( Pattern.HASHTAG_MULTILINE, item.caption.text ) ],
-										"Users": [ f"@{user}" for user in findall( Pattern.USERNAME_MULTILINE, item.caption.text ) ]
-									}
-									parts = item.caption.text.split( "\x0a" )
-									for part in parts:
-										if len( part ) <= 0:
-											struct['Caption'].append( "\x20" ); continue
-										for u in range( 0, len( part ), 90 ):
-											struct['Caption'].append( part[u:u+90] )
-									if i != ( length -1 ):
-										struct['Caption'] = "\x0a\u2502\x20\x20\x20\u2502\x20\x20\x20{}".format( "\x20" *4 ).join( struct['Caption'] )
-									else:
-										struct['Caption'] = "\x0a\x20\x20\x20\x20\u2502\x20\x20\x20{}".format( "\x20" *4 ).join( struct['Caption'] )
-							structs.append( struct )
+						structs = create( media )
 						self.output( self.media, [
 							"\nList of fill Instagram media explore",
 							"Please input >>> for back to before\n",
-							tree( structs )
+							tree( structs, capitalize=True )
 						])
 						select = self.input( "Media", default=[ ">>>", *[ str( idx+1 ) for idx in range( length ) ] ] )
 						if select != ">>>":
@@ -948,42 +1085,33 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 						self.previous( callback, ">>>" )
 				else:
 					self.output( self.media, "Unhandled and unsupported item type {}".format( typeof( media ) ) )
-					print( repr( media[0] ) )
 					self.previous( callback, ">>>" )
 			else:
 				self.output( self.media, "No media available" )
 				self.previous( callback, ">>>" )
 		elif isinstance( media, Media ):
 			if isinstance( media, ExploreClipMedia ):
-				struct = {}
-				self.output( self.media, [
-					tree([ struct ])
-				])
-			elif isinstance( media, ExploreFillMedia ):
-				struct = { f"{media.pk}": f"Owner @{media.owner.username}" }
-				struct['Algorithm'] = "\x1b[1;37m{}\x1b[0m".format( Text.fromSnakeToTitle( media.algorithm ) )
-				struct['Comercial'] = "\x1b[1;37m{}\x1b[0m".format( Text.fromSnakeToTitle( media.commerciality_status ) )
-				struct['Interface'] = "https://www.instagram.com/p/{}".format( media.code )
-				if media.caption:
-					if media.caption.text:
-						struct['Caption'] = []
-						struct['Entity'] = {
-							"Hashtag": [ f"#{hashtag}" for hashtag in findall( Pattern.HASHTAG_MULTILINE, media.caption.text ) ],
-							"Users": [ f"@{user}" for user in findall( Pattern.USERNAME_MULTILINE, media.caption.text ) ]
-						}
-						parts = media.caption.text.split( "\x0a" )
-						for part in parts:
-							if len( part ) <= 0:
-								struct['Caption'].append( "\x20" ); continue
-							for u in range( 0, len( part ), 90 ):
-								struct['Caption'].append( part[u:u+90] )
-						struct['Caption'] = "\x0a\u2502\x20\x20\x20\x20\x20\x20".join( struct['Caption'] )
+				struct = create( media )
 				action = self.action(
 					info=False,
+					label=self.media,
 					prints=[
 						"\nPost from {}".format( f"\x1b[1;38;5;189m{media.owner.full_name}\x1b[0m {ITP} @{media.owner.username}" if media.owner.full_name else f"@{media.owner.username}" ),
-						"Created at {}\n".format( datetime.fromtimestamp( media.caption.created_at, tz=UTC ) ),
-						tree( struct )
+						"Created at {}\n".format( datetime.fromtimestamp( media.taken_at, tz=UTC ) ),
+						tree( struct, capitalize=True )
+					],
+					actions={
+					}
+				)
+			elif isinstance( media, ExploreFillMedia ):
+				struct = create( media )
+				action = self.action(
+					info=False,
+					label=self.media,
+					prints=[
+						"\nPost from {}".format( f"\x1b[1;38;5;189m{media.owner.full_name}\x1b[0m {ITP} @{media.owner.username}" if media.owner.full_name else f"@{media.owner.username}" ),
+						"Created at {}\n".format( datetime.fromtimestamp( media.taken_at, tz=UTC ) ),
+						tree( struct, capitalize=True )
 					],
 					actions={
 					}
@@ -1062,7 +1190,7 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 			for countable in [ "friend_requests", "suggestions", "users" ]:
 				prints[0] += "  [{}] => {}\n".format( len( self.cached.pending[countable] ), Text.fromSnakeToTitle( countable ) )
 			prints.append( "Please select action" )
-			action = self.action( info=False, prints=[ "Your Instagram pending request follow\n", *prints ], actions={
+			action = self.action( info=False, label=self.pending, prints=[ "Your Instagram pending request follow\n", *prints ], actions={
 				"follow": {
 					"signin": True,
 					"action": lambda: self.pending( flag=1 ),
@@ -1253,6 +1381,134 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 	@final
 	@logged
 	def story( self, story:Story=None, target:int|str=None, flag:int=None, username:str=None, callback:dict=None ) -> None:
+
+		#[Kanashi.story$.displayI( List<StoryItem>|StoryItem item, Str username )]: Dict<Str, Any>|List<Dict<Str, Any>>
+		def displayI( item:list[StoryItem]|StoryItem, username:str=None ) -> dict[str:any]|list[dict[str:any]]:
+			if isinstance( item, list ) and all( isinstance( media, StoryItem ) for media in item ):
+				return list( displayI( media, username=username ) for media in item )
+			struct = {}
+			struct[item.pk] = item.owner.pk
+			struct['liked'] = item.has_liked
+			if "accessibility_caption" in item:
+				struct['accessibility_caption'] = item.accessibility_caption
+			if item.caption:
+				struct['caption'] = {
+					"edited": item.caption_is_edited,
+					"position": item.caption_position,
+					"text": item.caption
+				}
+			if username is not None:
+				struct['interface'] = f"https://www.instagram.com/stories/{username}/{item.pk}"
+			struct['original'] = f"https://www.instagram.com/reels/{item.code}"
+			if "story_bloks_stickers" in item:
+				struct['stickers'] = []
+				for sticker in item.story_bloks_stickers:
+					struct['stickers'].append({
+						"block": {
+							"id": sticker.bloks_sticker.id,
+							"app_id": sticker.bloks_sticker.app_id,
+							"type": Text.fromSnakeToTitle( sticker.bloks_sticker.bloks_sticker_type ),
+							"user": {
+								"mention": {
+									sticker.bloks_sticker.sticker_data.ig_mention.account_id: f"@{sticker.bloks_sticker.sticker_data.ig_mention.username}",
+									"fullname": sticker.bloks_sticker.sticker_data.ig_mention.full_name
+								}
+							}
+						},
+						"rotation": sticker.rotation,
+						"position": {
+							"x-axis": sticker.x,
+							"y-axis": sticker.y,
+							"z-axis": sticker.z
+						},
+						"sizes": {
+							"height": sticker.height,
+							"width": sticker.width
+						}
+					})
+			struct['cache_key'] = f"\"{item.client_cache_key}\""
+			struct['shared_to_fb'] = bool( item.has_shared_to_fb )
+			struct['deleted_reason'] = bool( item.deleted_reason )
+			struct['datetime'] = {
+				"latest": datetime.fromtimestamp( item.taken_at, tz=UTC ),
+				"expires": datetime.fromtimestamp( item.expiring_at, tz=UTC )
+			}
+			return struct
+		
+		#[Kanashi.story$.displayR( List<StoryTrayReel>|StoryTrayReel reel )]: Dict<Str, Any>|List<Dict<Str, Any>>
+		def displayR( reel:list[StoryFeedTrayReel]|StoryFeedTrayReel ) -> dict[str:any]|list[dict[str:any]]:
+			if isinstance( reel, list ) and all( isinstance( media, StoryFeedTrayReel ) for media in reel ):
+				return list( displayR( media ) for media in reel )
+			struct = {}
+			struct[reel.id] = f"Owner @{reel.user.username}"
+			struct['seen_time'] = datetime.fromtimestamp( reel.seen, tz=UTC ) if reel.seen > 0 else False,
+			struct['user'] = displayU( reel.user )
+			struct['story_items'] = displayI( reel.items, reel.user.username )
+			struct['media_ids'] = list( int( id ) for id in reel.media_ids )
+			struct['reel_type'] = Text.fromSnakeToTitle( reel.reel_type )
+			struct['allowable_for'] = {
+				"reply": reel.can_reply,
+				"gif_quick_reply": reel.can_gif_quick_reply,
+				"reshare": reel.can_reshare,
+				"react_with_avatar": reel.can_react_with_avatar,
+			}
+			struct['datetime'] = {
+				"latest": datetime.fromtimestamp( reel.latest_reel_media, tz=UTC ),
+				"expires": datetime.fromtimestamp( reel.expiring_at, tz=UTC )
+			}
+			return struct
+		
+		#[Kanashi.story$.displayE( edge:list<StoryProfileEdge>|StoryHighlight edge )]: Dict<Str, Any>|List<Dict<Str, Any>>
+		def displayE( edge:list[StoryProfileEdge]|StoryProfileEdge ) -> dict[str:any]|list[dict[str:any]]:
+			if isinstance( edge, list ) and all( isinstance( item, StoryProfileEdge ) for item in edge ):
+				return list( displayE( item ) for item in edge )
+			return {
+				edge['id']: edge['title']
+			}
+		
+		#[Kanashi.story$.displayF( Object|Friendship status )]: Dict<Str, Bool>
+		def displayF( status:Object|Friendship ) -> dict[str:any]:
+			struct = {}
+			keyset = [
+				"approve",
+				"blocking",
+				"followed_by",
+				"following",
+				"ignoring",
+				"incoming_request",
+				"is_bestie",
+				"is_blocking_reel",
+				"is_eligible_to_subscribe",
+				"is_feed_favorite",
+				"is_guardian_of_viewer",
+				"is_muting_notes",
+				"is_muting_reel",
+				"is_private",
+				"is_restricted",
+				"is_supervised_by_viewer",
+				"is_verified",
+				"muting",
+				"outgoing_request",
+				"subscribed"
+			]
+			for key in keyset:
+				if key in status:
+					struct[key.split( "\x5f" ).pop()] = status[key]
+			return struct
+		
+		#[Kanashi.story$.profile( Object|User user )]: Dict<Str, Any>
+		def displayU( user:Object|User ) -> dict[str:any]:
+			keyset = "id:{}".format( user.id if "id" in user else user.pk if "pk" in user else 0 )
+			struct = {
+				keyset: f"@{user.username}",
+				"fullname": user.full_name if "full_name" in user else None,
+				"friendship": {
+					**displayF( user.friendship_status if "friendship_status" in user else Object({}) ),
+					**displayF( user )
+				}
+			}
+			return struct
+		
 		if not isinstance( callback, dict ):
 			callback = {
 				"action": lambda: self.story( story=story, flag=flag ),
@@ -1282,7 +1538,7 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 					self.story( story=story, callback=callback )
 				elif flag == 2:
 					self.output( self.story, [
-						"Only get from following feed or not",
+						"\nOnly get from following feed or not",
 						"The default value is False"
 					])
 					followingFeed = self.input( "Following Feed [Y/n]", default=[ "Y", "y", "N", "n" ] )
@@ -1297,31 +1553,35 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 				elif flag == 4:
 					self.main()
 				else:
-					action = self.action( info=False, actions={
-						"info": {
-							"signin": True,
-							"action": lambda: self.story( flag=1, callback=callback ),
-							"output": "Story Info",
-							"prints": "Story info by story id or url"
-						},
-						"feed": {
-							"signin": True,
-							"action": lambda: self.story( flag=2, callback=callback ),
-							"output": "Story Feed",
-							"prints": "Fetch stories from timeline feed"
-						},
-						"user": {
-							"signin": True,
-							"action": lambda: self.story( flag=3, callback=callback ),
-							"output": "Story User",
-							"prints": "Fetch stories by username"
-						},
-						"main": {
-							"action": self.main,
-							"output": "Cancel",
-							"prints": "Back to main"
+					action = self.action( info=False, 
+						prints=[ "" ],
+						label=self.story,
+						actions={
+							"info": {
+								"signin": True,
+								"action": lambda: self.story( flag=1, callback=callback ),
+								"output": "Story Info",
+								"prints": "Story info by story id or url"
+							},
+							"feed": {
+								"signin": True,
+								"action": lambda: self.story( flag=2, callback=callback ),
+								"output": "Story Feed",
+								"prints": "Fetch stories from timeline feed"
+							},
+							"user": {
+								"signin": True,
+								"action": lambda: self.story( flag=3, callback=callback ),
+								"output": "Story User",
+								"prints": "Fetch stories by username"
+							},
+							"main": {
+								"action": self.main,
+								"output": "Cancel",
+								"prints": "Back to main"
+							}
 						}
-					})
+					)
 					action()
 			except RequestError as e:
 				self.emit( e )
@@ -1358,6 +1618,7 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 			else:
 				action = self.action( 
 					info=False, 
+					label=self.story,
 					prints=[ 
 						"\nRanking Token \"{}\"".format( story.story_ranking_token ),
 						"Please select action:\n"
@@ -1389,6 +1650,7 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 			else:
 				action = self.action( 
 					info=False, 
+					label=self.story,
 					prints=[
 						"\nThis story will expire on {}".format( datetime.fromtimestamp( story.expiring_at ) ),
 						"A timeline feed story from @{}".format( story.user.username ),
@@ -1419,19 +1681,73 @@ class Kanashi( RequestRequired, Readonly, Yutiriti ):
 				)
 				action()
 		elif isinstance( story, StoryFeedTrayReel ):
-			print( self.colorize( repr( story ) ) )
+			self.output( self.story, [
+				tree( displayR( story ), capitalize=True )
+			])
 		elif isinstance( story, StoryFeedTrayReels ):
-			print( self.colorize( repr( story ) ) )
+			self.output( self.story, [
+				tree( displayR( story.reels_media ), capitalize=True )
+			])
 		elif isinstance( story, StoryHighlight ):
-			print( self.colorize( repr( story ) ) )
+			self.output( self.story, [
+				tree( displayH( story ), capitalize=True )
+			])
 		elif isinstance( story, StoryHighlights ):
-			print( self.colorize( repr( story ) ) )
+			self.output( self.story, [
+				tree( displayH( story ), capitalize=True )
+			])
+		elif isinstance( story, StoryHighlightReels ):
+			if len( story.edges ) >= 1:
+				self.output( self.story, [
+					tree( 
+						data={
+							"owner": displayU( story.edges[0].owner ),
+							"edges": displayE( story.edges ),
+						},
+						capitalize=True
+					)
+				])
+			else:
+				self.output( self.story, "No Highlighted story available" )
+				self.previous( callback, ">>>" )
 		elif isinstance( story, StoryItem ):
-			print( self.colorize( repr( story ) ) )
+			self.output( self.story, [
+				tree( displayI( story ), capitalize=True )
+			])
 		elif isinstance( story, StoryProfile ):
-			print( self.colorize( repr( story ) ) )
+			self.output( self.story, [
+				"\nPlease select action:", [
+					"Display reel story info", [
+						"Display current story info"
+					],
+					"Display highlighted story info", [
+						"Display all list of highlighted story"
+					],
+					"Cancel", [
+						"Back to before"
+					]
+				]
+			])
+			select = self.input( "Select", default=[ 1, 2, 3 ], number=True )
+			if select == 1:
+				self.story( 
+					story=story.reel, 
+					callback=lambda: self.story( story=story ) 
+				)
+			elif select == 2:
+				self.story( 
+					story=story.edge_highlight_reels, 
+					callback=lambda: self.story( story=story ) 
+				)
+			elif select == 3:
+				self.story()
 		elif isinstance( story, StoryProfileEdge ):
-			print( self.colorize( repr( story ) ) )
+			self.output( self.story, [
+				tree( displayE( story ), capitalize=True )
+			])
+		elif isinstance( story, StoryReel ):
+			story = self.thread( f"Getting timeline feed story of @{story.owner.username}", lambda: self.client.story( target=story.id, flag=Story.TIMELINE ) )
+			self.story( story=story, callback=callback )
 		else:
 			raise TypeError( "Invalid \"story\" parameter, value must be type Story, {} passed".format( typeof( story ) ) )
 		...
