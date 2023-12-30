@@ -1848,9 +1848,9 @@ class Client( RequestRequired, Readonly ):
 				if match( r"^reel_ids\=", str( ids ) ) is None:
 					target[i] = f"reel_ids={ids}"
 		elif isinstance( target, StoryFeed ):
-			return self.story( target=[ tray.id for tray in target.tray ], flag=Story.TIMELINE )
+			return self.story( target=list( tray.id for tray in target.tray ), flag=Story.TIMELINE )
 		elif isinstance( target, StoryFeedTray ):
-			return self.story( target=[ target.id ], flag=Story.TIMELINE )
+			return self.story( target=target.media_ids, flag=Story.TIMELINE )
 		elif isinstance( target, StoryProfile ):
 			if flag == Story.PROFILE:
 				return self.story( target=target.reel.id, flag=Story.PROFILE )
