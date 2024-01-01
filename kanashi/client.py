@@ -38,7 +38,24 @@ from yutiriti.string import String
 from kanashi.common import encpaswd, isUserId
 from kanashi.config import Config
 from kanashi.decorator import avoidForMySelf, logged
-from kanashi.error import *
+from kanashi.error import ( 
+	BlockError, 
+	BestieError, 
+	ClientError,
+	CsrftokenError, 
+	FavoriteError,
+	FollowError,
+	FollowerError, 
+	FriendshipError,
+	LockedError,
+	PasswordError,
+	RestrictError,
+	SignInError,
+	SpamError,
+	StoryError,
+	UserError,
+	UserNotFoundError
+)
 from kanashi.pattern import Pattern
 from kanashi.typing import (
 	AccessManager, 
@@ -321,8 +338,6 @@ class Client( RequestRequired, Readonly ):
 		"""
 		...
 		"""
-		
-		...
 	
 	#[Client.authenticated]: bool
 	@final
@@ -485,7 +500,7 @@ class Client( RequestRequired, Readonly ):
 		})
 
 		# Request payload.
-		request = request.post( target, data={} )
+		request = self.request.post( target, data={} )
 		content = request.json()
 		status = request.satatus
 		if status == 200:
@@ -555,12 +570,13 @@ class Client( RequestRequired, Readonly ):
 			raise ValueError( "Url can't be empty" )
 		if not isinstance( url, str ):
 			raise TypeError( "Invalid \"url\" parameter, value must be type Str, {} passed".format( typeof( url ) ) )
+		
+		search = match( r"^(?:\/challenge\/action\/(?P<challenge>[^\n]+))$", url )
+		if search is not None:
+			challenge = search.group( "challenge" )
 		else:
-			search = match( r"^(?:\/challenge\/action\/(?P<challenge>[^\n]+))$", url )
-			if search is not None:
-				challenge = search.group( "challenge" )
-			else:
-				raise ValueError( "Invalid checkpoint challenge URL" )
+			raise ValueError( "Invalid checkpoint challenge URL" )
+		
 		if request is None:
 			if cookies is None:
 				raise ValueError( "Cookie can't be empty" )
@@ -662,12 +678,14 @@ class Client( RequestRequired, Readonly ):
 		status = request.status
 		if status == 200:
 			return Direct( content )
-		else:
-			raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching direct message inbox [{status}]" )
+		raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching direct message inbox [{status}]" )
 	
 	#[Client.direct()]: Direct
 	@logged
 	def directPresence( self, persistence:bool=None, cache:bool=False ) -> Object:
+
+		""" ... """
+
 		return self.request.get( "https://www.instagram.com/api/v1/direct_v2/get_presence/" )
 	
 	#[Client.explore( Int maxId, Bool includeFixedDestinations, Bool isNonPersonalizedExplore, Bool isPrefetch, Bool omitCoverMedia )]: Explore
@@ -707,8 +725,7 @@ class Client( RequestRequired, Readonly ):
 		status = request.status
 		if status == 200:
 			return Explore( content )
-		else:
-			raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching contents from instagram explore [{status}]" )
+		raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching contents from instagram explore [{status}]" )
 	
 	#[Client.favorite( Friendship|Int|Profile|User user, Bool favorite ): Friendship
 	@final
@@ -892,17 +909,17 @@ class Client( RequestRequired, Readonly ):
 			raise ValueError( "User can't be empty" )
 		if isinstance( user, int ): ...
 		elif isinstance( user, str ):
-			if match( Pattern.ID ) is None:
+			if match( Pattern.ID, user ) is None:
 				if match( Pattern.USERNAME, user ) is None:
 					raise ValueError( "Invalid username" )
 				referer = f"https://www.instagram.com/{user}/followers/"
 				user = self.user( username=user, count=1 )
 				user = user.id if "id" in user else user.pk
 		elif isinstance( user, User ):
-			if "username" in user or user.id is None:
+			if "username" in user or not user.id:
 				referer = f"https://www.instagram.com/{user.username}/followers/"
 			if "id" not in user:
-				if "pk" not in user or "pk" or user.pk is None:
+				if "pk" not in user or not user.pk:
 					raise ValueError( "The User object does not have a user primary key" )
 				user = user.pk
 			else:
@@ -928,7 +945,7 @@ class Client( RequestRequired, Readonly ):
 		if nextMaxId is not None:
 			if not isinstance( nextMaxId, ( int, str ) ):
 				raise TypeError( "Invalid \"nextMaxId\" paramater, value must be type Int|Str, {} passed".format( typeof( nextMaxId ) ) )
-			elif isinstance( nextMaxId, str ):
+			if isinstance( nextMaxId, str ):
 				if match( Pattern.ID, nextMaxId ) is None:
 					raise ValueError( "Invalid next maximal id value" )
 			params['max_id'] = nextMaxId
@@ -972,17 +989,17 @@ class Client( RequestRequired, Readonly ):
 			raise ValueError( "User can't be empty" )
 		if isinstance( user, int ): ...
 		elif isinstance( user, str ):
-			if match( Pattern.ID ) is None:
+			if match( Pattern.ID, user ) is None:
 				if match( Pattern.USERNAME, user ) is None:
-					raise ValueError( "Invalid username" )
+					raise ValueError( "Invalid user username" )
 				referer = f"https://www.instagram.com/{user}/following/"
 				user = self.user( username=user, count=1 )
 				user = user.id if "id" in user else user.pk
 		elif isinstance( user, User ):
-			if "username" in user or user.id is None:
+			if "username" in user or not user.id:
 				referer = f"https://www.instagram.com/{user.username}/following/"
 			if "id" not in user:
-				if "pk" not in user or "pk" or user.pk is None:
+				if "pk" not in user or not user.pk:
 					raise ValueError( "The User object does not have a user primary key" )
 				user = user.pk
 			else:
@@ -1008,7 +1025,7 @@ class Client( RequestRequired, Readonly ):
 		if nextMaxId is not None:
 			if not isinstance( nextMaxId, ( int, str ) ):
 				raise TypeError( "Invalid \"nextMaxId\" paramater, value must be type Int|Str, {} passed".format( typeof( nextMaxId ) ) )
-			elif isinstance( nextMaxId, str ):
+			if isinstance( nextMaxId, str ):
 				if match( Pattern.ID, nextMaxId ) is None:
 					raise ValueError( "Invalid next maximal id value" )
 			params['max_id'] = nextMaxId
@@ -1060,7 +1077,7 @@ class Client( RequestRequired, Readonly ):
 	
 	#[Client.friendshipShowMay( Str username, List<Int> ids, Mixed **kwargs )]: FriendshipStatuses
 	@logged
-	def friendshipShowMay( self, username:str, ids:list[int|str]=[], **kwargs ) -> FriendshipStatuses:
+	def friendshipShowMay( self, username:str, ids:list[int|str]=None, **kwargs ) -> FriendshipStatuses:
 		
 		"""
 		Friendship Show Many information of user based id from followers or following list.
@@ -1088,6 +1105,7 @@ class Client( RequestRequired, Readonly ):
 			When the user id more than 32 ids
 		"""
 		
+		ids = [] if ids is None else ids
 		if not isinstance( ids, list ):
 			raise ValueError( "Invalid ids parameter, value must be type list<int>, {} passed".format( typeof( ids ) ) )
 		if len( ids ) <= 0:
@@ -1221,17 +1239,16 @@ class Client( RequestRequired, Readonly ):
 
 		if channel is None:
 			raise ValueError( "Channel can't be empty" )
-		elif not isinstance( channel, str ):
+		if not isinstance( channel, str ):
 			raise TypeError( "Invalid \"channel\" parameter, value must be type Str, {} passed".format( typeof( channel ) ) )
-		else:
-			channel = channel.strip()
-			match channel:
-				case "email-sms" | "email_sms":
-					referer = "emails/settings"
-				case "push":
-					referer = "push/web/settings"
-				case _:
-					raise ValueError( "Invalid channel notification type" )
+		channel = channel.strip()
+		match channel:
+			case "email-sms" | "email_sms":
+				referer = "emails/settings"
+			case "push":
+				referer = "push/web/settings"
+			case _:
+				raise ValueError( "Invalid channel notification type" )
 
 		# Update request headers.
 		self.headers.update({
@@ -1370,10 +1387,9 @@ class Client( RequestRequired, Readonly ):
 					if "username" in content['user'] and content['user']['username']:
 						return content['user']
 				raise UserError( f"Target \"{id}\" user found but user data is not available" )
-			elif status == 404:
+			if status == 404:
 				raise UserNotFoundError( f"Target \"{id}\" user not found" )
-			else:
-				raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user [{status}]" )
+			raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user [{status}]" )
 		
 		#[Client.profile$.getByUname( Request session, Str username )]
 		def getByUname( session:Request, username:str ) -> dict:
@@ -1409,16 +1425,15 @@ class Client( RequestRequired, Readonly ):
 				if "graphql" not in content:
 					raise UserError( f"Target \"{username}\" user found but user data not available" )
 				return content['graphql']['user']
-			elif status == 404:
+			if status == 404:
 				raise UserNotFoundError( f"Target \"{username}\" user not found" )
-			else:
-				raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user [{status}]" )
+			raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user [{status}]" )
 
 		if username is None:
 			raise ValueError( "Username can't be empty" )
-		elif not isinstance( username, ( int, str ) ):
+		if not isinstance( username, ( int, str ) ):
 			raise TypeError( "Invalid \"username\" parameter, value must be type Int|Str, {} passed".format( typeof( username ) ) )
-		elif isinstance( username, int ):
+		if isinstance( username, int ):
 			profile = getByUid( self.request, username )
 		else:
 			profile = getByUid( self.request, int( username ) ) \
@@ -1537,7 +1552,7 @@ class Client( RequestRequired, Readonly ):
 		)
 
 		try:
-			request = session.get( f"https://www.instagram.com/api/v1/accounts/edit/web_form_data/" )
+			request = session.get( "https://www.instagram.com/api/v1/accounts/edit/web_form_data/" )
 			content = request.json()
 			status = request.status
 			if status == 200:
@@ -1559,10 +1574,9 @@ class Client( RequestRequired, Readonly ):
 						"request": session
 					}
 				})
-			elif status == 401:
+			if status == 401:
 				raise AuthError( "Failed to remember login credentials" )
-			else:
-				raise SignInError( content['message'] if "message" in content and content['message'] else "An error occured while checking user credential" )
+			raise SignInError( content['message'] if "message" in content and content['message'] else "An error occured while checking user credential" )
 		except AuthError as e:
 			raise AuthError( "Failed to remember login credentials", prev=e )
 	
@@ -1685,7 +1699,7 @@ class Client( RequestRequired, Readonly ):
 	#[Client.savedCollectionList( List<Str> collectionTypes, Bool getCoverMediaLists, Int includePublicOnly, Str maxId )]: SavedCollectionList
 	@final
 	@logged
-	def savedCollectionList( self, collectionTypes:list[str] = [ "ALL_MEDIA_AUTO_COLLECTION", "MEDIA", "AUDIO_AUTO_COLLECTION" ], getCoverMediaLists:bool=True, includePublicOnly:int=0, maxId:str="" ) -> SavedCollectionList:
+	def savedCollectionList( self, collectionTypes:list[str]=None, getCoverMediaLists:bool=True, includePublicOnly:int=0, maxId:str="" ) -> SavedCollectionList:
 
 		"""
 		Getting data saved collection lists
@@ -1700,6 +1714,15 @@ class Client( RequestRequired, Readonly ):
 		:raises ClientError
 			When there are unexpected error found
 		"""
+
+		types = [ 
+			"ALL_MEDIA_AUTO_COLLECTION", 
+			"AUDIO_AUTO_COLLECTION",
+			"MEDIA"
+		]
+		for post, collection in enumerate( collectionTypes ):
+			if collection not in types:
+				raise ValueError( f"Invalid value of collection type \"{collection}\" in position {post}" )
 
 		# Create request parameters.
 		parameters = {
@@ -1819,7 +1842,7 @@ class Client( RequestRequired, Readonly ):
 
 		if gender is None:
 			raise ValueError( "Gender can't be empty" )
-		elif not isinstance( gender, int ):
+		if not isinstance( gender, int ):
 			raise TypeError( "Invalid \"gender\" parameter, value must be type Int, {} passed".format( typeof( gender ) ) )
 		
 		# Creating request payload.
@@ -1949,7 +1972,7 @@ class Client( RequestRequired, Readonly ):
 					"request": request
 				}
 			})
-		elif "checkpoint_url" in content:
+		if "checkpoint_url" in content:
 			if "lock" in content and content['lock'] is True:
 				raise LockedError( "Your account has been checkpointed and locked by Instagram" )
 			return SignIn({
@@ -1958,12 +1981,11 @@ class Client( RequestRequired, Readonly ):
 				"request": request,
 				"response": signin
 			})
-		elif "spam" in content:
+		if "spam" in content:
 			raise SpamError( "Oops! Looks like you are considered Spam! Please try again later" )
-		elif "two_factor_required" in content:
+		if "two_factor_required" in content:
 			raise ClientError( "Two Factor Authentication required" )
-		else:
-			raise UserNotFoundError( f"User \"{username}\" not found, or may be missing" )
+		raise UserNotFoundError( f"User \"{username}\" not found, or may be missing" )
 
 	#[Client.story( Int|List[Int|Str]|Story target, Story.Type flag )]: Story
 	@logged
@@ -2048,95 +2070,92 @@ class Client( RequestRequired, Readonly ):
 
 		if target is None:
 			raise ValueError( "Story target id or url required" )
-		elif isinstance( target, int ):
+		if isinstance( target, int ):
 			if flag is None:
 				raise StoryError( "Unknown story type" )
-			elif not isinstance( flag, Story.Type ):
+			if not isinstance( flag, Story.Type ):
 				raise TypeError( "Invalid \"flag\" parameter, value must be type Story.Type, {} passed".format( typeof( flag ) ) )
 			if flag == Story.PROFILE:
 				return getByProfile( id=target )
 			return self.story( target=[target], flag=flag )
-		elif isinstance( target, str ):
+		if isinstance( target, str ):
 			capt = match( Pattern.STORY, target )
 			if capt is not None:
 				groups = capt.groupdict()
 				if "profile" in groups and groups['profile'] is not None:
 					return getByProfile( username=groups['profile'], flag=Story.PROFILE if flag is None else flag )
-				elif "username" in groups and groups['username'] is not None:
+				if "username" in groups and groups['username'] is not None:
 					return getByProfile( username=groups['username'], flag=Story.PROFILE if flag is None else flag )
-				elif "timeline" in groups and groups['timeline'] is not None:
+				if "timeline" in groups and groups['timeline'] is not None:
 					profile = getByProfile( username=groups['user'], flag=Story.TIMELINE )
 					return self.story( target=[profile.reel.latest_reel_media], flag=Story.TIMELINE )
-				elif "highlight" in groups and groups['highlight'] is not None:
+				if "highlight" in groups and groups['highlight'] is not None:
 					return self.story( target=[groups['highlight']], flag=Story.HIGHLIGHT )
-				else:
-					return self.story( target=[groups['id']], flag=flag )
+				return self.story( target=[groups['id']], flag=flag )
 			raise StoryError( "Invalid story ids, or url" )
-		elif isinstance( target, list ):
+		if isinstance( target, list ):
 			if flag is None:
 				raise StoryError( "Unknown story type" )
-			elif flag == Story.PROFILE:
+			if flag == Story.PROFILE:
 				raise StoryError( "Unsupported for get story from multiple story" )
-			elif not isinstance( flag, Story.Type ):
+			if not isinstance( flag, Story.Type ):
 				raise TypeError( "Invalid \"flag\" parameter, value must be type Story.Type, {} passed".format( typeof( flag ) ) )
-			for i in range( len( target ) ):
-				ids = target[i]
+			for i, ids in enumerate( target ):
 				if flag == Story.HIGHLIGHT:
 					if match( r"^highlight\:", str( ids ) ) is None:
 						ids = f"highlight:{ids}"
 				if match( r"^reel_ids\=", str( ids ) ) is None:
 					target[i] = f"reel_ids={ids}"
-		elif isinstance( target, StoryFeed ):
+			
+			# Update request headers.
+			self.headers.update({
+				"Origin": "https://www.instagram.com",
+				"Referer": "https://www.instagram.com/"
+			})
+
+			# "query_hash": "297c491471fff978fa2ab83c0673a618"
+			# "reel_ids": "3220634093712374533"
+
+			# Trying get story media.
+			request = self.request.get( "https://www.instagram.com/api/v1/feed/reels_media/?{}".format( "\x26".join( target ) ) )
+			content = request.json()
+			status = request.status
+			if status == 200:
+				# wrapper = StoryFeedTrayReel if flag == Story.TIMELINE else StoryHighlight
+				# results = StoryFeedTrayReels if flag == Story.TIMELINE else StoryHighlights
+				# for key in list( content['reels'].keys() ):
+				# 	for i in range( len( content['reels'][key]['items'] ) ):
+				# 		content['reels'][key]['items'][i]['user'] = User( content['reels'][key]['items'][i]['user'] )
+				# 		content['reels'][key]['items'][i] = StoryItem( content['reels'][key]['items'][i] )
+				# 	content['reels'][key]['user'] = User( content['reels'][key]['user'] )
+				# 	content['reels'][key] = wrapper( content['reels'][key] )
+				# for i in range( len( content['reels_media'] ) ):
+				# 	for u in range( len( content['reels_media'][i]['items'] ) ):
+				# 		content['reels_media'][i]['items'][u]['user'] = User( content['reels_media'][i]['items'][u]['user'] )
+				# 		content['reels_media'][i]['items'][u] = StoryItem( content['reels_media'][i]['items'][u] )
+				# 	content['reels_media'][i]['user'] = User( content['reels_media'][i]['user'] )
+				# 	content['reels_media'][i] = wrapper( content['reels_media'][i] )
+				# return results( content )
+				return StoryFeedTrayReels( content ) if flag == Story.TIMELINE else StoryHighlights( content )
+			raise StoryError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching story media info [{status}]" )
+		if isinstance( target, StoryFeed ):
 			return self.story( target=list( tray.id for tray in target.tray ), flag=Story.TIMELINE )
-		elif isinstance( target, StoryFeedTray ):
+		if isinstance( target, StoryFeedTray ):
 			return self.story( target=target.media_ids, flag=Story.TIMELINE )
-		elif isinstance( target, StoryProfile ):
+		if isinstance( target, StoryProfile ):
 			if flag == Story.PROFILE:
 				return self.story( target=target.reel.id, flag=Story.PROFILE )
 			return self.story( target=[ highlight.id for highlight in target.edge_highlight_reels.edges ], flag=Story.HIGHLIGHT )
-		elif isinstance( target, StoryProfileEdge ):
+		if isinstance( target, StoryProfileEdge ):
 			return self.story( target=target.id, flag=Story.HIGHLIGHT )
-		elif isinstance( target, StoryReel ):
+		if isinstance( target, StoryReel ):
 			return self.story( target=target.id, flag=Story.PROFILE )
-		elif isinstance( target, StoryItem ):
+		if isinstance( target, StoryItem ):
 			raise TypeError( "Objects are item values, you can't do this" )
-		elif isinstance( target, ( StoryFeedTrayReel, StoryHighlight, StoryHighlights ) ):
+		if isinstance( target, ( StoryFeedTrayReel, StoryHighlight, StoryHighlights ) ):
 			raise TypeError( "Unable to get story from {}, because the object contains a list of story items".format( typeof( target ) ) )
-		else:
-			raise TypeError( "Invalid \"target\" parameter, value must be type Story, {} passed".format( typeof( target ) ) )
+		raise TypeError( "Invalid \"target\" parameter, value must be type Story, {} passed".format( typeof( target ) ) )
 		
-		# Update request headers.
-		self.headers.update({
-			"Origin": "https://www.instagram.com",
-			"Referer": "https://www.instagram.com/"
-		})
-
-		# "query_hash": "297c491471fff978fa2ab83c0673a618"
-		# "reel_ids": "3220634093712374533"
-
-		# Trying get story media.
-		request = self.request.get( "https://www.instagram.com/api/v1/feed/reels_media/?{}".format( "\x26".join( target ) ) )
-		content = request.json()
-		status = request.status
-		if status == 200:
-			# wrapper = StoryFeedTrayReel if flag == Story.TIMELINE else StoryHighlight
-			# results = StoryFeedTrayReels if flag == Story.TIMELINE else StoryHighlights
-			# for key in list( content['reels'].keys() ):
-			# 	for i in range( len( content['reels'][key]['items'] ) ):
-			# 		content['reels'][key]['items'][i]['user'] = User( content['reels'][key]['items'][i]['user'] )
-			# 		content['reels'][key]['items'][i] = StoryItem( content['reels'][key]['items'][i] )
-			# 	content['reels'][key]['user'] = User( content['reels'][key]['user'] )
-			# 	content['reels'][key] = wrapper( content['reels'][key] )
-			# for i in range( len( content['reels_media'] ) ):
-			# 	for u in range( len( content['reels_media'][i]['items'] ) ):
-			# 		content['reels_media'][i]['items'][u]['user'] = User( content['reels_media'][i]['items'][u]['user'] )
-			# 		content['reels_media'][i]['items'][u] = StoryItem( content['reels_media'][i]['items'][u] )
-			# 	content['reels_media'][i]['user'] = User( content['reels_media'][i]['user'] )
-			# 	content['reels_media'][i] = wrapper( content['reels_media'][i] )
-			# return results( content )
-			return StoryFeedTrayReels( content ) if flag == Story.TIMELINE else StoryHighlights( content )
-		raise StoryError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching story media info [{status}]" )
-
 	#[Client.stories( Bool isFollowingFeed )]: StoryFeed<StoryFeedTray>
 	@logged
 	def stories( self, isFollowingFeed:bool=False ) -> StoryFeed:
@@ -2170,8 +2189,7 @@ class Client( RequestRequired, Readonly ):
 			# 		if key in content.tray[i][key]:
 			# 			content.tray[i][key] = User( content.tray[i][key] )
 			return StoryFeed( content )
-		else:
-			raise StoryError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching feed story [{status}]" )
+		raise StoryError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching feed story [{status}]" )
 
 	#[Client.switch( Str username, Bool save )]: None
 	def switch( self, username:str, save:bool=True ) -> None:
@@ -2226,7 +2244,7 @@ class Client( RequestRequired, Readonly ):
 
 		if username is None:
 			raise ValueError( "Username can't be empty" )
-		elif not isinstance( username, str ):
+		if not isinstance( username, str ):
 			raise TypeError( "Invalid \"username\" parameter, value must be type Str, {} passed".format( typeof( username ) ) )
 
 		# Updating request headers.
@@ -2243,9 +2261,8 @@ class Client( RequestRequired, Readonly ):
 			if "user" in content:
 				return User({ **content, "id": content['user']['pk'] })
 			raise UserNotFoundError( f"Target \"{username}\" user not found" )
-		elif status == 404:
+		if status == 404:
 			raise UserNotFoundError( f"Target \"{username}\" user not found" )
-		else:
-			raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user [{status}]" )
+		raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user [{status}]" )
 	
 	...
