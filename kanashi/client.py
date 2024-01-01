@@ -42,33 +42,20 @@ from kanashi.error import *
 from kanashi.pattern import Pattern
 from kanashi.typing import (
 	AccessManager, 
-	AccessManagerApps, 
-	AccessManagerOAuth, 
 	Active, 
 	Checkpoint, 
 	Direct, 
-	Explore, 
-	ExploreClip, 
-	ExploreClipItem, 
-	ExploreClipMedia, 
-	ExploreFillItem, 
-	ExploreFillMedia, 
-	ExploreLayout, 
-	ExploreSection, 
+	Explore,  
 	Follow, 
-	Follower, 
 	Followers, 
-	Following, 
 	Followings, 
 	Friendship, 
 	FriendshipStatuses, 
 	Inbox, 
-	Logout, 
 	Media, 
 	Notification, 
 	NotificationSMS, 
 	NotificationPush, 
-	Pending, 
 	Pendings, 
 	Privacy, 
 	Profile, 
@@ -83,13 +70,10 @@ from kanashi.typing import (
 	StoryFeedTrayReels, 
 	StoryHighlight, 
 	StoryHighlights, 
-	StoryHighlightReels, 
 	StoryItem, 
 	StoryProfile, 
 	StoryProfileEdge, 
 	StoryReel, 
-	TwoFactor, 
-	TwoFactorInfo, 
 	User
 )
 
@@ -100,10 +84,11 @@ class Client( RequestRequired, Readonly ):
 	""" A Kanashi Client class """
 	
 	# Default client browser user agent.
-	BROWSER = "Mozilla/5.0 (Linux; Android 4.4.1; [HM NOTE|NOTE-III|NOTE2 1LTETD) AppleWebKit/535.42 (KHTML, like Gecko)  Chrome/112.0.5615.137 Mobile Safari/600.3"
+	BROWSER:str = "Mozilla/5.0 (Linux; Android 4.4.1; [HM NOTE|NOTE-III|NOTE2 1LTETD) AppleWebKit/535.42 (KHTML, like Gecko)  Chrome/112.0.5615.137 Mobile Safari/600.3"
+	""" Instagram default User-Agent """
 	
 	# Default header settings for requests.
-	HEADERS = {
+	HEADERS:str = {
 		"Accept": "*/*",
 		"Accept-Encoding": "gzip, deflate, br",
 		"Accept-Language": "en-US,en;q=0.9",
@@ -122,6 +107,7 @@ class Client( RequestRequired, Readonly ):
 		"X-Instagram-Ajax": "1007625843",
 		"X-Requested-With": "XMLHttpRequest"
 	}
+	""" Headers of Instagram request """
 
 	#[Client( Active active, Config config, Request request )]
 	def __init__( self, active:Active=None, config:Config=None, request:Request=None ) -> None:
@@ -240,6 +226,20 @@ class Client( RequestRequired, Readonly ):
 	#[Client.activate( Active active, Request request )]: None
 	@final
 	def activate( self, active:Active, request:Request=None ) -> None:
+		
+		"""
+		Change current active account
+
+		:params Active active
+			Account want to be activate
+		:params Request request
+			Request instance
+		
+		:return None
+		:raise TypeError
+			When the value parameter is invalid value type
+		"""
+
 		if not isinstance( active, Active ):
 			raise TypeError( "Invalid \"active\" parameter, value must be type Active, {} passed".format( typeof( active ) ) )
 		if request is not None:
@@ -433,11 +433,64 @@ class Client( RequestRequired, Readonly ):
 	def block( self, user:Friendship|int|Profile|User, block:bool=True ) -> Friendship:
 		
 		"""
+		Block or unblock user
+
+		:params Friendship|Int|Profile|User user
+		:params Bool block
+
 		:raises BlockError
-			When something wrong e.g data user doest not available or error on request json responses
+			When you trying to block yourself, LOL
+			When something wrong, please to check the request response history
 		"""
 		
-		...
+		username = None
+
+		if user is None:
+			raise ValueError( "User can't be empty" )
+		if isinstance( user, ( Friendship, Profile, User ) ):
+			if "id" in user: pk = user['id']
+			elif "pk" in user: pk = user['pk']
+			else:
+				raise ValueError( "Object {} does not set Id or Primary Key".format( typeof( user ) ) )
+			if "username" in user:
+				username = user['username']
+			user = pk
+		if isinstance( user, int ):
+			if self.active.id == user:
+				raise BlockError( "Unable to block or unblock yourself" )
+		else:
+			raise TypeError( "Invalid \"user\" parameter, value must be type Friendship|Int|Profile|User, {} passed".format( typeof( user ) ) )
+		
+		if username is not None:
+			if not isinstance( username, str ):
+				raise TypeError( "Invalid \"username\" parameter, value must be type Str, {} passed".format( typeof( username ) ) )
+			if match( Pattern.USERNAME, username ) is None:
+				raise ValueError( f"Invalid username value, username format must be \"{Pattern.USERNAME}\", \"{username}\" passed" )
+		
+		if block is None:
+			raise ValueError( "\"block\" can't be empty" )
+		if block is True:
+			action = "Blocking"
+			target = f"https://www.instagram.com/api/v1/web/friendships/{user}/block/"
+		else:
+			action = "Unblocking"
+			target = f"https://www.instagram.com/api/v1/web/friendships/{user}/unblock/"
+		
+		# Update request headers.
+		self.headers.update({
+			"Accept-Encoding": "gzip, deflate, br",
+			"Content-Type": "application/x-www-form-urlencoded",
+			"Origin": "https://www.instagram.com",
+			"Referer": f"https://www.instagram.com/{username}/" if username is not None else "https://www.instagram.com/"
+		})
+
+		# Request payload.
+		request = request.post( target, data={} )
+		content = request.json()
+		status = request.satatus
+		if status == 200:
+			return Friendship( content['friendship_sattus'] )
+		raise BlockError( content['message'] if "message" in content and content['message'] else f"Something wrong when {action} the {user}" )
 	
 	#[Client.config]: Config
 	@final
@@ -664,11 +717,69 @@ class Client( RequestRequired, Readonly ):
 	def favorite( self, user:Friendship|int|Profile|User, favorite:bool ) -> Friendship:
 		
 		"""
+		Make user as favorite user or remove user from favorite user
+
+		:params Friendship|Int|Profile|User user
+		:params Bool favorite
+
+		:return Friendship
 		:raises FavoriteError
-			When something wrong e.g data user doest not available or error on request json responses
+			When you does not follow the user
+			When you trying to make yourself as favorite user
+			When something wrong, please to check the request response history
 		"""
 		
-		...
+		username = None
+
+		if user is None:
+			raise ValueError( "User can't be empty" )
+		if isinstance( user, ( Friendship, Profile, User ) ):
+			if isinstance( user, Profile ) and not user.followedByViewer:
+				raise FavoriteError( "You must be follow the user before set as favorite user" )
+			if "id" in user: pk = user['id']
+			elif "pk" in user: pk = user['pk']
+			else:
+				raise ValueError( "Object {} does not set Id or Primary Key".format( typeof( user ) ) )
+			if "username" in user:
+				username = user['username']
+			user = pk
+		if isinstance( user, int ):
+			if self.active.id == user:
+				raise FavoriteError( "Unable to make yourself as favorite user or remove yourself from favorite user" )
+		else:
+			raise TypeError( "Invalid \"user\" parameter, value must be type Friendship|Int|Profile|User, {} passed".format( typeof( user ) ) )
+		
+		if username is not None:
+			if not isinstance( username, str ):
+				raise TypeError( "Invalid \"username\" parameter, value must be type Str, {} passed".format( typeof( username ) ) )
+			if match( Pattern.USERNAME, username ) is None:
+				raise ValueError( f"Invalid username value, username format must be \"{Pattern.USERNAME}\", \"{username}\" passed" )
+		
+		if favorite is None:
+			raise ValueError( "\"favorite\" can't be empty" )
+		if favorite is True:
+			action = "Favorite"
+			keyset = "add"
+		else:
+			action = "Unfavorite"
+			keyset = "remove"
+		
+		# Update request headers.
+		self.headers.update({
+			"Accept-Encoding": "gzip, deflate, br",
+			"Content-Type": "application/x-www-form-urlencoded",
+			"Origin": "https://www.instagram.com",
+			"Referer": f"https://www.instagram.com/{username}/" if username is not None else "https://www.instagram.com/"
+		})
+
+		# Request payload.
+		payload = { "source": "profile", keyset: user }
+		request = self.request.post( "https://www.instagram.com/api/v1/friendships/update_feed_favorites/", data=payload )
+		content = request.json()
+		status = request.satatus
+		if status == 200:
+			return Friendship( content['friendship_sattus'] )
+		raise FavoriteError( content['message'] if "message" in content and content['message'] else f"Something wrong when {action} the {user}" )
 	
 	#[Client.follow( Friendship|Int|Profile|User user, Follow.Type follow )]: Friendship
 	@final
@@ -702,7 +813,7 @@ class Client( RequestRequired, Readonly ):
 			user = pk
 		if isinstance( user, int ):
 			if self.active.id == user:
-				raise BestieError( "Unable to follow or unfollow yourself" )
+				raise FollowerError( "Unable to follow or unfollow yourself" )
 		else:
 			raise TypeError( "Invalid \"user\" parameter, value must be type Friendship|Int|Profile|User, {} passed".format( typeof( user ) ) )
 		
@@ -1009,9 +1120,20 @@ class Client( RequestRequired, Readonly ):
 		raise FriendshipError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the friendship information of users [{status}]" )
 	
 	@logged
-	def graphql( self, binding:any=None, **kwargs ) -> any:
+	def graphql( self, binding:any=None, **kwargs:object ) -> any:
 
 		"""
+		Send custom graphql request, just graphql query!
+
+		:params Callable binding
+		:params Object **kwargs
+			The key arguments is following request.send parameters, you can
+			also set custom request method, parameters, payload, headers and etc
+
+		:return Object
+			Return from binding result
+		:raises ClientError
+			When something wrong, please to check the request response history
 		"""
 
 		# Default graphql URL.
@@ -1019,6 +1141,7 @@ class Client( RequestRequired, Readonly ):
 
 		# Default request method.
 		method = kwargs.pop( "method", "GET" )
+		kwargs.pop( "url" )
 
 		# Resolve binding value.
 		binding = binding if callable( binding ) else lambda value: value
@@ -1136,7 +1259,6 @@ class Client( RequestRequired, Readonly ):
 		
 		:return Pendings<Pending>
 		:raises ClientError
-			When something wrong e.g data user doest not available or error on request json responses,
 			When something wrong, please to check the request response history
 		:raises TypeError
 			When the parameter value is invalid value
@@ -1169,7 +1291,7 @@ class Client( RequestRequired, Readonly ):
 		
 		:return Privacy
 		:raises ClientError
-			When something wrong e.g data user doest not available or error on request json responses
+			When something wrong, please to check the request response history
 		"""
 
 		# Update request headers.
@@ -1448,27 +1570,117 @@ class Client( RequestRequired, Readonly ):
 	@final
 	@logged
 	@avoidForMySelf
-	def remove( self, user:Friendship|int|Profile|User, remove:bool ) -> Friendship:
+	def remove( self, user:Friendship|int|Profile|User ) -> Friendship:
 		
 		"""
+		Remove user from follower list
+
+		:params Friendship|Int|Profile|User user
+		:params Bool remove
+		
+		:return Friendship
 		:raises FollowerError
-			When something wrong e.g data user doest not available or error on request json responses
+			When you trying remove your self from your follower list
+			When the user does not follow your account
+			When something wrong, please to check the request response history
 		"""
 		
-		...
+		if user is None:
+			raise ValueError( "User can't be empty" )
+		if isinstance( user, ( Friendship, Profile, User ) ):
+			if isinstance( user, Profile ) and not user.followedBy:
+				raise FollowerError( "User does not follow your account" )
+			if "id" in user: pk = user['id']
+			elif "pk" in user: pk = user['pk']
+			else:
+				raise ValueError( "Object {} does not set Id or Primary Key".format( typeof( user ) ) )
+			user = pk
+		if isinstance( user, int ):
+			if self.active.id == user:
+				raise FollowerError( "Unable to remove your self from follower list" )
+		else:
+			raise TypeError( "Invalid \"user\" parameter, value must be type Friendship|Int|Profile|User, {} passed".format( typeof( user ) ) )
+
+		# Update request headers.
+		self.headers.update({
+			"Accept-Encoding": "gzip, deflate, br",
+			"Content-Type": "application/x-www-form-urlencoded",
+			"Origin": "https://www.instagram.com",
+			"Referer": f"https://www.instagram.com/{self.active.username}/followers/"
+		})
+
+		request = self.request.post( "https://www.instagram.com/api/v1/web/friendships/{}/remove_follower/".format( self.id ), data={} )
+		content = request.json()
+		status = request.status
+		if status == 200:
+			return Friendship( content['friendship_status'] )
+		raise RestrictError( content['message'] if "message" in content and content['message'] else f"Something wrong when remove the {user} from follower list" )
 	
 	#[Client.restrict( Friendship|Int|Profile|User user, Bool restrict ): Friendship
 	@final
 	@logged
 	@avoidForMySelf
-	def restrict( self, user:Friendship|int|Profile|User, restrcit:bool ) -> Friendship:
+	def restrict( self, user:Friendship|int|Profile|User, restrict:bool ) -> Friendship:
 		
 		"""
+		Restrict or unrestrict user account
+
+		:params Friendship|Int|Profile|User user
+		:params Bool restrict
+
+		:return Friendship
 		:raises RestrictError
-			When something wrong e.g data user doest not available or error on request json responses
+			When you trying to restrict or unrestrict your self
+			When something wrong, please to check the request response history
 		"""
+
+		username = None
+
+		if user is None:
+			raise ValueError( "User can't be empty" )
+		if isinstance( user, ( Friendship, Profile, User ) ):
+			if "id" in user: pk = user['id']
+			elif "pk" in user: pk = user['pk']
+			else:
+				raise ValueError( "Object {} does not set Id or Primary Key".format( typeof( user ) ) )
+			if "username" in user:
+				username = user['username']
+			user = pk
+		if isinstance( user, int ):
+			if self.active.id == user:
+				raise RestrictError( "Unable to restrict or unrestrict yourself" )
+		else:
+			raise TypeError( "Invalid \"user\" parameter, value must be type Friendship|Int|Profile|User, {} passed".format( typeof( user ) ) )
 		
-		...
+		if username is not None:
+			if not isinstance( username, str ):
+				raise TypeError( "Invalid \"username\" parameter, value must be type Str, {} passed".format( typeof( username ) ) )
+			if match( Pattern.USERNAME, username ) is None:
+				raise ValueError( f"Invalid username value, username format must be \"{Pattern.USERNAME}\", \"{username}\" passed" )
+		
+		if restrict is None:
+			raise ValueError( "\"restrict\" can't be empty" )
+		if restrict is True:
+			action = "Restrict"
+			target = "https://www.instagram.com/api/v1/web/restrict_action/restrict/"
+		else:
+			action = "Unrestrict"
+			target = "https://www.instagram.com/api/v1/web/restrict_action/unrestrict/"
+		
+		# Update request headers.
+		self.headers.update({
+			"Accept-Encoding": "gzip, deflate, br",
+			"Content-Type": "application/x-www-form-urlencoded",
+			"Origin": "https://www.instagram.com",
+			"Referer": f"https://www.instagram.com/{username}/" if username is not None else "https://www.instagram.com/"
+		})
+		
+		request = self.request.post( target, data={ "target_user_id": user } )
+		status = request.status_code
+		content = request.json()
+		if status == 200:
+			return Friendship( content['friendship_status'] )
+		raise RestrictError( content['message'] if "message" in content and content['message'] else f"Something wrong when {action} the {user}" )
 	
 	#[Client.savedCollectionList( List<Str> collectionTypes, Bool getCoverMediaLists, Int includePublicOnly, Str maxId )]: SavedCollectionList
 	@final
@@ -1476,6 +1688,17 @@ class Client( RequestRequired, Readonly ):
 	def savedCollectionList( self, collectionTypes:list[str] = [ "ALL_MEDIA_AUTO_COLLECTION", "MEDIA", "AUDIO_AUTO_COLLECTION" ], getCoverMediaLists:bool=True, includePublicOnly:int=0, maxId:str="" ) -> SavedCollectionList:
 
 		"""
+		Getting data saved collection lists
+
+		:params List<Str> collectionTypes
+			The saved collection type e.g ALL_MEDIA_AUTO_COLLECTION, MEDIA, AUDIO_AUTO_COLLECTION
+		:params Bool getCoverMediaLists
+		:params Int includePublicOnly
+		:params Str maxId
+
+		:return SavedCollectionList
+		:raises ClientError
+			When there are unexpected error found
 		"""
 
 		# Create request parameters.
@@ -1506,6 +1729,11 @@ class Client( RequestRequired, Readonly ):
 	def savedPosts( self ) -> SavedPosts:
 		
 		"""
+		Getting saved post|reels
+
+		:return SavedPost
+		:raises ClientError
+			When there are unexpected error found
 		"""
 
 		# Update request headers.
@@ -1528,6 +1756,18 @@ class Client( RequestRequired, Readonly ):
 	def saveEdit( self, biography:str, email:str, externalUrl:str, firstName:str, phoneNumber:str, username:str ) -> bool:
 
 		"""
+		Save changed profile info
+
+		:params Str biography
+		:params Str email
+		:params Str externalUrl
+		:params Str firstName
+		:params Str phoneNumber
+		:params Str username
+
+		:return Bool
+		:raises UserError
+			When failed save changed profile info
 		"""
 
 		# Create request payload.
@@ -1602,8 +1842,7 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return True
 		raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while updating gender [{status}]" )
-		
-
+	
 	#[Client.settings]: Setting
 	@final
 	@property
@@ -1896,8 +2135,7 @@ class Client( RequestRequired, Readonly ):
 			# 	content['reels_media'][i] = wrapper( content['reels_media'][i] )
 			# return results( content )
 			return StoryFeedTrayReels( content ) if flag == Story.TIMELINE else StoryHighlights( content )
-		else:
-			raise StoryError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching story media info [{status}]" )
+		raise StoryError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching story media info [{status}]" )
 
 	#[Client.stories( Bool isFollowingFeed )]: StoryFeed<StoryFeedTray>
 	@logged
@@ -2010,3 +2248,4 @@ class Client( RequestRequired, Readonly ):
 		else:
 			raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user [{status}]" )
 	
+	...
