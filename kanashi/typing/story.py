@@ -393,6 +393,7 @@ class StoryHighlightReels( Story, Typing ):
 			"owner": User
 		}
 
+
 #[kanashi.typing.story.StoryProfile<Chaining[], StoryHighlightReels<StoryProfileEdge[]>, StoryReel>]
 @final
 class StoryProfile( Story, Typing ):

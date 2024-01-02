@@ -53,7 +53,7 @@ class User( Object ):
 				return int( self.__dict__['__data__']['id'] )
 		if "id" in self.__dict__:
 			return self.__dict__['id']
-		raise NotImplementedError( "Property {} is not initialize ot implemented".format( self.id ) )
+		raise NotImplementedError( "Property \"id\" is not initialize ot implemented" )
 	
 	#[User.username]: Str
 	@final
@@ -73,5 +73,5 @@ class User( Object ):
 				return self.__dict__['__data__']['username']
 		if "username" in self.__dict__:
 			return self.__dict__['username']
-		raise NotImplementedError( "Property {} is not initialize ot implemented".format( self.username ) )
+		raise NotImplementedError( "Property \"username\" is not initialize ot implemented" )
 	

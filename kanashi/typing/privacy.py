@@ -41,11 +41,21 @@ class Privacy( Typing ):
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
+			"allow_contacts_sync",
+			"business_account",
+			"feed_post_reshare_disabled",
+			"highlight_reshare_disabled",
+			"disallow_story_reshare",
+			"offsite_tracking_enabled",
+			"presence_disabled",
+			"private_account",
+			"should_hide_two_factor",
+			"should_show_consent_settings",
+			"third_party_cookies_enabled",
+			"two_factor_enabled",
+			"usertag_review_enabled",
+			"is_embeds_disabled",
+			"is_interest_topics_enabled"
 		]
 	
-	#[Privacy.__mapping__]: Dict|Object
-	@property
-	def __mapping__( self ) -> dict|Object:
-		return {
-		}
-	
+	...

@@ -41,12 +41,16 @@ class AccessManager( Typing ):
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
+			"apps",
+			"oauth"
 		]
 	
 	#[AccessManager.__mapping__]: Dict|Object
 	@property
 	def __mapping__( self ) -> dict|Object:
 		return {
+			"apps": AccessManagerApps,
+			"oauth": AccessManagerOAuth
 		}
 	
 
@@ -58,6 +62,7 @@ class AccessManagerApps( Typing ):
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
+			"authorizations"
 		]
 	
 	#[AccessManagerApps.__mapping__]: Dict|Object
@@ -75,6 +80,8 @@ class AccessManagerOAuth( Typing ):
 	@property
 	def __items__( self ) -> list[dict|list|Object]:
 		return [
+			"pending_apps",
+			"accepted_apps"
 		]
 	
 	#[AccessManagerOAuth.__mapping__]: Dict|Object
