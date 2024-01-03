@@ -24,7 +24,13 @@
 #
 
 
-from kanashi.constant import *
+# from kanashi.client import Client
+# from kanashi.common import encpaswd, isUserId
+# from kanashi.decorator import avoidForMySelf, logged
+# from kanashi.error import *
+# from kanashi.kanashi import Kanashi
+# from kanashi.pattern import Pattern
+# from kanashi.typing import *
 from kanashi import (
 	decorator,
 	error,
@@ -35,3 +41,4 @@ from kanashi import (
 	pattern,
 	typing
 )
+
