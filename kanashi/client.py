@@ -275,11 +275,11 @@ class Client( RequestRequired, Readonly ):
 		
 		"""
 		Approve or ignore request follow from user.
-		
+
 		:parans Int|Str|User user
 		:params Bool approve
 			Approve action
-		
+
 		:return Friendship
 			Approve or ignore result represent
 		:raises ValueError
