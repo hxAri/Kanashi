@@ -47,6 +47,7 @@ from kanashi.error import (
 	FollowError,
 	FollowerError, 
 	FriendshipError,
+	LikeError,
 	LockedError,
 	PasswordError,
 	RestrictError,
@@ -275,11 +276,11 @@ class Client( RequestRequired, Readonly ):
 		
 		"""
 		Approve or ignore request follow from user.
-
+		
 		:parans Int|Str|User user
 		:params Bool approve
 			Approve action
-
+		
 		:return Friendship
 			Approve or ignore result represent
 		:raises ValueError
@@ -2155,7 +2156,72 @@ class Client( RequestRequired, Readonly ):
 		if isinstance( target, ( StoryFeedTrayReel, StoryHighlight, StoryHighlights ) ):
 			raise TypeError( "Unable to get story from {}, because the object contains a list of story items".format( typeof( target ) ) )
 		raise TypeError( "Invalid \"target\" parameter, value must be type Story, {} passed".format( typeof( target ) ) )
+	
+	#[Client.storyLike( Int|StoryItem story, Bool like )]: Object
+	@logged
+	def storyLike( self, story:int|StoryItem, like:bool=True ) -> object:
+
+		"""
+		Like or Unlike user story
+
+		:params StoryItem story
+			Story item want to be like or unlike
+		:params Bool like
+
+		:return ?
+		:raises TypeError
+			When the value of parameter is invalid value type
+		:raises ValueError
+			When the value of parameter is empty
+			When the story does not set id
+		"""
+
+		mediaId = 0
+		username = None
+
+		if isinstance( story, int ):
+			if like is None:
+				raise ValueError( "\"like\" parameter can't be empty when use storyMediaId" )
+			if not isinstance( like, bool ):
+				raise TypeError( "Invalid \"like\" parameter, value must be type Bool, {} passed".format( typeof( like ) ) )
+			mediaId = story
+		if isinstance( story, StoryItem ):
+			if "id" not in story:
+				raise ValueError( "Story item does not set id" )
+			mediaId = story['id']
+			like = not story['has_liked'] if "has_liked" in story else True
+			if "user" in story and isinstance( story['user'], User ):
+				username = story['user']['username']
 		
+		if like is True:
+			action = "Unlike"
+			target = "https://www.instagram.com/api/v1/story_interactions/unsend_story_like"
+		else:
+			action = "Like"
+			target = "https://www.instagram.com/api/v1/story_interactions/send_story_like"
+
+		# Update request headers.
+		self.headers.update({
+			"Content-Type": "application/x-www-form-urlencoded",
+			"Origin": "https://www.instagram.com",
+			"Referer": f"https://www.instagram.com/stories/{username}/{mediaId}/" if username is not None else "https://www.instagram.com/"
+		})
+
+		# Trying to like or unlike story.
+		request = self.request.post( target, data={ "media_id": mediaId } )
+		content = request.json()
+		status = request.status_code
+		if status == 200:
+			return content
+		raise LikeError( content['message'] if "message" in content and content['message'] else f"Something wrong when {action} the story {mediaId}" )
+
+	@logged
+	def storyReply( self ) -> object:
+
+		"""
+		Reply user story with emoji or text
+		"""
+
 	#[Client.stories( Bool isFollowingFeed )]: StoryFeed<StoryFeedTray>
 	@logged
 	def stories( self, isFollowingFeed:bool=False ) -> StoryFeed:
