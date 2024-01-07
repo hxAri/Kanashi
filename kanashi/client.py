@@ -49,7 +49,7 @@ from kanashi.error import (
 	FriendshipError, 
 	LikeError, 
 	LockedError,
-	PasswordError,
+	PasswordError, 
 	RestrictError,
 	SignInError,
 	SpamError,
