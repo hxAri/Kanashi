@@ -48,7 +48,7 @@ from kanashi.error import (
 	FollowerError, 
 	FriendshipError, 
 	LikeError, 
-	LockedError,
+	LockedError, 
 	PasswordError, 
 	RestrictError,
 	SignInError,
