@@ -55,7 +55,7 @@ from kanashi.error import (
 	SpamError,
 	StoryError,
 	UserError,
-	UserNotFoundError
+	UserNotFoundError 
 )
 from kanashi.pattern import Pattern
 from kanashi.typing import (
