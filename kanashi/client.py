@@ -51,7 +51,7 @@ from kanashi.error import (
 	LockedError, 
 	PasswordError, 
 	RestrictError,
-	SignInError,
+	SignInError, 
 	SpamError,
 	StoryError,
 	UserError,
