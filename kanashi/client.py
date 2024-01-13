@@ -53,7 +53,7 @@ from kanashi.error import (
 	RestrictError,
 	SignInError, 
 	SpamError, 
-	StoryError,
+	StoryError, 
 	UserError,
 	UserNotFoundError 
 )
