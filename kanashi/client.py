@@ -54,7 +54,7 @@ from kanashi.error import (
 	SignInError, 
 	SpamError, 
 	StoryError, 
-	UserError,
+	UserError, 
 	UserNotFoundError 
 )
 from kanashi.pattern import Pattern
