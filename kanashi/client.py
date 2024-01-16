@@ -92,7 +92,7 @@ from kanashi.typing import (
 	StoryProfile, 
 	StoryProfileEdge, 
 	StoryReel, 
-	User
+	User 
 )
 
 
