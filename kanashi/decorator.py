@@ -40,7 +40,7 @@ def avoidForMySelf( handle ) -> callable:
 	from kanashi.pattern import Pattern
 	from kanashi.typing.profile import Profile
 	from kanashi.typing.user import User
-	
+
 	#[kanashi.utility.avoidForMySelf( Self@Client slef, Any *args, Any **kwargs )]: Any
 	def wrapper( self, *args, **kwargs ) -> any:
 		throws = lambda: ProfileError( "This action is not intended for your self" )
