@@ -98,7 +98,7 @@ from kanashi.typing import (
 
 #[kanashi.client.Client]
 class Client( RequestRequired, Readonly ):
-	
+
 	""" A Kanashi Client class """
 	
 	# Default client browser user agent.
