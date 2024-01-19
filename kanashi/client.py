@@ -100,7 +100,7 @@ from kanashi.typing import (
 class Client( RequestRequired, Readonly ):
 
 	""" A Kanashi Client class """
-	
+
 	# Default client browser user agent.
 	BROWSER:str = "Mozilla/5.0 (Linux; Android 4.4.1; [HM NOTE|NOTE-III|NOTE2 1LTETD) AppleWebKit/535.42 (KHTML, like Gecko)  Chrome/112.0.5615.137 Mobile Safari/600.3"
 	""" Instagram default User-Agent """
