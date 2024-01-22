@@ -139,7 +139,7 @@ class Client( RequestRequired, Readonly ):
 			Appication configuration
 		:params Request request
 			Instance of class Request
-		
+
 		:return None
 		:raises TypeError
 			Raise when the value of parameter
