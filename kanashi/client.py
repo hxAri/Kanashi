@@ -191,7 +191,7 @@ class Client( RequestRequired, Readonly ):
 		self.__config__:Config = config
 		self.__setting__:Settings = config.settings
 		self.__request__:Request = request
-	
+
 	#[Client.access()]: AccessManager<AccessManagerApps, AccessManagerOAuth>
 	@logged
 	def access( self ) -> AccessManager:
