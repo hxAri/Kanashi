@@ -186,7 +186,7 @@ class Client( RequestRequired, Readonly ):
 			else:
 				browser = choice( config.settings.browser.randoms )
 			request.headers.update({ "User-Agent": browser })
-		
+
 		self.__active__:Active|None = active
 		self.__config__:Config = config
 		self.__setting__:Settings = config.settings
