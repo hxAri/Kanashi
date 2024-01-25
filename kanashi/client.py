@@ -306,7 +306,7 @@ class Client( RequestRequired, Readonly ):
 			id = user.id if "id" in user else user.pk
 		else:
 			raise TypeError( "Invalid \"user\" parameter, value must be type Int|str|User, {} passed".format( typeof( user ) ) )
-		
+
 		if approve is None:
 			raise ValueError( "Follow request consent cannot be empty" )
 		if not isinstance( approve, bool ):
