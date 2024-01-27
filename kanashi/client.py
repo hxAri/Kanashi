@@ -41,21 +41,21 @@ from kanashi.decorator import avoidForMySelf, logged
 from kanashi.error import ( 
 	BlockError, 
 	BestieError, 
-	ClientError, 
+	ClientError,
 	CsrftokenError, 
-	FavoriteError, 
-	FollowError, 
+	FavoriteError,
+	FollowError,
 	FollowerError, 
-	FriendshipError, 
-	LikeError, 
-	LockedError, 
-	PasswordError, 
+	FriendshipError,
+	LikeError,
+	LockedError,
+	PasswordError,
 	RestrictError,
-	SignInError, 
-	SpamError, 
-	StoryError, 
-	UserError, 
-	UserNotFoundError 
+	SignInError,
+	SpamError,
+	StoryError,
+	UserError,
+	UserNotFoundError
 )
 from kanashi.pattern import Pattern
 from kanashi.typing import (
@@ -92,7 +92,7 @@ from kanashi.typing import (
 	StoryProfile, 
 	StoryProfileEdge, 
 	StoryReel, 
-	User 
+	User
 )
 
 
@@ -230,12 +230,12 @@ class Client( RequestRequired, Readonly ):
 			if status == 200:
 				return content
 			raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching OAuth Platform Tester Invites [{status}]" )
-		
+
 		return AccessManager({
 			"apps": apps( self ),
 			"oauth": oauth( self )
 		})
-	
+
 	#[Client.active]: Active
 	@final
 	@property
@@ -244,7 +244,7 @@ class Client( RequestRequired, Readonly ):
 	#[Client.activate( Active active, Request request )]: None
 	@final
 	def activate( self, active:Active, request:Request=None ) -> None:
-		
+
 		"""
 		Change current active account
 
@@ -252,7 +252,7 @@ class Client( RequestRequired, Readonly ):
 			Account want to be activate
 		:params Request request
 			Request instance
-		
+
 		:return None
 		:raise TypeError
 			When the value parameter is invalid value type
@@ -269,18 +269,18 @@ class Client( RequestRequired, Readonly ):
 				Cookie.set( request.cookies, cookie, active.session.cookies[cookie], domain=".instagram.com", path="/" )
 		self.__active__:Active|None = active
 		self.__request__:Request = request
-	
+
 	#[Client.approve( Int|Str|User user, Bool approve )]: Friendship
 	@avoidForMySelf
 	def approve( self, user:int|str|User, approve:bool=True ) -> Friendship:
-		
+
 		"""
 		Approve or ignore request follow from user.
-		
+
 		:parans Int|Str|User user
 		:params Bool approve
 			Approve action
-		
+
 		:return Friendship
 			Approve or ignore result represent
 		:raises ValueError
@@ -311,13 +311,13 @@ class Client( RequestRequired, Readonly ):
 			raise ValueError( "Follow request consent cannot be empty" )
 		if not isinstance( approve, bool ):
 			raise TypeError( "Invalid \"approve\" parameter, value must be type Bool, {} passed".format( typeof( approve ) ) )
-		
+
 		action = "Approve request"
 		target = f"https://www.instagram.com/api/v1/web/friendships/{id}/approve/"
 		if not approve:
 			action = "Ignore request"
 			target = f"https://www.instagram.com/api/v1/web/friendships/{id}/ignore/"
-		
+
 		# Update request headers.
 		self.headers.update({
 			"Origin": "https://www.instagram.com",
@@ -332,14 +332,14 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return Friendship({ "id": id, "approve": approve, "ignoring": not approve, **content })
 		raise FriendshipError( content['message'] if "message" in content and content['message'] else f"There was an error when {action} follow" )
-	
+
 	#[Client.attemp()]: Any
 	def attemp( self ) -> any:
-		
+
 		"""
 		...
 		"""
-	
+
 	#[Client.authenticated]: bool
 	@final
 	@property
@@ -363,7 +363,7 @@ class Client( RequestRequired, Readonly ):
 				"X-CSRFToken" in self.headers and \
 				"csrftoken" in self.cookies and self.cookies['csrftoken'] == self.headers['X-CSRFToken']
 		return False
-	
+
 	#[Client.bestie( Friendship|Int|Profile|User user, Str username, Bool bestie )]: Friendship
 	@final
 	@logged
@@ -379,7 +379,7 @@ class Client( RequestRequired, Readonly ):
 		:params Bool bestie
 			True set user as bestie
 			False otherwise
-		
+
 		:return Friendship
 		:raises BestieError
 			When you trying to make yourself as bestie
@@ -405,14 +405,14 @@ class Client( RequestRequired, Readonly ):
 				raise BestieError( "Unable to set yourself as a bestie" )
 		else:
 			raise TypeError( "Invalid \"user\" parameter, value must be type Friendship|Int|Profile|User, {} passed".format( typeof( user ) ) )
-		
+
 		if username is None:
 			raise ValueError( "Username can't be empty, this require for \"Referer\" header" )
 		if not isinstance( username, str ):
 			raise TypeError( "Invalid \"username\" parameter, value must be type Str, {} passed".format( typeof( username ) ) )
 		if match( Pattern.USERNAME, username ) is None:
 			raise ValueError( f"Invalid username value, username format must be \"{Pattern.USERNAME}\", \"{username}\" passed" )
-		
+
 		# Update request headers.
 		self.headers.update({
 			"Accept-Encoding": "gzip, deflate, br",
@@ -434,20 +434,20 @@ class Client( RequestRequired, Readonly ):
 		else:
 			action = "Adding Bestie"
 			payload['add'].append( user )
-		
+
 		request = self.request.post( "https://www.instagram.com/api/v1/friendships/set_besties/", json=payload )
 		content = request.json()
 		status = request.status
 		if status == 200:
 			return Friendship( content['friendship_statuses'][str( user )] )
 		raise BestieError( f"An error occurred while {action} the user [{status}]" )
-	
+
 	#[Client.block( Friendship|Int|Profile|User user, Bool block )]: Friendship
 	@final
 	@logged
 	@avoidForMySelf
 	def block( self, user:Friendship|int|Profile|User, block:bool=True ) -> Friendship:
-		
+
 		"""
 		Block or unblock user
 
@@ -458,7 +458,7 @@ class Client( RequestRequired, Readonly ):
 			When you trying to block yourself, LOL
 			When something wrong, please to check the request response history
 		"""
-		
+
 		username = None
 
 		if user is None:
@@ -476,13 +476,13 @@ class Client( RequestRequired, Readonly ):
 				raise BlockError( "Unable to block or unblock yourself" )
 		else:
 			raise TypeError( "Invalid \"user\" parameter, value must be type Friendship|Int|Profile|User, {} passed".format( typeof( user ) ) )
-		
+
 		if username is not None:
 			if not isinstance( username, str ):
 				raise TypeError( "Invalid \"username\" parameter, value must be type Str, {} passed".format( typeof( username ) ) )
 			if match( Pattern.USERNAME, username ) is None:
 				raise ValueError( f"Invalid username value, username format must be \"{Pattern.USERNAME}\", \"{username}\" passed" )
-		
+
 		if block is None:
 			raise ValueError( "\"block\" can't be empty" )
 		if block is True:
@@ -491,7 +491,7 @@ class Client( RequestRequired, Readonly ):
 		else:
 			action = "Unblocking"
 			target = f"https://www.instagram.com/api/v1/web/friendships/{user}/unblock/"
-		
+
 		# Update request headers.
 		self.headers.update({
 			"Accept-Encoding": "gzip, deflate, br",
@@ -507,12 +507,12 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return Friendship( content['friendship_sattus'] )
 		raise BlockError( content['message'] if "message" in content and content['message'] else f"Something wrong when {action} the {user}" )
-	
+
 	#[Client.config]: Config
 	@final
 	@property
 	def config( self ) -> Config: return self.__config__
-	
+
 	#[Client.csrftoken]: List|Str
 	@final
 	@property
@@ -520,7 +520,7 @@ class Client( RequestRequired, Readonly ):
 
 		"""
 		Return active csrftoken or crsftoken prelogin.
-		
+
 		:return Str
 			String of csrftoken value
 			List of request object and csrftoken
@@ -539,7 +539,7 @@ class Client( RequestRequired, Readonly ):
 			except KeyError as e:
 				raise CsrftokenError( "Csrftoken prelogin is not available", prev=e )
 		return self.active.csrftoken
-	
+
 	#[Client.checkpoint( Str url, Request request, Cookies|Dict|Object|Str cookies, Dict|Headers headers, Int choices )]: Object
 	@final
 	def checkpoint( self, url:str, request:Request=None, cookies:Cookies|dict|Object|str=None, headers:dict|Headers|Object=None, choices:int=1 ) -> Object:
@@ -563,7 +563,7 @@ class Client( RequestRequired, Readonly ):
 			For manual usage without Request instance
 		:params Int choices
 			Your choices requests
-		
+
 		:return Object
 		"""
 
@@ -571,13 +571,13 @@ class Client( RequestRequired, Readonly ):
 			raise ValueError( "Url can't be empty" )
 		if not isinstance( url, str ):
 			raise TypeError( "Invalid \"url\" parameter, value must be type Str, {} passed".format( typeof( url ) ) )
-		
+
 		search = match( r"^(?:\/challenge\/action\/(?P<challenge>[^\n]+))$", url )
 		if search is not None:
 			challenge = search.group( "challenge" )
 		else:
 			raise ValueError( "Invalid checkpoint challenge URL" )
-		
+
 		if request is None:
 			if cookies is None:
 				raise ValueError( "Cookie can't be empty" )
@@ -600,7 +600,7 @@ class Client( RequestRequired, Readonly ):
 			elif isinstance( headers, Object ):
 				headers = headers.props()
 			request = Request( cookies=cookies, headers=headers, timeout=self.settings.timeout )
-		
+
 		# Update request headers.
 		request.headers.update({
 			"Content-Type": "application/x-www-form-urlencoded",
@@ -626,7 +626,7 @@ class Client( RequestRequired, Readonly ):
 
 		:params Bool default
 			Also delete the login session data in the configuration
-		
+
 		:return None
 		"""
 
@@ -637,7 +637,7 @@ class Client( RequestRequired, Readonly ):
 				self.settings.signin.switch.delt( self.active.username )
 		self.__active__ = None
 		self.__request__ = Request( headers=Client.HEADERS, timeout=self.settings.timeout )
-	
+
 	#[Client.direct( Bool persistentBadging, Str folder, Int limit, Int threadMessageLimit, Int|Str cursor )]: Direct
 	@logged
 	def direct( self, persistentBadging:bool=True, folder:str="", limit:int=5, threadMessageLimit:int=1, cursor:int|str=None ) -> Direct:
@@ -680,7 +680,7 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return Direct( content )
 		raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching direct message inbox [{status}]" )
-	
+
 	#[Client.direct()]: Direct
 	@logged
 	def directPresence( self, persistence:bool=None, cache:bool=False ) -> Object:
@@ -688,11 +688,11 @@ class Client( RequestRequired, Readonly ):
 		""" ... """
 
 		return self.request.get( "https://www.instagram.com/api/v1/direct_v2/get_presence/" )
-	
+
 	#[Client.explore( Int maxId, Bool includeFixedDestinations, Bool isNonPersonalizedExplore, Bool isPrefetch, Bool omitCoverMedia )]: Explore
 	@logged
 	def explore( self, maxId:int=0, includeFixedDestinations:bool=True, isNonPersonalizedExplore:bool=False, isPrefetch:bool=False, omitCoverMedia:bool=False ) -> Explore:
-		
+
 		"""
 		Get contents of Instagram explore
 
@@ -727,13 +727,13 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return Explore( content )
 		raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching contents from instagram explore [{status}]" )
-	
+
 	#[Client.favorite( Friendship|Int|Profile|User user, Bool favorite ): Friendship
 	@final
 	@logged
 	@avoidForMySelf
 	def favorite( self, user:Friendship|int|Profile|User, favorite:bool ) -> Friendship:
-		
+
 		"""
 		Make user as favorite user or remove user from favorite user
 
@@ -746,7 +746,7 @@ class Client( RequestRequired, Readonly ):
 			When you trying to make yourself as favorite user
 			When something wrong, please to check the request response history
 		"""
-		
+
 		username = None
 
 		if user is None:
@@ -766,13 +766,13 @@ class Client( RequestRequired, Readonly ):
 				raise FavoriteError( "Unable to make yourself as favorite user or remove yourself from favorite user" )
 		else:
 			raise TypeError( "Invalid \"user\" parameter, value must be type Friendship|Int|Profile|User, {} passed".format( typeof( user ) ) )
-		
+
 		if username is not None:
 			if not isinstance( username, str ):
 				raise TypeError( "Invalid \"username\" parameter, value must be type Str, {} passed".format( typeof( username ) ) )
 			if match( Pattern.USERNAME, username ) is None:
 				raise ValueError( f"Invalid username value, username format must be \"{Pattern.USERNAME}\", \"{username}\" passed" )
-		
+
 		if favorite is None:
 			raise ValueError( "\"favorite\" can't be empty" )
 		if favorite is True:
@@ -781,7 +781,7 @@ class Client( RequestRequired, Readonly ):
 		else:
 			action = "Unfavorite"
 			keyset = "remove"
-		
+
 		# Update request headers.
 		self.headers.update({
 			"Accept-Encoding": "gzip, deflate, br",
@@ -798,7 +798,7 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return Friendship( content['friendship_sattus'] )
 		raise FavoriteError( content['message'] if "message" in content and content['message'] else f"Something wrong when {action} the {user}" )
-	
+
 	#[Client.follow( Friendship|Int|Profile|User user, Follow.Type follow )]: Friendship
 	@final
 	@logged
@@ -810,7 +810,7 @@ class Client( RequestRequired, Readonly ):
 
 		:params Friendship|Int|Profile|User user
 		:params Follow.Type follow
-		
+
 		:return Friendship
 		:raises FollowError
 			When you trying to follow yourself, this is ambigue bro!
@@ -834,7 +834,7 @@ class Client( RequestRequired, Readonly ):
 				raise FollowerError( "Unable to follow or unfollow yourself" )
 		else:
 			raise TypeError( "Invalid \"user\" parameter, value must be type Friendship|Int|Profile|User, {} passed".format( typeof( user ) ) )
-		
+
 		if username is not None:
 			if not isinstance( username, str ):
 				raise TypeError( "Invalid \"username\" parameter, value must be type Str, {} passed".format( typeof( username ) ) )
@@ -855,7 +855,7 @@ class Client( RequestRequired, Readonly ):
 				target = f"https://www.instagram.com/api/v1/friendships/destroy/{user}/"
 			case _:
 				raise TypeError( "Invalid \"follow\" parameter, value must be type Follow$.Type, {} passed".format( follow ) )
-		
+
 		# Update request headers.
 		self.headers.update({
 			"Accept-Encoding": "gzip, deflate, br",
@@ -878,7 +878,7 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return Friendship( content['friendship_status'] )
 		raise FollowError( f"An error occurred while {action} the user [{status}]" )
-	
+
 	#[Client.followers( Int|Str|User user, Int count, Int nextMaxId )]: Followers<Follower>
 	@logged
 	def followers( self, user:int|str|User, count:int=12, nextMaxId:int=None ) -> Followers:
@@ -891,7 +891,7 @@ class Client( RequestRequired, Readonly ):
 			Size of followers, the default is 12
 		:params Int nextMaxId
 			Next maximal id to get
-		
+
 		:return Followers<Follower>
 		:raises FollowerError
 			When something wrong, please to check the request response history
@@ -958,7 +958,7 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return Followers( content )
 		raise FollowerError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user followers [{status}]" )
-	
+
 	#[Client.following( Int|Str|User user, Int count, Int nextMaxId )]: Followings<Following>
 	@logged
 	def following( self, user:int|str|User, count:int=12, nextMaxId:int=None ) -> Followings:
@@ -971,7 +971,7 @@ class Client( RequestRequired, Readonly ):
 			Size of followers, the default is 12
 		:params Int nextMaxId
 			Next maximal id to get
-		
+
 		:return Followers<Follower>
 		:raises FollowerError
 			When something wrong, please to check the request response history
@@ -1038,16 +1038,16 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return Followings( content )
 		raise FollowerError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user following [{status}]" )
-	
+
 	#[Client.friendship( Int id )]: Friendship
 	@logged
 	def friendship( self, id:int ) -> Friendship:
-		
+
 		"""
 		Get user friendship info.
-		
+
 		:params Int id
-		
+
 		:return Friendship
 		:raises FriendshipError
 			When something wrong, please to check the request response history
@@ -1056,7 +1056,7 @@ class Client( RequestRequired, Readonly ):
 		:raises ValueError
 			When the value of user id is empty
 		"""
-		
+
 		# Update request headers.
 		self.headers.update( **{
 			"Origin": "https://www.instagram.com",
@@ -1067,7 +1067,7 @@ class Client( RequestRequired, Readonly ):
 			raise ValueError( "Id can't be empty" )
 		if not isinstance( id, int ):
 			raise TypeError( "Invalid \"id\" parameter, value must be type Int, {} passed".format( typeof( id ) ) )
-		
+
 		# Trying to restrieve user friendship.
 		request = self.request.get( f"https://www.instagram.com/api/v1/friendships/show/{id}" )
 		content = request.json()
@@ -1075,14 +1075,14 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return Friendship( content )
 		raise FriendshipError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the friendship [{status}]" )
-	
+
 	#[Client.friendshipShowMay( Str username, List<Int> ids, Mixed **kwargs )]: FriendshipStatuses
 	@logged
 	def friendshipShowMay( self, username:str, ids:list[int|str]=None, **kwargs ) -> FriendshipStatuses:
-		
+
 		"""
 		Friendship Show Many information of user based id from followers or following list.
-		
+
 		:params Str username
 			Username as referrer, which means the ID
 			provided must match the follower or following
@@ -1095,7 +1095,7 @@ class Client( RequestRequired, Readonly ):
 				If id from followers
 			:kwargs Bool following
 				If id from following
-		
+
 		:return FriendshipStatuses
 		:raises FriendshipError
 			When something wrong, please to check the request response history
@@ -1105,7 +1105,7 @@ class Client( RequestRequired, Readonly ):
 			When the ids parameter is invalid
 			When the user id more than 32 ids
 		"""
-		
+
 		ids = [] if ids is None else ids
 		if not isinstance( ids, list ):
 			raise ValueError( "Invalid ids parameter, value must be type list<int>, {} passed".format( typeof( ids ) ) )
@@ -1117,14 +1117,14 @@ class Client( RequestRequired, Readonly ):
 			if not isUserId( id ):
 				raise ValueError( "Invalid user id in list of ids, user id must be Int or Numeric String, {} passed on ids[{}]".format( typeof( id ), i ) )
 			ids[i] = int( id )
-		
+
 		# Update request headers.
 		self.headers.update({
 			"Content-Type": "application/x-www-form-urlencoded",
 			"Origin": "https://www.instagram.com",
 			"Referer": "https://www.instagram.com/{}/{}/".format( username, "followers" if "followers" in kwargs else "following" )
 		})
-		
+
 		# Trying to get more data.
 		request = self.request.post( "https://www.instagram.com/api/v1/friendships/show_many/", data={ "user_ids": ids } )
 		content = request.json()
@@ -1137,7 +1137,7 @@ class Client( RequestRequired, Readonly ):
 				"friendship_statuses": statuses
 			})
 		raise FriendshipError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the friendship information of users [{status}]" )
-	
+
 	@logged
 	def graphql( self, binding:any=None, **kwargs:object ) -> any:
 
@@ -1172,17 +1172,17 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return binding( content )
 		raise ClientError( f"Something wrong when sent graphql request [{status}]" )
-	
+
 	#[Client.inbox( Str continuationToken )]: Inbox
 	@logged
 	def inbox( self, continuationToken:str=None ) -> Inbox:
-		
+
 		"""
 		Get news inbox notifications.
 
 		:params Str continuationToken
 			Next page request of inbox notification
-		
+
 		:return Inbox
 		:raises ClientError
 			When something wrong, please to check the request response history
@@ -1191,7 +1191,7 @@ class Client( RequestRequired, Readonly ):
 		:raises TypeError
 			when the parameter value is invalid value type
 		"""
-		
+
 		# Update request headers.
 		self.headers.update({
 			"Content-Type": "application/x-www-form-urlencoded",
@@ -1203,7 +1203,7 @@ class Client( RequestRequired, Readonly ):
 			if not isinstance( continuationToken, str ):
 				raise TypeError( "Invalid \"continuationToken\" parameter, value must be tyoe Str, {} passed".format( typeof( continuationToken ) ) )
 			raise NotImplementedError( "Action for {}$.continuationToken does not implemented".format( self.inbox ) )
-		
+
 		# Trying to get news inbox notifications.
 		request = self.request.post( "https://www.instagram.com/api/v1/news/inbox/", data={} )
 		content = request.json()
@@ -1211,7 +1211,7 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return Inbox( content )
 		raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the news inbox notifications [{status}]" )
-	
+
 	#[Client.logout()]
 	@logged
 	def logout( self ): ...
@@ -1228,7 +1228,7 @@ class Client( RequestRequired, Readonly ):
 		Get settings of notification channel.
 
 		:params Str channel
-		
+
 		:return Notification
 		:raises ClientError
 			When something wrong, please to check the request response history
@@ -1268,20 +1268,20 @@ class Client( RequestRequired, Readonly ):
 	#[Client.pending( Str nextMaxId )]: Pendings<Pending>
 	@logged
 	def pending( self, nextMaxId:str=None ) -> Pendings:
-		
+
 		"""
 		Get pending request follow from users.
 
 		:params Str nextMaxId
 			Next page request of pending request follow
-		
+
 		:return Pendings<Pending>
 		:raises ClientError
 			When something wrong, please to check the request response history
 		:raises TypeError
 			When the parameter value is invalid value
 		"""
-		
+
 		# Update request headers.
 		self.headers.update({
 			"Origin": "https://www.instagram.com",
@@ -1291,7 +1291,7 @@ class Client( RequestRequired, Readonly ):
 		if nextMaxId is not None:
 			if not isinstance( nextMaxId, str ):
 				raise NotImplementedError( "Action for {}$.nextMaxId does not implemented".format( self.pending ) )
-		
+
 		# Trying to get request follow pending.
 		request = self.request.get( "https://www.instagram.com/api/v1/friendships/pending/" )
 		content = request.json()
@@ -1299,14 +1299,14 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return Pendings({ **content, "users": [ { **user, "id": user['pk'] if "id" not in user else user['id'] } for user in content['users'] ] })
 		raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the request pending [{status}]" )
-	
+
 	#[Client.privacy()]: Privacy
 	@logged
 	def privacy( self ) -> Privacy:
 
 		"""
 		Get settings of privacy.
-		
+
 		:return Privacy
 		:raises ClientError
 			When something wrong, please to check the request response history
@@ -1321,7 +1321,7 @@ class Client( RequestRequired, Readonly ):
 				"https://www.instagram.com/accounts/how_others_can_interact_with_you/"
 			])
 		})
-		
+
 		# Trying to get privacy setting.
 		request = self.request.get( "hhttps://www.instagram.com/api/v1/accounts/privacy_and_security/web_info/" )
 		content = request.json()
@@ -1329,7 +1329,7 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return Privacy( content )
 		raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching privacy settings [{status}]" )
-	
+
 	#[Client.profile( Int|Str username )]: Profile
 	@logged
 	def profile( self, username:int|str ) -> Profile:
@@ -1340,7 +1340,7 @@ class Client( RequestRequired, Readonly ):
 		:params Int|Str username
 			Int for user id, and Str for username.
 			But if Str is containts valid user id, it will convert to Int.
-		
+
 		:return Profile
 		:raises TypeError
 			When the parameter value is invalid value
@@ -1358,12 +1358,12 @@ class Client( RequestRequired, Readonly ):
 
 			"""
 			Get user info by id.
-			
+
 			:params Request session
 				Authenticated request session
 			:params Int id
 				User id profile
-			
+
 			:return Dict
 				Profile info
 			:raises UserError
@@ -1378,7 +1378,7 @@ class Client( RequestRequired, Readonly ):
 				"Origin": "https://www.instagram.com",
 				"Referer": "https://www.instagram.com/explore/"
 			})
-			
+
 			# Trying to retrieve user info.
 			request = session.get( f"https://i.instagram.com/api/v1/users/{id}/info/?profile_picture=true" )
 			content = request.json()
@@ -1391,18 +1391,18 @@ class Client( RequestRequired, Readonly ):
 			if status == 404:
 				raise UserNotFoundError( f"Target \"{id}\" user not found" )
 			raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user [{status}]" )
-		
+
 		#[Client.profile$.getByUname( Request session, Str username )]
 		def getByUname( session:Request, username:str ) -> dict:
 
 			"""
 			Get user info by username.
-			
+
 			:params Request session
 				Authenticated request session
 			:params Str username
 				Username profile
-			
+
 			:return Dict
 				Profile info
 			:raises UserError
@@ -1417,7 +1417,7 @@ class Client( RequestRequired, Readonly ):
 				"Origin": "https://www.instagram.com",
 				"Referer": f"https://www.instagram.com/{username}/"
 			})
-			
+
 			# Trying to retrieve user info.
 			request = session.get( f"https://www.instagram.com/{username}?__a=1&__d=dis" )
 			content = request.json()
@@ -1444,10 +1444,10 @@ class Client( RequestRequired, Readonly ):
 			profile['id'] = profile['pk']
 		if "pk" not in profile:
 			profile['pk'] = profile['id']
-		
+
 		if int( profile['id'] ) != int( self.active.id ):
 			friendship = self.friendship( profile['id'] )
-		
+
 		viewer = { "viewer": droper( self.active, [ "id", "fullname", "username" ]) }
 		friendship = { 
 			"blocking": False,
@@ -1580,26 +1580,26 @@ class Client( RequestRequired, Readonly ):
 			raise SignInError( content['message'] if "message" in content and content['message'] else "An error occured while checking user credential" )
 		except AuthError as e:
 			raise AuthError( "Failed to remember login credentials", prev=e )
-	
+
 	#[Client.remove( Friendship|Int|Profile|User, Bool remove ): Friendship
 	@final
 	@logged
 	@avoidForMySelf
 	def remove( self, user:Friendship|int|Profile|User ) -> Friendship:
-		
+
 		"""
 		Remove user from follower list
 
 		:params Friendship|Int|Profile|User user
 		:params Bool remove
-		
+
 		:return Friendship
 		:raises FollowerError
 			When you trying remove your self from your follower list
 			When the user does not follow your account
 			When something wrong, please to check the request response history
 		"""
-		
+
 		if user is None:
 			raise ValueError( "User can't be empty" )
 		if isinstance( user, ( Friendship, Profile, User ) ):
@@ -1630,13 +1630,13 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return Friendship( content['friendship_status'] )
 		raise RestrictError( content['message'] if "message" in content and content['message'] else f"Something wrong when remove the {user} from follower list" )
-	
+
 	#[Client.restrict( Friendship|Int|Profile|User user, Bool restrict ): Friendship
 	@final
 	@logged
 	@avoidForMySelf
 	def restrict( self, user:Friendship|int|Profile|User, restrict:bool ) -> Friendship:
-		
+
 		"""
 		Restrict or unrestrict user account
 
@@ -1666,13 +1666,13 @@ class Client( RequestRequired, Readonly ):
 				raise RestrictError( "Unable to restrict or unrestrict yourself" )
 		else:
 			raise TypeError( "Invalid \"user\" parameter, value must be type Friendship|Int|Profile|User, {} passed".format( typeof( user ) ) )
-		
+
 		if username is not None:
 			if not isinstance( username, str ):
 				raise TypeError( "Invalid \"username\" parameter, value must be type Str, {} passed".format( typeof( username ) ) )
 			if match( Pattern.USERNAME, username ) is None:
 				raise ValueError( f"Invalid username value, username format must be \"{Pattern.USERNAME}\", \"{username}\" passed" )
-		
+
 		if restrict is None:
 			raise ValueError( "\"restrict\" can't be empty" )
 		if restrict is True:
@@ -1681,7 +1681,7 @@ class Client( RequestRequired, Readonly ):
 		else:
 			action = "Unrestrict"
 			target = "https://www.instagram.com/api/v1/web/restrict_action/unrestrict/"
-		
+
 		# Update request headers.
 		self.headers.update({
 			"Accept-Encoding": "gzip, deflate, br",
@@ -1689,14 +1689,14 @@ class Client( RequestRequired, Readonly ):
 			"Origin": "https://www.instagram.com",
 			"Referer": f"https://www.instagram.com/{username}/" if username is not None else "https://www.instagram.com/"
 		})
-		
+
 		request = self.request.post( target, data={ "target_user_id": user } )
 		status = request.status_code
 		content = request.json()
 		if status == 200:
 			return Friendship( content['friendship_status'] )
 		raise RestrictError( content['message'] if "message" in content and content['message'] else f"Something wrong when {action} the {user}" )
-	
+
 	#[Client.savedCollectionList( List<Str> collectionTypes, Bool getCoverMediaLists, Int includePublicOnly, Str maxId )]: SavedCollectionList
 	@final
 	@logged
@@ -1746,12 +1746,12 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return SavedCollectionList( content )
 		raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching collection list [{status}]" )
-	
+
 	#[Client.savedPosts()]: SavedPosts
 	@final
 	@logged
 	def savedPosts( self ) -> SavedPosts:
-		
+
 		"""
 		Getting saved post|reels
 
@@ -1773,7 +1773,7 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return SavedPosts( content )
 		raise ClientError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching saved posts [{status}]" )
-	
+
 	#[Client.saveEdit( Str biography, Str email, Str externalUrl, Str firstName, Str phoneNumber, Str username )]: Bool
 	@final
 	@logged
@@ -1819,12 +1819,12 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return True
 		raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while updating user info [{status}]" )
-	
+
 	#[Client.setGender( Int gender, Str custom )]: Bool
 	@final
 	@logged
 	def setGender( self, gender:int, custom:str=None ) -> bool:
-		
+
 		"""
 		Update or set account gender
 
@@ -1845,7 +1845,7 @@ class Client( RequestRequired, Readonly ):
 			raise ValueError( "Gender can't be empty" )
 		if not isinstance( gender, int ):
 			raise TypeError( "Invalid \"gender\" parameter, value must be type Int, {} passed".format( typeof( gender ) ) )
-		
+
 		# Creating request payload.
 		payload = {
 			"custom": custom,
@@ -1866,7 +1866,7 @@ class Client( RequestRequired, Readonly ):
 		if status == 200:
 			return True
 		raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while updating gender [{status}]" )
-	
+
 	#[Client.settings]: Setting
 	@final
 	@property
@@ -1874,7 +1874,7 @@ class Client( RequestRequired, Readonly ):
 
 	#[Client.signin( Str browser, Str username, Str password )]: SignIn
 	def signin( self, browser:str, username:str, password:str ) -> SignIn:
-		
+
 		"""
 		Client login with username and password.
 
@@ -1909,7 +1909,7 @@ class Client( RequestRequired, Readonly ):
 					browser = Client.BROWSER
 				else:
 					browser = choice( self.settings.browser.randoms )
-		
+
 		# To avoid collisions according to csrftoken.
 		request = Request( headers=Client.HEADERS, timeout=self.settings.timeout )
 
@@ -1921,7 +1921,7 @@ class Client( RequestRequired, Readonly ):
 			self.__active__ = None
 			session = self.request
 			self.__request__ = request
-			
+
 			# Tring get csrftoken
 			csrftoken = self.csrftoken
 
@@ -1930,7 +1930,7 @@ class Client( RequestRequired, Readonly ):
 			self.__request__ = session
 		else:
 			csrftoken = self.csrftoken
-		
+
 		# Update request headers.
 		request.headers.update({
 			"Origin": "https://www.instagram.com",
@@ -2014,7 +2014,7 @@ class Client( RequestRequired, Readonly ):
 
 		#[Cient.story$.getByProfile( Int id, Str username, Story.Type flag )]: StoryProfile<Chaining[],StoryProfileEdge<User>[],StoryReel<User>>
 		def getByProfile( id:int=None, username:str=None, flag:Story.Type=Story.PROFILE ) -> StoryProfile:
-			
+
 			"""
 			Get story info by username or id.
 
@@ -2052,7 +2052,7 @@ class Client( RequestRequired, Readonly ):
 				variables['user_id'] = profile.id
 			else:
 				variables['user_id'] = id
-			
+
 			# Trying to get data from graphql.
 			return self.graphql( binding=StoryProfile, headers=headers, params=variables )
 
@@ -2066,7 +2066,7 @@ class Client( RequestRequired, Readonly ):
 			# 		graphql.edge_highlight_reels.edges[i] = StoryProfileEdge( graphql.edge_highlight_reels.edges[i] )
 			# 		if "owner" in graphql.edge_highlight_reels.edges[i]:
 			# 			graphql.edge_highlight_reels.edges[i]['owner'] = User( graphql.edge_highlight_reels.edges[i]['owner'] )
-			
+
 			# return graphql
 
 		if target is None:
@@ -2107,7 +2107,7 @@ class Client( RequestRequired, Readonly ):
 						ids = f"highlight:{ids}"
 				if match( r"^reel_ids\=", str( ids ) ) is None:
 					target[i] = f"reel_ids={ids}"
-			
+
 			# Update request headers.
 			self.headers.update({
 				"Origin": "https://www.instagram.com",
@@ -2156,7 +2156,7 @@ class Client( RequestRequired, Readonly ):
 		if isinstance( target, ( StoryFeedTrayReel, StoryHighlight, StoryHighlights ) ):
 			raise TypeError( "Unable to get story from {}, because the object contains a list of story items".format( typeof( target ) ) )
 		raise TypeError( "Invalid \"target\" parameter, value must be type Story, {} passed".format( typeof( target ) ) )
-	
+
 	#[Client.storyLike( Int|StoryItem story, Bool like )]: Object
 	@logged
 	def storyLike( self, story:int|StoryItem, like:bool=True ) -> object:
@@ -2192,7 +2192,7 @@ class Client( RequestRequired, Readonly ):
 			like = not story['has_liked'] if "has_liked" in story else True
 			if "user" in story and isinstance( story['user'], User ):
 				username = story['user']['username']
-		
+
 		if like is True:
 			action = "Unlike"
 			target = "https://www.instagram.com/api/v1/story_interactions/unsend_story_like"
@@ -2216,11 +2216,68 @@ class Client( RequestRequired, Readonly ):
 		raise LikeError( content['message'] if "message" in content and content['message'] else f"Something wrong when {action} the story {mediaId}" )
 
 	@logged
-	def storyReply( self ) -> object:
+	def storyReply( self, message:str, story:StoryItem, clientContext:str=None, threadId:int|str=None ) -> object:
 
 		"""
-		Reply user story with emoji or text
+		Reply user story
+
+		:params Str message
+			The message reply for story
+		:params StoryItem story
+			The StoryItem instance 
+		:params Str clientContext
+			The direct message client context
+		:params Int|Str threadId
+			The direct message thread id
+
+		:return ?
+		:raises StoryError
+		:raises TypeError
+			When the value of parameter is invalid value type
+		:raises ValueError
+			when the value of parameter is empty value
 		"""
+
+		reelId = None
+		mediaId = None
+
+		if story is None:
+			raise ValueError( "\"story\" parameter can't be empty" )
+		if not isinstance( story, StoryItem ):
+			raise TypeError( "Invalid \"story\" parameter, value must be type StoryItem, {} passed".format( typeof( story ) ) )
+		...
+
+		# Request payloads.
+		payload = {
+			"action": "send_item",
+			"client_context": "7146880541509214266",
+			"media_id": "3268930719332653179_44235190921", # Timeline Story Media
+			"reel_id": "44235190921", # Timeline Story Media
+			"text": message,
+			"thread_id": "340282366841710301244259484745147513132" # Get from Create Post Thread
+		}
+
+	@logged
+	def storyReplyEmoji( self, emoji:str ) -> object:
+
+		"""
+		Reply user story with emoji :D
+		"""
+
+		# Request payloads.
+		paylaod = {
+			"action": "send_item","action": "send_item",
+			"client_context": "7146880541509214266",
+			"media_id": "3268930719332653179_44235190921", # Timeline Story Media
+			"reel_id": "44235190921", # Timeline Story Media
+			"text": "test",
+			"thread_id": "340282366841710301244259484745147513132", # Get from Create Post Thread
+			"client_context": "7146880541509214266",
+			"media_id": "3268930719332653179_44235190921", # Timeline Story Media
+			"reaction_emoji": "👏",
+			"reel_id": "44235190921", # Timeline Story Media
+			"thread_id": "340282366841710301244259484745147513132"
+		}
 
 	#[Client.stories( Bool isFollowingFeed )]: StoryFeed<StoryFeedTray>
 	@logged
@@ -2259,14 +2316,14 @@ class Client( RequestRequired, Readonly ):
 
 	#[Client.switch( Str username, Bool save )]: None
 	def switch( self, username:str, save:bool=True ) -> None:
-		
+
 		"""
 		Change current authenticated user.
 
 		:params Str username
 		:params Bool save
 			Allow changes to be saved in the configuration file.
-		
+
 		:return None
 		:raises TypeError
 			When the parameter value is invalid value type
@@ -2284,7 +2341,7 @@ class Client( RequestRequired, Readonly ):
 		self.activate( Active( self.settings.signin.switch[username] ) )
 		if save:
 			self.config.save()
-	
+
 	#[Client.user( Str username )]: User
 	@logged
 	def user( self, username:str, count:int=3 ) -> User:
@@ -2330,5 +2387,5 @@ class Client( RequestRequired, Readonly ):
 		if status == 404:
 			raise UserNotFoundError( f"Target \"{username}\" user not found" )
 		raise UserError( content['message'] if "message" in content and content['message'] else f"An error occurred while fetching the user [{status}]" )
-	
+
 	...
