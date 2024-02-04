@@ -41,7 +41,7 @@ from kanashi.decorator import avoidForMySelf, logged
 from kanashi.error import ( 
 	BlockError, 
 	BestieError, 
-	ClientError,
+	ClientError, 
 	CsrftokenError, 
 	FavoriteError,
 	FollowError,
