@@ -4,11 +4,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Kanashī Directory and Another Kanashī Files.
-backup/*
+# Kanashī Directory.
+backups/*
 onsaved/*
 requests/*
-*.json
+
+# Kanashī Files.
+properties.yaml
+properties.yml
 
 # Visual Studio Code
 .vscode
