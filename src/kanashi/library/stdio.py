@@ -33,7 +33,7 @@ from kanashi.typing.builtins import *
 
 
 def stderr( context:BaseException, buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], line:Bool=False, close:Bool=False ) -> None:
-	stdout( context, buffers )
+	stdout( context, buffers, line=line )
 	if close is True:
 		exit( context.errno if hasattr( context, "errno" ) else 1 )
 	...
