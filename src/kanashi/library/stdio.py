@@ -24,6 +24,7 @@
 #
 
 from getpass import getpass
+from os import name as OSName, system
 from re import IGNORECASE
 from re import Pattern, search as Search
 from typing import Any, Callable, Dict, List, Union
@@ -33,39 +34,39 @@ from kanashi.typing.builtins import *
 
 
 def stderr( context:BaseException, buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], line:Bool=False, close:Bool=False ) -> None:
-	stdout( context, buffers, line=line )
+	stdout( context, buffers, clear=True, line=line )
 	if close is True:
 		exit( context.errno if hasattr( context, "errno" ) else 1 )
 	...
 
-def stdin( context:Any, label:Str=None, default:Union[Int,List[Union[Int,Str]],Str]=None, filters:Union[Callable|List[Union[Callable,Pattern]],Pattern]=None, number:Bool=False, password:Bool=False, ignore:Bool=True ) -> Int|None|Str:
-	if not isinstance( label, Str ) or context is not None:
-		if context is None:
-			label = "Std<In>"
-		elif isinstance( context, Str ):
-			matched = Search( r"(?:\[Y\/n\])\s?$", context, IGNORECASE )
-			if matched is None:
-				label = "Std<In<{}>>".format( context )
+def stdin( context:Any=None, prompt:Str=None, default:Union[Int,List[Union[Int,Str]],Str]=None, filters:Union[Callable|List[Union[Callable,Pattern]],Pattern]=None, number:Bool=False, password:Bool=False, ignore:Bool=True ) -> Int|None|Str:
+	if not isinstance( context, str ):
+		if context is not None:
+			typedef = typeof( prompt )
+			if typedef in [ "function", "method", "method-wrapper" ]:
+				context = prompt.__name__
 			else:
-				label = context
+				context = typedef
 		else:
-			define = typeof( context )
-			if define in [ "function", "method", "method-wrapper" ]:
-				label = "Std<In<{}>>".format( context.__qualname__\
-					.replace( ".<locals>.", "<Nested>" ) \
-					# .replace( ".", "$" )
-				)
+			context = "System"
+	if not isinstance( prompt, str ):
+		if prompt is not None:
+			typedef = typeof( prompt )
+			if typedef in [ "function", "method", "method-wrapper" ]:
+				prompt = prompt.__name__
 			else:
-				label = "Std<In<{}>>".format( define.capitalize() )
-		label = colorize( label )
-		label+= "\x20"
+				prompt = typedef
+		else:
+			prompt = "in"
+	display = colorize( f"{context}.{prompt}" )
+	display+= "\x20"
 	try:
-		values = getpass( label ) if password is True else input( label )
+		values = getpass( display ) if password is True else input( display )
 		if not values:
 			if default is None:
-				return stdin( None, label, default, filters, number, password, ignore )
+				return stdin( None, prompt, default, filters, number, password, ignore )
 			if isinstance( default, list ):
-				return stdin( None, label, default, filters, number, password, ignore ) if not default else default[0]
+				return stdin( None, prompt, default, filters, number, password, ignore ) if not default else default[0]
 			return default
 		elif filters is not None:
 			filters = filters if isinstance( filters, list ) else [filters]
@@ -83,7 +84,7 @@ def stdin( context:Any, label:Str=None, default:Union[Int,List[Union[Int,Str]],S
 			if number is True:
 				values = int( values )
 			if values not in default:
-				return stdin( None, label, default, filters, number, password, ignore )
+				return stdin( None, prompt, default, filters, number, password, ignore )
 			return values
 		return values
 	except EOFError as e:
@@ -92,10 +93,12 @@ def stdin( context:Any, label:Str=None, default:Union[Int,List[Union[Int,Str]],S
 		if ignore is False:
 			stderr( e, "Force close", close=True )
 		print( "\r" )
-		return stdin( None, label, default, filters, number, password, ignore )
+		return stdin( None, prompt, default, filters, number, password, ignore )
 	except ValueError as e:
-		return stdin( None, label, default, filters, number, password, ignore )
+		return stdin( None, prompt, default, filters, number, password, ignore )
 	return None
 
-def stdout( context:Any, buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], line:Bool=False ) -> None:
-	...
+def stdout( context:Any, buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], clear=False, line:Bool=False ) -> None:
+	if clear is True:
+		system( "cls" if OSName in [ "nt", "windows" ] else "clear" )
+	print( buffers )
