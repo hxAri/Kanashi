@@ -30,7 +30,8 @@ from re import Pattern, search as Search
 from typing import Any, Callable, Dict, List, Union
 
 from kanashi.common import colorize, typeof
-from kanashi.typing.builtins import *
+from kanashi.library.storage import Storage
+from kanashi.typing.builtins import Bool, Int, Str
 from kanashi.typing.throwable import Throwable
 
 
@@ -189,3 +190,15 @@ def stdout( context:Any, buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], c
 	if clear is True:
 		system( "cls" if OSName in [ "nt", "windows" ] else "clear" )
 	print( arrange( buffers, line=line ) )
+
+
+filename = "62616e6e65722e6878"
+if Storage.f( filename ):
+	contents = Storage.cat( filename )
+	banner = ""
+	chunks = len( contents )
+	chunkSize = 2
+	for i in range( 0, chunks, chunkSize ):
+		banner += bytes.fromhex( contents[i:i+chunkSize] ).decode( "ASCII" )
+else:
+	banner = ""
