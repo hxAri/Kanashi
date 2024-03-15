@@ -30,7 +30,7 @@ from stem.control import Controller
 from stem import ControllerError, Signal, SocketError
 from typing import Dict, final
 
-from kanashi.library.stdio import stdout
+from kanashi.library.stdio import stderr, stdout
 from kanashi.request import request as Request
 
 
@@ -39,6 +39,16 @@ class Torify:
 	
 	@staticmethod
 	def ipInfo( proxies:Dict[Str,Str]=None ) -> Str:
+		
+		"""
+		Get current ip address.
+		
+		:params Dict<Str,Str> proxies
+		
+		:return Str
+			The str of ip address
+		"""
+		
 		try:
 			response = Request( "GET", "https://api.ipify.org/?format=json", proxies=proxies )
 			content = response.json()
@@ -50,6 +60,20 @@ class Torify:
 	
 	@staticmethod
 	def reNewTorIp( proxies:Dict[Str,Str], port:Int, password:Str ) -> None:
+		
+		"""
+		Re-new or change the current ip address.
+		
+		:params Dict<Str,Str> proxies
+			The tor proxy configurations
+		:params Int port
+			The tor port number
+		:params Str password
+			The tor proxy password
+		
+		:return None
+		"""
+		
 		previousIp = Torify.ipInfo()
 		stdout( Torify.reNewTorIp, f"Trying to re-new IP Address address={previousIp}" )
 		try:
@@ -57,13 +81,17 @@ class Torify:
 				controller.authenticate( password=password )
 				controller.signal( Signal.NEWNYM )
 		except SocketError as e:
-			stdout( Torify.reNewTorIp, f"Uncaught SocketError: {e}" )
-			stdout( Torify.reNewTorIp, f"Failed to estabilish connection from={previousIp}" )
-			stdout( Torify.reNewTorIp, f"Failed to update Ip Address from={previousIp}" )
+			stderr( Torify.reNewTorIp, e, clear=True, buffers=[
+				f"Uncaught SocketError: {e}",
+				f"Failed to estabilish connection from={previousIp}",
+		  		f"Failed to update Ip Address from={previousIp}"
+			])
 		except ControllerError as e:
-			stdout( Torify.reNewTorIp, f"Uncaught ControllerError: {e}" )
-			stdout( Torify.reNewTorIp, f"Failed sending Signal from={previousIp}" )
-			stdout( Torify.reNewTorIp, f"Failed to update Ip Address from={previousIp}" )
+			stderr( Torify.reNewTorIp, e, clear=True, buffers=[
+				f"Uncaught ControllerError: {e}",
+				f"Failed sending Signal from={previousIp}",
+		  		f"Failed to update Ip Address from={previousIp}"
+			])
 		currentIp = Torify.ipInfo( proxies=proxies )
 		if currentIp != previousIp:
 			stdout( Torify.reNewTorIp, f"The IP Address has been updated from={currentIp}" )
