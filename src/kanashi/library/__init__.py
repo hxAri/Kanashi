@@ -25,3 +25,5 @@
 
 from kanashi.library.represent import Represent
 from kanashi.library.stdio import stderr, stdin, stdout
+from kanashi.library.storage import Storage
+from kanashi.library.torify import Torify
