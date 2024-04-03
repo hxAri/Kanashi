@@ -5,13 +5,10 @@ __pycache__/
 *$py.class
 
 # Kanashī Directory.
-backups/*
-onsaved/*
-requests/*
+histories/**
+resources/**
 
 # Kanashī Files.
-properties.yaml
-properties.yml
 
 # Visual Studio Code
 .vscode
