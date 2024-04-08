@@ -22,3 +22,6 @@
 # happens to that account, use it at your own risk, and this is Strictly
 # not for SPAM.
 #
+
+from kanashi.library.represent import Represent
+from kanashi.library.storage import Storage
