@@ -26,8 +26,8 @@
 from kanashi.typing.account import Account
 from kanashi.typing.builtins import Key, Val, Self
 from kanashi.typing.immutable import Immutable
-from kanashi.typing.map import Map
-from kanashi.typing.properties import Properties
+from kanashi.typing.map import Map, Mapping
+from kanashi.typing.property import Property, Properties
 from kanashi.typing.readonly import Readonly
 from kanashi.typing.response import Response
 from kanashi.typing.throwable import Throwable
