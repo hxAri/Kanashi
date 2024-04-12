@@ -42,15 +42,19 @@ from typing import (
 	Union
 )
 
+from kanashi.library.represent import Represent
 from kanashi.library.storage import Storage
 from kanashi.throwable import Throwable
 
 
-Banner = ""
+Banner:Str = ""
 """ Kanashi Banner """
 
 Key = Var( "Key" )
+""" Keyset Type """
+
 Val = Var( "Val" )
+""" Value Type """
 
 
 def arrange( buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], indent:Int=4, line:Bool=False ) -> Str:
@@ -124,7 +128,7 @@ def arrange( buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], indent:Int=4,
 def colorize( string:Str, base:Str=None ) -> Str:
 	
 	"""
-	Automatic colorize the given stringa
+	Automatic colorize the given strings
 	
 	:params Str string
 	:params Str base
@@ -348,26 +352,94 @@ def stdctx( context:Any ) -> Str:
 			return f"{typing}.input"
 	return context.strip( "\x20\x0a" )
 
-def stderr( context:Any, thrown:BaseException, buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], clear:Bool=False, line:Bool=False, close:Union[Bool,Int]=False ) -> None:
-	from json import dumps as JsonEncoder
+def stderr( context:Any, thrown:BaseException, buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], clear:Bool=True, line:Bool=False, close:Union[Bool,Int]=False ) -> None:
+	
+	"""
+	Kanashi standar error command line output
+	
+	:params BaseException context
+	:params Dict<Str,Any>|List<Dict<Str,Any>>|Str buffers
+	:params Bool clear
+	:params Bool line
+	:params Bool|Int close
+	
+	:return None
+	"""
+	
 	if clear is True:
 		system( "cls" if OSName in [ "nt", "windows" ] else "clear" )
-	if isinstance( thrown, BaseException ):
-		traceback = thrown.__traceback__
-		if traceback is not None:
-			frame = traceback.tb_frame
-			puts( JsonEncoder( list( filter( lambda x: not x.startswith( "_" ), dir( traceback.tb_frame ) ) ), indent=4 ) )
-			puts( [*frame.f_code.co_lines()] )
-		if isinstance( thrown, ExceptionGroup ):
-			...
-		if isinstance( thrown, Throwable ):
-			...
-	else:
-		...
+	errors = stderrno( thrown )
 	print( Banner )
 	puts( "System.err:" )
 	puts( f"\x20\x20{stdctx( context )}:" )
+	puts( arrange( errors, line=False ) \
+		.replace( f"{Storage.BASEPATH}/", "" ) \
+		.replace( f"{Storage.BASEVENV}/", "" )
+	)
 	puts( arrange( buffers, line=line ), close=close )
+
+def stderrno( thrown:BaseException, indent:Int=0 ) -> List[Str]:
+	
+	"""
+	Error iterator
+	
+	:params BaseException thrown
+	:params Int indent
+	
+	:return List<Str>
+	"""
+	
+	results = []
+	prefix = "\x20" * indent
+	if isinstance( thrown, BaseException ):
+		results.append( f"{prefix}{typeof( thrown )}:" )
+		traceback = thrown.__traceback__
+		filename = None
+		message = None
+		lineno = None
+		code = None
+		if traceback is not None:
+			frame = traceback.tb_frame
+			lineno = traceback.tb_lineno
+			filename = frame.f_code.co_filename
+		if hasattr( thrown, "code" ):
+			code = thrown.code
+		if hasattr( thrown, "msg" ):
+			message = thrown.msg
+		if hasattr( thrown, "message" ):
+			message = thrown.message
+		if hasattr( thrown, "prev" ):
+			prevInfo = stderrno( thrown.prev, indent=indent+2 )
+			results.append( f"{prefix}· prev:" )
+			results.extend( prevInfo )
+		groups = []
+		if isinstance( thrown, Throwable ):
+			groups = thrown.group
+		if isinstance( thrown, ExceptionGroup ):
+			groups = thrown.exceptions
+		if groups:
+			results.append( f"{prefix}· groups:" )
+		for i, group in enumerate( groups ):
+			groupInfo = stderrno( group, indent=indent+2 )
+			groupInfo[0] = "\x20".join([ groupInfo[0], f"{i}" ])
+			results.extend( groupInfo )
+		if code is not None:
+			results.append( f"{prefix}· code {code}" )
+		if filename is not None:
+			if lineno is not None:
+				results.append( f"{prefix}· raise in {filename} on line {lineno}" )
+			else:
+				results.append( f"{prefix}· raise in {filename}" )
+		if message is not None:
+			results.append( f"{prefix}· message \"{message}\"" )
+		elif len( thrown.args ) >= 1:
+			represent = Represent.convert( thrown.args, indent=4 )
+			position = len( represent ) -1
+			if represent[position] in [ "\x29", "\x7d", "\x5d" ]:
+				represent = f"{represent[:position]}\x20\x20{represent[position:]}"
+			results.append( f"{prefix}· args {represent}" )
+		...
+	return results
 
 def stdin( context:Any=None, prompt:Str=None, default:Union[Int,List[Union[Int,Str]],Str]=None, filters:Union[Callable[[Union[Int,Str]],Bool],List[Union[Callable[[Union[Int,Str]],Bool],Pattern]],Pattern]=None, separator:Str="\x2e", number:Bool=False, password:Bool=False, ignore:Bool=True, repeated:Bool=False ) -> Union[Int,Str]:
 	
@@ -412,15 +484,20 @@ def stdin( context:Any=None, prompt:Str=None, default:Union[Int,List[Union[Int,S
 			return default
 		elif filters is not None:
 			filters = filters if isinstance( filters, list ) else [filters]
+			filtered = False
 			for i, filter in enumerate( filters ):
 				if isinstance( filter, Pattern ):
 					if filter.match( values ) is not None:
+						filtered = True
 						break
 				elif callable( filter ) is True:
 					if filter( values ) is True:
+						filtered = True
 						break
 				else:
 					raise TypeError( "Invalid input \"filters\", filters must be Callable|List<Callable|Pattern>|Pattern, {}:{} passed".format( i, typeof( filter ) ) )
+			if filtered is False:
+				return stdin( context, prompt, default, filters, separator, number, password, ignore, repeated=True )
 			return values if number is False else int( values )
 		elif isinstance( default, list ):
 			if number is True:
@@ -434,13 +511,13 @@ def stdin( context:Any=None, prompt:Str=None, default:Union[Int,List[Union[Int,S
 	except KeyboardInterrupt as e:
 		if ignore is False:
 			stderr( context, e, "Force close", close=True )
-		print( "\r" )
+		print( "\x0d" )
 		return stdin( context, prompt, default, filters, separator, number, password, ignore, repeated=True )
 	except ValueError as e:
 		return stdin( context, prompt, default, filters, separator, number, password, ignore, repeated=True )
 	return None
 
-def stdout( context:Any, buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], clear:Bool=False, line:Bool=False, close:Union[Bool,Int]=False ) -> None:
+def stdout( context:Any, buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], clear:Bool=True, line:Bool=False, close:Union[Bool,Int]=False ) -> None:
 	
 	"""
 	Kanashi standar command line output
@@ -459,7 +536,11 @@ def stdout( context:Any, buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], c
 	print( Banner )
 	puts( "System.out:" )
 	puts( f"\x20\x20{stdctx( context )}:" )
-	puts( arrange( buffers, line=line ), close=close )
+	puts( arrange( buffers, line=line ) \
+		.replace( f"{Storage.BASEPATH}/", "" ) \
+		.replace( f"{Storage.BASEVENV}/", "" ), 
+		close=close 
+	)
 
 def typeof( value:Any ) -> Str:
 	
@@ -471,10 +552,7 @@ def typeof( value:Any ) -> Str:
 	:return Str
 	"""
 	
-	define = value
-	if not isinstance( value, type ):
-		define = type( value )
-	return define.__name__
+	return value.__name__ if isinstance( value, type ) else  type( value ).__name__
 
 banner = ""
 filename = "\x62\x61\x6e\x6e\x65\x72\x2e\x68\x78"
