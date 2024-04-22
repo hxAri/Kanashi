@@ -25,11 +25,11 @@
 
 from builtins import bool as Bool, int as Int, str as Str
 from getpass import getpass
-from inspect import getframeinfo, stack
+from multiprocessing import Process
 from os import name as OSName, system
 from re import MULTILINE, S
 from re import compile, match, Pattern, split, sub as substr
-from traceback import format_exception
+from time import sleep
 from typing import (
 	Any, 
 	Callable, 
@@ -45,6 +45,7 @@ from typing import (
 from kanashi.library.represent import Represent
 from kanashi.library.storage import Storage
 from kanashi.throwable import Throwable
+from kanashi.typing.process import Process
 
 
 Banner:Str = ""
@@ -55,6 +56,17 @@ Key = Var( "Key" )
 
 Val = Var( "Val" )
 """ Value Type """
+
+banner = ""
+filename = "\x62\x61\x6e\x6e\x65\x72\x2e\x68\x78"
+if Storage.f( filename ):
+	contents = Storage.cat( filename )
+	chunks = len( contents )
+	chunkSize = 2
+	Banner:Final[Str] = "".join( list( bytes.fromhex( contents[i:i+chunkSize] ).decode( "ASCII" ) for i in range( 0, chunks, chunkSize ) ) )
+
+# Delete unused variables.
+del filename, banner
 
 
 def arrange( buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], indent:Int=4, line:Bool=False ) -> Str:
@@ -74,6 +86,8 @@ def arrange( buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], indent:Int=4,
 	
 	outputs = []
 	spaces = "\x20" * indent
+	if buffers is None:
+		return ""
 	if isinstance( buffers, dict ):
 		for keyset in buffers:
 			values = buffers[keyset]
@@ -124,6 +138,30 @@ def arrange( buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], indent:Int=4,
 		message = buffers if isinstance( buffers, str ) else repr( buffers )
 		outputs.extend( list( "\x7b\x30\x7d\x7b\x31\x7d".format( spaces, part ) for part in message.split( "\x0a" ) ) )
 	return "\x0a".join( outputs )
+
+def callback( prompt:Str=None, handler:Callable[[],Any]=None, *args:Any, **kwargs:Any ) -> Any:
+	
+	"""
+	Callback handler
+	
+	:params Str prompt
+	:params Callable<<>,Any> handler
+	:params Any *args
+	:params Any **kwargs
+	
+	:return Any
+	"""
+	
+	try:
+		if not callable( handler ):
+			raise TypeError( f"Invalid \"handler\" parameter, parameter value type must be Callable<<*Args,**Kwargs>,Any>, {typeof( handler )} passed" )
+	except TypeError as e:
+		stderr( callback, e, None, close=1 )
+	if prompt is None or not prompt:
+		prompt = "Back to {} >>>".format( stdctx( handler, "in" ) )
+	print( end="\x20\x20" )
+	stdin( prompt, default="Y", repeated=True, ignore=False )
+	return handler( *args, **kwargs )
 
 def colorize( string:Str, base:Str=None ) -> Str:
 	
@@ -298,7 +336,7 @@ def droper( items:Union[MutableMapping[Key,Val],MutableSequence[Val]], search:Li
 			raise TypeError( "Invalid keys parameter, value must be type List<Dict|List|Object|Str>, {} passed in items".format( typeof( key ) ) )
 	return drops
 
-def puts( *values:Any, base:Str="\x1b[0m", end:Str="\x0a", sep:Str="\x20", close:Union[Bool,Int]=False ) -> None:
+def puts( *values:Any, base:Str="\x1b[0m", end:Str="\x0a", sep:Str="\x20", start:Str="", close:Union[Bool,Int]=False ) -> None:
 	
 	"""
 	Print colorize text into terminal screen
@@ -310,11 +348,13 @@ def puts( *values:Any, base:Str="\x1b[0m", end:Str="\x0a", sep:Str="\x20", close
 		The end of line outputs
 	:params Str sep
 		The value separator
+	:params Str start
+		The prefix of output line
 	:params Bool|Int close
 		The exit code
 	"""
 	
-	print( *[ colorize( base=base, string=value if isinstance( value, Str ) else repr( value ) ) for value in values ], end=end, sep=sep )
+	print( *[ "".join([ start, colorize( base=base, string=value if isinstance( value, Str ) else repr( value ) ) ]) for value in values ], end=end, sep=sep )
 	if close is not False:
 		exit( close )
 	...
@@ -331,9 +371,9 @@ def serializeable( value:Any ) -> Bool:
 	
 	return isinstance( value, ( dict, list, tuple, str, int, float, bool ) ) or value is None
 
-def stdctx( context:Any ) -> Str:
+def stdctx( context:Any, std:Str ) -> Str:
 	if context is None:
-		return "Stdin"
+		return f"Std{std}"
 	if not isinstance( context, str ):
 		typing = typeof( context )
 		if isinstance( context, type ):
@@ -341,15 +381,17 @@ def stdctx( context:Any ) -> Str:
 		elif typing in [ "function" ]:
 			if hasattr( context, "__func__" ):
 				return context.__qualname__
-			else:
-				return context.__qualname__
+			return context.__qualname__
 		elif typing in [ "method" ]:
 			if hasattr( context, "__func__" ):
 				return context.__func__.__qualname__
-			else:
-				return context.__class__.__qualname__
+			return context.__class__.__qualname__
 		else:
-			return f"{typing}.input"
+			for standar in [ ( "in", "input" ), ( "out", "output" ), ( "err", "error" ) ]:
+				if std in standar:
+					std = standar[1]
+					break
+			return f"{typing}.{std}"
 	return context.strip( "\x20\x0a" )
 
 def stderr( context:Any, thrown:BaseException, buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], clear:Bool=True, line:Bool=False, close:Union[Bool,Int]=False ) -> None:
@@ -371,12 +413,16 @@ def stderr( context:Any, thrown:BaseException, buffers:Union[Dict[Str,Any],List[
 	errors = stderrno( thrown )
 	print( Banner )
 	puts( "System.err:" )
-	puts( f"\x20\x20{stdctx( context )}:" )
+	puts( "\x20\x20{}:".format( stdctx( context, "err" ) ) )
 	puts( arrange( errors, line=False ) \
 		.replace( f"{Storage.BASEPATH}/", "" ) \
 		.replace( f"{Storage.BASEVENV}/", "" )
 	)
-	puts( arrange( buffers, line=line ), close=close )
+	puts( arrange( buffers, line=False ) \
+		.replace( f"{Storage.BASEPATH}/", "" ) \
+		.replace( f"{Storage.BASEVENV}/", "" ), 
+		close=close 
+	)
 
 def stderrno( thrown:BaseException, indent:Int=0 ) -> List[Str]:
 	
@@ -402,6 +448,7 @@ def stderrno( thrown:BaseException, indent:Int=0 ) -> List[Str]:
 			frame = traceback.tb_frame
 			lineno = traceback.tb_lineno
 			filename = frame.f_code.co_filename
+		details = []
 		if hasattr( thrown, "code" ):
 			code = thrown.code
 		if hasattr( thrown, "msg" ):
@@ -410,34 +457,37 @@ def stderrno( thrown:BaseException, indent:Int=0 ) -> List[Str]:
 			message = thrown.message
 		if hasattr( thrown, "prev" ):
 			prevInfo = stderrno( thrown.prev, indent=indent+2 )
-			results.append( f"{prefix}· prev:" )
-			results.extend( prevInfo )
+			details.append( f"{prefix}  · prev:" )
+			details.extend( prevInfo )
 		groups = []
 		if isinstance( thrown, Throwable ):
 			groups = thrown.group
 		if isinstance( thrown, ExceptionGroup ):
 			groups = thrown.exceptions
 		if groups:
-			results.append( f"{prefix}· groups:" )
+			details.append( f"{prefix}  · groups:" )
 		for i, group in enumerate( groups ):
 			groupInfo = stderrno( group, indent=indent+2 )
 			groupInfo[0] = "\x20".join([ groupInfo[0], f"{i}" ])
-			results.extend( groupInfo )
+			details.extend( groupInfo )
 		if code is not None:
-			results.append( f"{prefix}· code {code}" )
+			results.append( f"{prefix}  · code {code}" )
 		if filename is not None:
 			if lineno is not None:
-				results.append( f"{prefix}· raise in {filename} on line {lineno}" )
+				details.append( f"{prefix}  · raise in {filename} on line {lineno}" )
 			else:
-				results.append( f"{prefix}· raise in {filename}" )
+				details.append( f"{prefix}  · raise in {filename}" )
 		if message is not None:
-			results.append( f"{prefix}· message \"{message}\"" )
+			details.append( f"{prefix}  · message \"{message}\"" )
 		elif len( thrown.args ) >= 1:
 			represent = Represent.convert( thrown.args, indent=4 )
 			position = len( represent ) -1
 			if represent[position] in [ "\x29", "\x7d", "\x5d" ]:
 				represent = f"{represent[:position]}\x20\x20{represent[position:]}"
-			results.append( f"{prefix}· args {represent}" )
+			details.append( f"{prefix}  · args {represent}" )
+		if len( details ) >= 1:
+			results.append( f"{prefix}  Traceback" )
+			results.extend( details )
 		...
 	return results
 
@@ -461,19 +511,25 @@ def stdin( context:Any=None, prompt:Str=None, default:Union[Int,List[Union[Int,S
 	
 	if repeated is False:
 		puts( "System.in:" )
-	context = stdctx( context )
+	ending = "\x20"
+	context = stdctx( context, "in" )
+	characters = [ "\x3e", "\x5d", "\x3a" ]
 	if prompt is not None:
 		if not isinstance( prompt, Str ):
-			prompt = stdctx( prompt )
+			prompt = stdctx( prompt, "in" )
 			if prompt == context:
 				parts = prompt.split( "\x2e" )
 				prompt = "\x2e".join([ *list( v for i, v in enumerate( parts ) if i >= 1 ), "input" ])
 			...
 		if repeated is False:
 			puts( f"\x20\x20{context}:" )
-		puts( f"\x20\x20\x20\x20{prompt}:", end="\x20" )
+		if prompt[-1] not in characters:
+			ending = "\x3a\x20"
+		puts( f"\x20\x20\x20\x20{prompt}", end=ending )
 	else:
-		puts( f"\x20\x20{context}:", end="\x20" )
+		if context[-1] not in characters:
+			ending = "\x3a\x20"
+		puts( f"\x20\x20{context}", end=ending )
 	try:
 		values = getpass() if password is True else input()
 		if not values.strip( "\x0a\x20" ):
@@ -533,14 +589,70 @@ def stdout( context:Any, buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], c
 	
 	if clear is True:
 		system( "cls" if OSName in [ "nt", "windows" ] else "clear" )
+	arranged = arrange( buffers, line=line ) \
+		.replace( f"{Storage.BASEPATH}/", "" ) \
+		.replace( f"{Storage.BASEVENV}/", "" )
 	print( Banner )
 	puts( "System.out:" )
-	puts( f"\x20\x20{stdctx( context )}:" )
-	puts( arrange( buffers, line=line ) \
-		.replace( f"{Storage.BASEPATH}/", "" ) \
-		.replace( f"{Storage.BASEVENV}/", "" ), 
-		close=close 
-	)
+	puts( "\x20\x20{}:".format( stdctx( context, "out" ) ) )
+	if arranged:
+		puts( arranged, close=close )
+	...
+
+def Processing( context:Any, target:Callable[[],Any], loading:Str, success:Str=None, group:Str=None, name:Str=None, *args:Any, **kwargs:Any ) -> Union[Val,Exception]:
+	
+	"""
+	Processing
+	
+	:params Any context
+	:params Callable<<>,Any> target
+	:params Str loading
+	:params Str success
+	:params Str group
+	:params Str name
+	:params Any *args
+	:params Any** kwargs
+	
+	:return Val|Exception
+	"""
+	
+	stdout( context, None, clear=True )
+	process = Process( name=name, group=group, target=target, args=args, kwargs=kwargs )
+	try:
+		process.start()
+		while process.is_alive():
+			length = len( loading )
+			position = -1
+			for i in "\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-":
+				if position >= length:
+					position = -1
+				position += 1
+				messages = loading
+				if position >= 1:
+					messageChar = loading[position-1:position]
+					messageChar = messageChar.lower() \
+						if messageChar.isupper() \
+						else messageChar.upper()
+					messagePrefix = loading[0:position-1]
+					messageSuffix = loading[position:]
+					messages = "".join([
+						messagePrefix, 
+						messageChar, 
+						messageSuffix
+					])
+				puts( f"    {messages} {i}", end="\x20", start="\x0d" )
+				sleep( 0.1 )
+		results = process.results
+		if results[1] is None or not isinstance( results[1], BaseException ):
+			stdout( context, success if success is not None else loading, clear=True )
+			return results[0]
+		stderr( context, results[1], None, clear=True )
+		return results[1]
+	except ( EOFError, KeyboardInterrupt ) as e:
+		process.kill()
+		process.terminate()
+		stderr( context, e, "Program stoped", clear=True, close=1 )
+	return None
 
 def typeof( value:Any ) -> Str:
 	
@@ -553,19 +665,3 @@ def typeof( value:Any ) -> Str:
 	"""
 	
 	return value.__name__ if isinstance( value, type ) else  type( value ).__name__
-
-banner = ""
-filename = "\x62\x61\x6e\x6e\x65\x72\x2e\x68\x78"
-if Storage.f( filename ):
-	contents = Storage.cat( filename )
-	chunks = len( contents )
-	chunkSize = 2
-	for i in range( 0, chunks, chunkSize ):
-		banner += bytes.fromhex( contents[i:i+chunkSize] ).decode( "ASCII" )
-	...
-
-Banner:Final[Str] = banner
-""" Kanashi Banner """
-
-del filename, banner
-
