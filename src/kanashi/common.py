@@ -23,28 +23,46 @@
 # not for SPAM.
 #
 
+from brotli import decompress as BrotliDecompress, error as BrotliError
 from builtins import bool as Bool, int as Int, str as Str
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from getpass import getpass
+from gzip import BadGzipFile, decompress as GzipDecompress
 from multiprocessing import Process
 from os import name as OSName, system
+from pytz import timezone
+from pyzstd import decompress as ZstdDecompress, ZstdError
 from re import MULTILINE, S
 from re import compile, match, Pattern, split, sub as substr
+from requests import Session
+from requests.exceptions import (
+	ConnectionError as RequestConnectionError, 
+	ConnectTimeout as RequestConnectionTimeout, 
+	RequestException as RequestError
+)
 from time import sleep
+from traceback import format_exc
 from typing import (
 	Any, 
 	Callable, 
-	Dict,
+	Dict, 
 	Final,  
-	List, 
-	MutableMapping, 
-	MutableSequence, 
+	List,  
 	TypeVar as Var, 
-	Union
+	Union 
+)
+from urllib3.exceptions import (
+	ConnectionError as UrllibConnectionError,
+	ConnectTimeoutError as UrllibConnectTimeoutError,
+	RequestError as UrllibRequestError,
+	NewConnectionError as UrllibNewConnectionError
 )
 
 from kanashi.library.represent import Represent
 from kanashi.library.storage import Storage
 from kanashi.throwable import Throwable
+from kanashi.typing.response import Response
 from kanashi.typing.process import Process
 
 
@@ -295,47 +313,6 @@ def colorize( string:Str, base:Str=None ) -> Str:
 		raise e
 	return result
 
-def droper( items:Union[MutableMapping[Key,Val],MutableSequence[Val]], search:List[Union[Dict[Str,Any],Str]], nested:Bool=False ) -> Dict[Key,Val]:
-	
-	"""
-	Drops item based keys given.
-	
-	:params MutableMapping<Key,Val>|MutableSequence<Val> items
-	:params List<Dict<Str,Any>|Str> search
-	:params Bool nested
-	
-	:return Dict<Key,Val>
-		Droped items
-	:raises TypeError
-		When the value type if parameter is invalid
-	"""
-	
-	if isinstance( search, ( MutableMapping, str ) ):
-		search:List[Union[Dict[Str,Any],Str]] = [search]
-	if not isinstance( items, ( MutableMapping, MutableSequence ) ):
-		raise TypeError( "Invalid items parameter, value must be type MutableMapping<Key,Val>|MutableSequence<Val>, {} passed".format( typeof( items ) ) )
-	if not isinstance( search, list ):
-		raise TypeError( "Invalid search parameter, value must be type List<Dict<Str,Any>|Str>, {} passed".format( typeof( search ) ) )
-	drops = {}
-	for index in search:
-		if isinstance( index, dict ) or \
-			typeof( index ) in [ "Map", "Mapping", "MapBuilder" ]:
-			for key in index.keys():
-				if key not in items: continue
-				droping = droper( items[key], index[key], nested=nested )
-				if nested is True:
-					drops[key] = droping
-				else:
-					drops = { **drops, **droping }
-		elif isinstance( index, list ):
-			drops = { **drops, **droper( items[key], index[key], nested=nested ) }
-		elif isinstance( index, str ):
-			if index in items:
-				drops[index] = items[index]
-		else:
-			raise TypeError( "Invalid keys parameter, value must be type List<Dict|List|Object|Str>, {} passed in items".format( typeof( key ) ) )
-	return drops
-
 def puts( *values:Any, base:Str="\x1b[0m", end:Str="\x0a", sep:Str="\x20", start:Str="", close:Union[Bool,Int]=False ) -> None:
 	
 	"""
@@ -357,6 +334,125 @@ def puts( *values:Any, base:Str="\x1b[0m", end:Str="\x0a", sep:Str="\x20", start
 	print( *[ "".join([ start, colorize( base=base, string=value if isinstance( value, Str ) else repr( value ) ) ]) for value in values ], end=end, sep=sep )
 	if close is not False:
 		exit( close )
+	...
+
+def request( method:Str, url:Str, data:Dict[Str,Any]=None, cookies:Dict[Str,Str]=None, headers:Dict[Str,Str]=None, params:Dict[Str,Str]=None, payload:Dict[Str,Any]=None, proxies:Dict[Str,Str]=None, stream:Bool=False, timeout:Int=None, tries:Int=10 ) -> Response:
+	
+	"""
+	Send HTTP Request
+	
+	:params Str method
+		Http request method
+	:params Str url
+		Http request url target
+	:params Dict<Str, Any> data
+		Http request multipart form data
+	:params Dict<Str, Str> cookies
+		Http request cookies
+	:params Dict<Str, Str> headers
+		Http request headers
+	:params Dict<Str, Str> params
+		Http request parameters
+	:params Dict<Str, Any> payload
+		Http request json payload data
+	:params Dict<Str, Any> proxies
+		Http request proxies
+	:params Bool stream
+		Allow request stream
+	:params Int timeout
+		Http request timeout
+	:params Int tries
+		Http request timeout tries
+	
+	:return Response
+	"""
+	
+	counter = 0
+	session = Session()
+	throwned = []
+	throwable = [
+		RequestConnectionError, 
+		RequestConnectionTimeout, 
+		RequestError,
+		UrllibConnectionError,
+		UrllibConnectTimeoutError,
+		UrllibRequestError,
+		UrllibNewConnectionError
+	]
+	continueable = ( 
+		RequestConnectionError, 
+		RequestConnectionTimeout, 
+		UrllibConnectionError,
+		UrllibConnectTimeoutError,
+		UrllibNewConnectionError
+	)
+	if tries <= 0:
+		tries = 10
+	while counter <= 10:
+		puts( f"Trying {method} Request url=\"{url}\"", start="\x20" * 4 )
+		try:
+			response = session.request( 
+				url=url, 
+				data=data, 
+				json=payload, 
+				stream=stream,
+				method=method, 
+				cookies=cookies, 
+				headers=headers, 
+				timeout=timeout,
+				proxies=proxies,
+				params=params 
+			)
+			encoding = response.headers['Content-Encoding'] \
+				if "Content-Encoding" in response.headers \
+				else None
+			contentType = None
+			characterSet = None
+			if "Content-Type" in response.headers:
+				parts = response.headers['Content-Type'].split( "\x3b" )
+				characterSet = parts[1].strip( "\x20" ).split( "\x3d" ).pop() if len( parts ) >= 2 else None
+				contentType = parts[0].strip( "\x20" )
+			try:
+				if encoding is not None:
+					content = response._content
+					match encoding:
+						case "br":
+							content = BrotliDecompress( response.content )
+						case "gzip":
+							content = GzipDecompress( response.content )
+						case "zstd":
+							content = ZstdDecompress( response.content )
+						case _:
+							puts( f"Encoding {encoding}: {response.content}", start="\x20" * 4 )
+							puts( f"Unsupported content encoding {encoding}", start="\x20" * 4 )
+					response._content = content
+				...
+			except( BadGzipFile, BrotliError, ZstdError ):
+				...
+			return Response(
+				url=response.url,
+				raw=response.text,
+				type=contentType,
+				status=response.status_code,
+				payload=payload if payload is not None else data,
+				content=response.content,
+				cookies=response.cookies,
+				headers=response.headers,
+				charset=characterSet,
+				encoding=encoding
+			)
+		except BaseException as e:
+			instance = type( e )
+			throwable.append( e )
+			puts( f"{typeof( e )}: {format_exc()}", start="\x20" * 4 )
+			if instance in throwable:
+				if isinstance( e, continueable ):
+					counter += 1
+					sleep( 2 )
+					continue
+			if throwned:
+				raise ExceptionGroup( f"An error occurred while sending a {method} request to url=\"{url}\"", throwned )
+			raise e
 	...
 
 def serializeable( value:Any ) -> Bool:
@@ -653,6 +749,35 @@ def Processing( context:Any, target:Callable[[],Any], loading:Str, success:Str=N
 		process.terminate()
 		stderr( context, e, "Program stoped", clear=True, close=1 )
 	return None
+
+def timestamp( minutes:Int=0, hours:Int=0, days=0, weeks:Int=0, months:Int=0, years:Int=0, tm:Bool=False ) -> Int:
+	
+	"""
+	Timestamp minus generator
+	
+	:params Int minutes
+	:params Int hours
+	:params Int days
+	:params Int weeks
+	:params Int months
+	:params Int years
+	:params Bool tm
+		Return timestamp with *1000
+	
+	:return Int
+		Current timestamp or current timestamp minus time
+	"""
+	
+	zone = timezone( "Asia/Jakarta" )
+	currtime = datetime.now( zone )
+	relative = relativedelta( minutes=minutes, hours=hours, months=months, years=years, weeks=weeks, days=days )
+	try:
+		current = currtime - relative
+	except ValueError:
+		current = currtime
+	if tm is True:
+		return int( current.timestamp() * 1000 )
+	return int( current.timestamp() )
 
 def typeof( value:Any ) -> Str:
 	
