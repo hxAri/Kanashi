@@ -23,18 +23,11 @@
 # not for SPAM.
 #
 
-from kanashi.typing.account import Account
-from kanashi.typing.builtins import Key, Val
-from kanashi.typing.immutable import Immutable
-from kanashi.typing.map import Map, Mapping
-from kanashi.typing.process import Process
-from kanashi.typing.property import (
-	Author, 
-	Authorization, 
-	Kanashi, 
-	Property, 
-	Properties 
-)
-from kanashi.typing.readonly import Readonly
-from kanashi.typing.response import Response
+from typing import TypeVar as Var
 
+
+Key = Var( "Key" )
+""" Keyset Type """
+
+Val = Var( "Val" )
+""" Value Type """

@@ -23,18 +23,15 @@
 # not for SPAM.
 #
 
-from kanashi.typing.account import Account
-from kanashi.typing.builtins import Key, Val
-from kanashi.typing.immutable import Immutable
-from kanashi.typing.map import Map, Mapping
-from kanashi.typing.process import Process
-from kanashi.typing.property import (
-	Author, 
-	Authorization, 
-	Kanashi, 
-	Property, 
-	Properties 
-)
-from kanashi.typing.readonly import Readonly
-from kanashi.typing.response import Response
+from abc import ABC as Abstract
+from typing import Generic
 
+from kanashi.typing.builtins import Key, Val
+
+
+class Immutable( Abstract, Generic[Key, Val] ):
+	
+	"""
+	Base abstract class for immutability
+	
+	"""
