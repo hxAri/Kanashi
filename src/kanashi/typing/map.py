@@ -28,7 +28,6 @@ from json import dumps as JsonEncoder
 from re import match
 from typing import Any, Dict, final, List, MutableMapping, MutableSequence, MutableSet, Self, Tuple, Union
 
-from kanashi.common import droper, serializeable, typeof
 from kanashi.library.represent import Represent
 from kanashi.typing.builtins import Key, Val
 from kanashi.typing.immutable import Immutable
@@ -215,13 +214,13 @@ class Map( MutableMapping[Key,Val] ):
 					value = values[keyset]
 					if isinstance( value, ( dict, list ) ):
 						values[keyset] = iterator( values[keyset] )
-					elif not serializeable( value ):
+					elif not isinstance( value, ( dict, list, tuple, str, int, float, bool ) ) or value is not None:
 						values[keyset] = str( value )
 			elif isinstance( values, list ):
 				for index, value in enumerate( values ):
 					if isinstance( value, ( dict, list ) ):
 						values[index] = iterator( value )
-					elif not serializeable( value ):
+					elif not isinstance( value, ( dict, list, tuple, str, int, float, bool ) ) or value is not None:
 						values[index] = str( value )
 			return values
 		return JsonEncoder( iterator( self.__props__() ), *args, **kwargs )
@@ -590,6 +589,47 @@ class Mapping( Map[Key,Val] ):
 			)
 		)
 
+def droper( items:Union[MutableMapping[Key,Val],MutableSequence[Val]], search:List[Union[Dict[Str,Any],Str]], nested:Bool=False ) -> Dict[Key,Val]:
+	
+	"""
+	Drops item based keys given.
+	
+	:params MutableMapping<Key,Val>|MutableSequence<Val> items
+	:params List<Dict<Str,Any>|Str> search
+	:params Bool nested
+	
+	:return Dict<Key,Val>
+		Droped items
+	:raises TypeError
+		When the value type if parameter is invalid
+	"""
+	
+	if isinstance( search, ( MutableMapping, str ) ):
+		search:List[Union[Dict[Str,Any],Str]] = [search]
+	if not isinstance( items, ( MutableMapping, MutableSequence ) ):
+		raise TypeError( "Invalid items parameter, value must be type MutableMapping<Key,Val>|MutableSequence<Val>, {} passed".format( typeof( items ) ) )
+	if not isinstance( search, list ):
+		raise TypeError( "Invalid search parameter, value must be type List<Dict<Str,Any>|Str>, {} passed".format( typeof( search ) ) )
+	drops = {}
+	for index in search:
+		if isinstance( index, dict ) or \
+			typeof( index ) in [ "Map", "Mapping", "MapBuilder" ]:
+			for key in index.keys():
+				if key not in items: continue
+				droping = droper( items[key], index[key], nested=nested )
+				if nested is True:
+					drops[key] = droping
+				else:
+					drops = { **drops, **droping }
+		elif isinstance( index, list ):
+			drops = { **drops, **droper( items[key], index[key], nested=nested ) }
+		elif isinstance( index, str ):
+			if index in items:
+				drops[index] = items[index]
+		else:
+			raise TypeError( "Invalid keys parameter, value must be type List<Dict|List|Object|Str>, {} passed in items".format( typeof( key ) ) )
+	return drops
+
 def builder( parent:Map[Key,Val], collection:Union[Map[Key,Val],MutableMapping[Key,Val]] ) -> Map[Key,Val]:
 	
 	"""
@@ -620,3 +660,16 @@ def builder( parent:Map[Key,Val], collection:Union[Map[Key,Val],MutableMapping[K
 		...
 	
 	return MapBuilder( collection )
+
+
+def typeof( value:Any ) -> Str:
+	
+	"""
+	Return object named type.
+	
+	:params Any value
+	
+	:return Str
+	"""
+	
+	return value.__name__ if isinstance( value, type ) else  type( value ).__name__

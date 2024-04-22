@@ -23,7 +23,7 @@
 # not for SPAM.
 #
 
-from builtins import bool as Bool, int as Int, str as Str
+from builtins import bool as Bool, str as Str
 from typing import Any, final, MutableMapping, Union
 from urllib.parse import unquote
 
@@ -61,7 +61,7 @@ class Account( Readonly ):
 				parts = part.split( "\x3d" )
 				cookies[parts[0]] = unquote( parts[1] )
 		
-		self.cookies:Union[MutableMapping[Str,Any],Str] = cookies
+		self.cookies:MutableMapping[Str,Any] = cookies
 		""" Account Request Cookies """
 		
 		self.headers:MutableMapping[Str,Str] = headers

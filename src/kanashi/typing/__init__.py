@@ -35,6 +35,6 @@ from kanashi.typing.property import (
 	Property, 
 	Properties 
 )
-from kanashi.typing.readonly import Readonly
+from kanashi.typing.readonly import Readonly, ReadonlyMap
 from kanashi.typing.response import Response
-
+from kanashi.typing.schema import Schema

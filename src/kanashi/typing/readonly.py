@@ -78,3 +78,9 @@ class Readonly( Immutable ):
 		...
 
 	...
+
+class ReadonlyMap( Map, Readonly ):
+	
+	""" The Readonly Map Implementation """
+	
+	...

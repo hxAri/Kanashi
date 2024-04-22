@@ -57,15 +57,37 @@ class Response( Readonly ):
 		"""
 		
 		self.url:Str = url
+		""" HTTP Request URL """
+		
 		self.raw:Str = raw
+		""" HTTP Response content raw """
+		
 		self.type:Str = type
+		""" HTTP Response content type """
+		
 		self.status:Int = status
+		""" HTTP Response status code """
+		
 		self.payload:Any = payload
+		""" HTTP Request payload """
+		
 		self.content:Bytes = content
+		""" HTTP Response content raw (Bytes) """
+		
 		self.cookies:MutableMapping[Str,Any] = cookies
+		""" HTTP Response cookies """
+		
 		self.headers:MutableMapping[Str,Any] = headers
+		""" HTTP Response headers """
+		
 		self.charset:Str = charset
+		""" HTTP Response content character-set """
+		
 		self.encoding:Str = encoding
+		""" HTTP Response content encoding """
+	
+	def __repr__( self ) -> Str:
+		return f"<Response url=\"{self.url}\" type={self.type} status={self.status} charset={self.charset} encoding={self.encoding} />"
 	
 	@property
 	def isApplicationJson( self ) -> Bool:

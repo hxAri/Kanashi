@@ -96,6 +96,13 @@ class Authorization( Mapping ):
 		return 0
 	
 	@property
+	def account( self ) -> Account:
+		length = len( self.accounts )
+		if self.active >= 1 and self.active <= length:
+			return self.accounts[self.active-1]
+		return None
+	
+	@property
 	def accounts( self ) -> List[Account]:
 		
 		""" Return available accounts """
