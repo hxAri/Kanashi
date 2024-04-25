@@ -114,6 +114,167 @@ class Authorization( Mapping ):
 	...
 
 @final
+class Option( Mapping ):
+	
+	""" Option Typing Implementation """
+	
+	@property
+	def __items__( self ) -> Union[MutableMapping[Key,Val],MutableSequence[Val]]:
+		return [
+			"name",
+			"type",
+			"value"
+		]
+	
+	@property
+	def __mapping__( self ) -> MutableMapping[Key,Val]:
+		return {
+		}
+	
+	@property
+	def name( self ) -> Str:
+		if "name" not in self:
+			self['name'] = None
+		return self['name']
+	
+	@property
+	def type( self ) -> Str:
+		if "type" not in self:
+			self['type'] = None
+		return self['type']
+	
+	@property
+	def value( self ) -> Str:
+		if "value" not in self:
+			self['value'] = None
+		return self['value']
+	
+	...
+
+@final
+class Settings( Mapping ):
+	
+	""" Setting Typing Implementation """
+	
+	@property
+	def __items__( self ) -> Union[MutableMapping[Key,Val],MutableSequence[Val]]:
+		return [
+			"target",
+			"options"
+		]
+	
+	@property
+	def __mapping__( self ) -> MutableMapping[Key,Val]:
+		return {
+			"options": Option
+		}
+	
+	@property
+	def target( self ) -> Str:
+		
+		""" Return the driver executable path """
+		
+		if "target" not in self:
+			self['target'] = None
+		return self['target']
+	
+	@property
+	def options( self ) -> List[Option]:
+		
+		""" Return the driver options """
+		
+		if "options" not in self:
+			self['options'] = []
+		return self['options']
+	
+	...
+
+@final
+class Driver( Mapping ):
+	
+	""" Driver Typing Implementation """
+	
+	@property
+	def __items__( self ) -> Union[MutableMapping[Key,Val],MutableSequence[Val]]:
+		return [
+			"chrome",
+			"firefox"
+		]
+	
+	@property
+	def __mapping__( self ) -> MutableMapping[Key,Val]:
+		return {
+			"chrome": Settings,
+			"firefox": Settings
+		}
+	
+	@property
+	def chrome( self ) -> Settings:
+		
+		""" Return the chrome driver configurations """
+		if "chrome" not in self:
+			self['chrome'] = None
+		return self['chrome']
+	
+	@property
+	def firefox( self ) -> Settings:
+		
+		""" Return the firefox driver configurations """
+		if "firefox" not in self:
+			self['firefox'] = None
+		return self['firefox']
+	
+	...
+
+@final
+class Browser( Mapping ):
+	
+	""" Browser Typing Implementation """
+	
+	@property
+	def __items__( self ) -> Union[MutableMapping[Key,Val],MutableSequence[Val]]:
+		return [
+			"driver",
+			"drivers",
+			"uagents"
+		]
+	
+	@property
+	def __mapping__( self ) -> MutableMapping[Key,Val]:
+		return {
+			"drivers": Driver
+		}
+	
+	@property
+	def driver( self ) -> Str:
+		
+		""" ... """
+		
+		if "driver" not in self:
+			self['driver'] = None
+		return self['driver']
+	
+	@property
+	def drivers( self ) -> Driver:
+		
+		""" ... """
+		
+		if "drivers" not in self:
+			self['drivers'] = None
+		return self['drivers']
+	
+	@property
+	def uagents( self ) -> List[Str]:
+		
+		""" ... """
+		
+		if "uagents" not in self:
+			self['uagents'] = None
+		return self['uagents']
+	
+	...
+
+@final
 class Kanashi( Mapping ):
 	
 	""" Kanashi Typing Implementation """
@@ -198,7 +359,7 @@ class Property( Mapping, Readonly ):
 	def __items__( self ) -> Union[MutableMapping[Key,Val],MutableSequence[Val]]:
 		return [
 			"authorization",
-			"browsers",
+			"browser",
 			"kanashi"
 		]
 	
@@ -206,6 +367,7 @@ class Property( Mapping, Readonly ):
 	def __mapping__( self ) -> MutableMapping[Key,Val]:
 		return {
 			"authorization": Authorization,
+			"browser": Browser,
 			"kanashi": Kanashi
 		}
 	
@@ -219,13 +381,13 @@ class Property( Mapping, Readonly ):
 		return self['authorization']
 	
 	@property
-	def browsers( self ) -> List[Str]:
+	def browser( self ) -> Browser:
 		
-		""" Return browsers User-Agent """
+		""" Return browsers property """
 		
-		if "browsers" not in self:
-			self['browsers'] = []
-		return self['browsers']
+		if "browser" not in self:
+			self['browser'] = Browser()
+		return self['browser']
 	
 	@property
 	def kanashi( self ) -> Kanashi:

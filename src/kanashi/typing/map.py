@@ -285,7 +285,7 @@ class Map( MutableMapping[Key,Val] ):
 		:return Str
 		"""
 		
-		return Represent.convert( self, indent=4 )
+		return Represent.convert( self )
 	
 	@final
 	def __set__( self, keyset:Key, values:Union[Self,MutableMapping[Key,Val],MutableSequence[Val],MutableSet[Val],Tuple[Val]] ) -> None:
@@ -498,8 +498,14 @@ class Mapping( Map[Key,Val] ):
 						for i in range( len( values[key] ) ):
 							if isinstance( values[key][i], properties[key] ):
 								continue
-							if not isinstance( properties[key], Map ):
-								values[key][i] = properties[key]( **values[key][i] )
+							if not isinstance( properties[key], ( Map, Mapping ) ):
+								try:
+									values[key][i] = properties[key]( **values[key][i] )
+								except TypeError:
+									try:
+										values[key][i] = properties[key]( values[key][i] )
+									except TypeError:
+										...
 							else:
 								values[key][i] = properties[key]( values[key][i] )
 				elif isinstance( properties[key], MutableMapping ):
@@ -612,9 +618,8 @@ def droper( items:Union[MutableMapping[Key,Val],MutableSequence[Val]], search:Li
 		raise TypeError( "Invalid search parameter, value must be type List<Dict<Str,Any>|Str>, {} passed".format( typeof( search ) ) )
 	drops = {}
 	for index in search:
-		if isinstance( index, dict ) or \
-			typeof( index ) in [ "Map", "Mapping", "MapBuilder" ]:
-			for key in index.keys():
+		if isinstance( index, MutableMapping ):
+			for key in list( index.keys() ):
 				if key not in items: continue
 				droping = droper( items[key], index[key], nested=nested )
 				if nested is True:

@@ -23,8 +23,10 @@
 # not for SPAM.
 #
 
-from multiprocessing import Process as BaseProcess
-from typing import Any, final, Tuple, TypeVar as Var
+from builtins import bool as Bool, str as Str
+from multiprocessing import Pipe, Process as BaseProcess
+from multiprocessing.connection import Connection
+from typing import Any, Callable, Iterable, Mapping, final, Tuple, TypeVar as Var
 
 
 Value = Var( "Value" )
@@ -35,23 +37,46 @@ class Process( BaseProcess ):
 	
 	""" Process Support return value from target """
 	
+	def __init__( self, group:Str=None, target:Callable[[],Any]=None, name:Str=None, args:Iterable[Any]=..., kwargs:Mapping[Str,Any]=..., *, daemon:Bool=None ) -> None:
+		
+		"""
+		Construct method of class Process
+		
+		:params Str group
+		:params Callable<<>,Any> target
+		:params Str name
+		:params Iterable<Any> args
+		:params Mapping<Str,Any>kwargs
+		:params Bool daemon
+		
+		:return None
+		"""
+		
+		BaseProcess.__init__( self, group, target, name, args, kwargs, daemon=daemon )
+		self._pipe = Pipe()
+		self._child_conn:Connection = self._pipe[1]
+		self._parent_conn:Connection = self._pipe[0]
+	
 	def run( self ) -> None:
 		
 		""" Executing processs """
 		
-		if not callable( self._target ):
-			raise TypeError( f"The process target must be Function|Method, {self._target} passed" )
+		values = None
+		thrown = None
+		target = self._target
+		if not callable( target ):
+			raise TypeError( f"The process target must be Function|Method, {target} passed" )
 		try:
-			self._results = tuple([ self._target( *self._args, **self._kwargs ), None ])
+			values = target( *self._args, **self._kwargs )
 		except BaseException as e:
-			self._results = tuple([ None, e ])
-		...
+			thrown = e
+		self._child_conn.send( ( values, thrown ) )
 	
 	@final
 	@property
 	def results( self ) -> Tuple[Value,BaseException]:
-		if hasattr( self, "\x5f\x72\x65\x73\x75\x6c\x74\x73" ):
-			return self._results
+		if self._parent_conn.poll():
+			return self._parent_conn.recv()
 		return ( None, None )
 	
 	...
