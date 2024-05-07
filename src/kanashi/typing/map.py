@@ -486,7 +486,8 @@ class Mapping( Map[Key,Val] ):
 		:return Any
 		"""
 		
-		if not isinstance( values, ( MutableMapping, MutableSequence ) ): return values 
+		if not isinstance( values, ( MutableMapping, MutableSequence ) ):
+			return values 
 		for key in properties:
 			if key in values:
 				if isinstance( properties[key], type ):
@@ -501,10 +502,10 @@ class Mapping( Map[Key,Val] ):
 							if not isinstance( properties[key], ( Map, Mapping ) ):
 								try:
 									values[key][i] = properties[key]( **values[key][i] )
-								except TypeError:
+								except TypeError as e:
 									try:
 										values[key][i] = properties[key]( values[key][i] )
-									except TypeError:
+									except TypeError as e:
 										...
 							else:
 								values[key][i] = properties[key]( values[key][i] )
