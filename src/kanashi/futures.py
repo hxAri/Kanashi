@@ -28,7 +28,7 @@ from sys import argv
 from time import sleep
 from typing import Any, Callable, TypeVar as Var, Union
 
-from kanashi.common import stderr, stdout, puts
+from kanashi.common import stderr, stdin, stdout, puts
 from kanashi.typing import Process, Thread
 
 
@@ -125,7 +125,7 @@ def watcher( target:Union[Process,Thread], loading:Str ) -> None:
 	while target.is_alive():
 		length = len( loading )
 		position = -1
-		for i in "\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-":
+		for i in "\\|/-" * 8:
 			if position >= length:
 				position = -1
 			position += 1
