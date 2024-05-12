@@ -24,9 +24,10 @@
 #
 
 from builtins import bool as Bool, str as Str
-from typing import Any, final, MutableMapping, Union
+from typing import Any, final, Literal, MutableMapping, Union
 from urllib.parse import unquote
 
+from kanashi.typing.map import Map
 from kanashi.typing.readonly import Readonly
 
 
@@ -35,21 +36,25 @@ class Account( Readonly ):
 	
 	""" Account Typing Implementation """
 	
-	def __init__( self, cookies:Union[MutableMapping[Str,Any],Str], headers:MutableMapping[Str,Str], payload:MutableMapping[Str,Any], username:Str, password:Str ) -> None:
+	def __init__( self, username:Str, password:Str, cookies:Union[MutableMapping[Str,Any],Str]=None, headers:MutableMapping[Str,Str]=None, graphql:MutableMapping[Union[Literal['headers'],Literal['payload']],MutableMapping[Str,Any]]=None, proxies:MutableMapping[Str,Str]=None, profile:MutableMapping[Str,Any]=None ) -> None:
 		
 		"""
 		Construct method of class Account
 		
-		:params MutableMapping<Str,Any>|Str cookies
-			Account Request Cookies
-		:params Mapping<Str,Str> headers
-			Account Request Headers
-		:params Mapping<Str,Any> payload
-			Account Graphql Payload
 		:params Str username
 			Account Username
 		:params Str password
 			Account Password
+		:params MutableMapping<Str,Any>|Str cookies
+			Account Request Cookies
+		:params Mapping<Str,Str> headers
+			Account Request Headers
+		:params MutableMapping<Literal<headers|payload>,MutableMapping<Str,Any>> graphql
+			Account Request Graphql
+		:params MutableMapping<Str,Str> proxies
+			Account Request Proxies
+		:params MutableMapping<Str,Any> profile
+			Account Profile info
 		
 		:return None
 		"""
@@ -61,25 +66,31 @@ class Account( Readonly ):
 				parts = part.split( "\x3d" )
 				cookies[parts[0]] = unquote( parts[1] )
 		
-		self.cookies:MutableMapping[Str,Any] = cookies
+		self.cookies:MutableMapping[Str,Any] = cookies if cookies is not None else {}
 		""" Account Request Cookies """
 		
-		self.headers:MutableMapping[Str,Str] = headers
+		self.headers:MutableMapping[Str,Str] = headers if headers is not None else {}
 		""" Account Request Headers """
 		
-		self.payload:MutableMapping[Str,Any] = payload
-		""" Account Graphql Payload """
+		self.graphql:MutableMapping[Union[Literal['headers'],Literal['payload']],MutableMapping[Str,Any]] = graphql if graphql is not None else { "headers": {}, "payload": {} }
+		""" Account Request Graphql """
+		
+		self.proxies:MutableMapping[Str,Str] = proxies
+		""" Account Request Proxies """
 		
 		self.username:Str = username
 		""" Account Username """
 		
 		self.password:Str = password
 		""" Account Password """
+		
+		self.profile:Map[Str,Any] = Map( profile if profile is not None else {} )
+		""" Account Profile Info """
 	
 	@property
-	def anonimous( self ) -> Bool:
+	def anonymous( self ) -> Bool:
 		
-		""" Return whether if account is anonimous """
+		""" Return whether if account is anonymous """
 		
 		return self.username is None and self.password is None
 	
@@ -88,20 +99,30 @@ class Account( Readonly ):
 		
 		""" Return whether if account is authenticated """
 		
-		if self.anonimous is False:
+		if self.anonymous is False:
 			if self.cookies is not None and self.cookies and \
 			   self.headers is not None and self.headers and \
-			   self.payload is not None and self.payload:
-				for keyset in [ "rur", "sessionid", "shbid", "shbts" ]:
+			   self.graphql is not None and self.graphql and \
+			   self.graphql['payload'] is not None and \
+			   self.graphql['payload']:
+				for keyset in [ "mid", "rur", "datr", "sessionid", "shbid", "shbts", "ig_did" ]:
 					if keyset not in self.cookies or not self.cookies[keyset]:
-						continue
-					return False
+						return False
 				for keyset in [ "av", "lsd" ]:
-					if keyset not in self.payload or not self.payload[keyset]:
-						continue
-					return False
+					if keyset not in self.graphql['payload'] or not self.graphql['payload'][keyset]:
+						return False
 				return True
-			...
-		return False
+			return False
+		return True
+	
+	...
+
+@final
+class Checkpoint( Readonly ):
+	
+	...
+	
+@final
+class Verification( Readonly ):
 	
 	...
