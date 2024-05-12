@@ -23,7 +23,7 @@
 # not for SPAM.
 #
 
-from kanashi.typing.account import Account
+from kanashi.typing.account import Account, Checkpoint, Verification
 from kanashi.typing.builtins import Key, Val
 from kanashi.typing.encryption import Encryption
 from kanashi.typing.immutable import Immutable
