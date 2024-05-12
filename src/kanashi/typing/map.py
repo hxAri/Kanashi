@@ -494,7 +494,13 @@ class Mapping( Map[Key,Val] ):
 					if isinstance( values[key], properties[key] ):
 						continue
 					if isinstance( values[key], MutableMapping ):
-						values[key] = properties[key]( values[key] )
+						try:
+							values[key] = properties[key]( values[key] )
+						except TypeError as e:
+							try:
+								values[key] = properties[key]( **values[key] )
+							except TypeError as e:
+								...
 					elif isinstance( values[key], MutableSequence ):
 						for i in range( len( values[key] ) ):
 							if isinstance( values[key][i], properties[key] ):
