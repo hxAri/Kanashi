@@ -29,10 +29,11 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from getpass import getpass
 from gzip import BadGzipFile, decompress as GzipDecompress
-from multiprocessing import Process
+from hashlib import md5
 from os import name as OSName, system
 from pytz import timezone
 from pyzstd import decompress as ZstdDecompress, ZstdError
+from random import choice
 from re import MULTILINE, S
 from re import compile, match, Pattern, split, sub as substr
 from requests import Session
@@ -42,13 +43,15 @@ from requests.exceptions import (
 	RequestException as RequestError
 )
 from time import sleep
-from traceback import format_exc
+from traceback import FrameSummary
+from traceback import format_exc, extract_tb as ExtractTb
 from typing import (
 	Any, 
 	Callable, 
 	Dict, 
 	Final,  
-	List,  
+	List, 
+	Tuple,  
 	TypeVar as Var, 
 	Union 
 )
@@ -61,9 +64,7 @@ from urllib3.exceptions import (
 
 from kanashi.library.represent import Represent
 from kanashi.library.storage import Storage
-from kanashi.throwable import Throwable
 from kanashi.typing.response import Response
-from kanashi.typing.process import Process
 
 
 Banner:Str = ""
@@ -181,6 +182,11 @@ def callback( prompt:Str=None, handler:Callable[[],Any]=None, *args:Any, **kwarg
 	stdin( prompt, default="Y", repeated=True, ignore=False )
 	return handler( *args, **kwargs )
 
+def camelCase( keyword:Str ) -> Str:
+	if "_" in keyword:
+		return "".join( list([ keyword.split( "_" )[0], *list( word.capitalize() for word in keyword[keyword.index( "_" ):].split( "_" ) ) ]) )
+	return keyword
+
 def colorize( string:Str, base:Str=None ) -> Str:
 	
 	"""
@@ -232,7 +238,7 @@ def colorize( string:Str, base:Str=None ) -> Str:
 			"colorize": "\x1b[1;38;5;112m{}{}"
 		},
 		"kanashi": {
-			"pattern": r"(?P<kanashi>\b(?:[kK]anash[iī])\b)",
+			"pattern": r"(?P<kanashi>\b(?:[kK]anash[iī]|hx[aA]ri)\b)",
 			"colorize": "\x1b[1;38;5;111m{}{}"
 		},
 		"comment": {
@@ -313,6 +319,75 @@ def colorize( string:Str, base:Str=None ) -> Str:
 		raise e
 	return result
 
+def delays() -> None:
+	
+	""" Random delays """
+	
+	# sleep( choice([ 9, 8.2, 3.4, 6.6, 2.8, 4, 6.3, 3.6, 5.9, 7 ]) )
+
+def download( source:Str, mediaType:Str, directory:Str=None, proxies:Dict[Str,Str]=None, stream:Bool=False, thread:Int=0 ) -> Str:
+
+	"""
+	Download media content e.g image, video
+
+	:params Str source
+		The media url source
+	:params Str mediaType
+		The file media type, e.g image, video
+	:params Str directory
+		The media directory save
+	:params Dict<Str,Str> proxies
+		The Http request proxies
+	:params Bool stream
+		Allow request stream
+	:params Int thread
+		Current thread position number
+	
+	:return Str
+	"""
+	
+	response = request( "GET", url=source, proxies=proxies, stream=stream )
+	response.json
+	if response.status == 200:
+		extename = extension( response, mediaType, "jpg" if mediaType == "image" else "mp4" if mediaType == "video" else "" )
+		pathname = directory if directory is not None else f"history/contents"
+		filename = md5( source.encode( "utf-8" ) ).hexdigest()
+		fullname = f"{pathname}/{filename}.{extename}"
+		try:
+			Storage.mkdir( pathname )
+			Storage.touch( fullname, response.content, fmode="wb" )
+			return fullname
+		except OSError as e:
+			raise TypeError( f"Failed download media mediaType={mediaType}", e )
+		...
+	return None
+
+def extension( response:Response, type:Str="image", default:Str="jpg", thread:Int=0 ) -> Str:
+
+	"""
+	Return file extension name by request response.
+
+	:params Response response
+	:params Str type
+		The file media type, e.g image, video
+	:params Str default
+		The default file extension name when the response is unknown Content-Type
+	:params Int thread
+		Current thread position number
+	
+	:return Str
+	"""
+	
+	contentType = response.headers['Content-Type']
+	matched = match( r"^(?:(?P<image>image)\/(?P<image_extension>jpg|jpeg|png|webp)|(?P<video>video\/(?P<video_extension>mp4|webm)))$", contentType )
+	if matched is not None:
+		groups = matched.groupdict()
+		group = f"{type}_extension"
+		if group in groups and groups[group]:
+			return groups[group]
+		return default
+	raise ValueError( f"Unsupported media type for Content-Type {contentType}" )
+
 def puts( *values:Any, base:Str="\x1b[0m", end:Str="\x0a", sep:Str="\x20", start:Str="", close:Union[Bool,Int]=False ) -> None:
 	
 	"""
@@ -333,7 +408,12 @@ def puts( *values:Any, base:Str="\x1b[0m", end:Str="\x0a", sep:Str="\x20", start
 	
 	print( *[ "".join([ start, colorize( base=base, string=value if isinstance( value, Str ) else repr( value ) ) ]) for value in values ], end=end, sep=sep )
 	if close is not False:
-		exit( close )
+		try:
+			exit( close )
+		except SystemExit:
+			...
+		finally:
+			...
 	...
 
 def request( method:Str, url:Str, data:Dict[Str,Any]=None, cookies:Dict[Str,Str]=None, headers:Dict[Str,Str]=None, params:Dict[Str,Str]=None, payload:Dict[Str,Any]=None, proxies:Dict[Str,Str]=None, stream:Bool=False, timeout:Int=None, tries:Int=10 ) -> Response:
@@ -506,11 +586,10 @@ def stderr( context:Any, thrown:BaseException, buffers:Union[Dict[Str,Any],List[
 	
 	if clear is True:
 		system( "cls" if OSName in [ "nt", "windows" ] else "clear" )
-	errors = stderrno( thrown )
 	print( Banner )
 	puts( "System.err:" )
 	puts( "\x20\x20{}:".format( stdctx( context, "err" ) ) )
-	puts( arrange( errors, line=False ) \
+	puts( arrange( stderrno( thrown ), line=False ) \
 		.replace( f"{Storage.BASEPATH}/", "" ) \
 		.replace( f"{Storage.BASEVENV}/", "" )
 	)
@@ -520,72 +599,87 @@ def stderr( context:Any, thrown:BaseException, buffers:Union[Dict[Str,Any],List[
 		close=close 
 	)
 
-def stderrno( thrown:BaseException, indent:Int=0 ) -> List[Str]:
-	
-	"""
-	Error iterator
-	
-	:params BaseException thrown
-	:params Int indent
-	
-	:return List<Str>
-	"""
-	
-	results = []
-	prefix = "\x20" * indent
-	if isinstance( thrown, BaseException ):
-		results.append( f"{prefix}{typeof( thrown )}:" )
-		traceback = thrown.__traceback__
-		filename = None
-		message = None
-		lineno = None
-		code = None
-		if traceback is not None:
-			frame = traceback.tb_frame
-			lineno = traceback.tb_lineno
-			filename = frame.f_code.co_filename
-		details = []
-		if hasattr( thrown, "code" ):
-			code = thrown.code
-		if hasattr( thrown, "msg" ):
-			message = thrown.msg
+def stderrca( thrown:BaseException ) -> Dict[Str,Union[Str,List[Dict[Str,Any]]]]:
+	caused = None
+	groups = []
+	traceback = None
+	if thrown is not None:
+		if hasattr( thrown, "__cause__" ):
+			caused = thrown.__cause__
+		if hasattr( thrown, "__traceback__" ):
+			traceback = thrown.__traceback__
+		if hasattr( thrown, "groups" ):
+			...
+		if hasattr( thrown, "exceptions" ):
+			...
+		message = thrown.args
 		if hasattr( thrown, "message" ):
 			message = thrown.message
-		if hasattr( thrown, "prev" ):
-			prevInfo = stderrno( thrown.prev, indent=indent+2 )
-			details.append( f"{prefix}  · prev:" )
-			details.extend( prevInfo )
-		groups = []
-		if isinstance( thrown, Throwable ):
-			groups = thrown.group
-		if isinstance( thrown, ExceptionGroup ):
-			groups = thrown.exceptions
-		if groups:
-			details.append( f"{prefix}  · groups:" )
-		for i, group in enumerate( groups ):
-			groupInfo = stderrno( group, indent=indent+2 )
-			groupInfo[0] = "\x20".join([ groupInfo[0], f"{i}" ])
-			details.extend( groupInfo )
-		if code is not None:
-			results.append( f"{prefix}  · code {code}" )
-		if filename is not None:
-			if lineno is not None:
-				details.append( f"{prefix}  · raise in {filename} on line {lineno}" )
-			else:
-				details.append( f"{prefix}  · raise in {filename}" )
-		if message is not None:
-			details.append( f"{prefix}  · message \"{message}\"" )
-		elif len( thrown.args ) >= 1:
-			represent = Represent.convert( thrown.args, indent=4 )
+		elif hasattr( thrown, "msg" ):
+			message = thrown.msg
+		return {
+			"typing": typeof( thrown ),
+			"groups": groups,
+			"message": message,
+			"causes": stderrca( caused ) \
+				if caused is not None \
+				else None,
+			"traceback": list( stderrxt( tb ) for tb in ExtractTb( traceback ) ) \
+				if traceback is not None \
+				else []
+		}
+	return None
+
+def stderrit( traceback:Dict[Str,Union[Str,List[Dict[Str,Any]]]], indent:Tuple[Int,Int]=(4,4) ) -> List[Str]:
+	spaces = "\x20" * indent[0]
+	indent = ( indent[0] if indent[0] >= 4 else 4, indent[1] )
+	results = []
+	causes = []
+	results.append( f"{traceback['typing']}:" )
+	if traceback['causes'] is not None:
+		causes = stderrit( traceback['causes'], indent=( indent[0], indent[1]+indent[0] ) )
+		if causes:
+			results.append( "· cause:" )
+			results.extend( causes )
+	if traceback['traceback']:
+		results.append( "· traceback:" )
+		for tb in traceback['traceback']:
+			results.append( f"  · file {tb['file']}, on line {tb['line']}" )
+			results.append( f"    · code {tb['code']['hardcode']}" )
+	if traceback['message']:
+		if isinstance( traceback['message'], ( bool, float, int, str ) ):
+			results.append( f"· message: {traceback['message']}" )
+		else:
+			represent = Represent.convert( traceback['message'], indent=indent[1] )
 			position = len( represent ) -1
 			if represent[position] in [ "\x29", "\x7d", "\x5d" ]:
 				represent = f"{represent[:position]}\x20\x20{represent[position:]}"
-			details.append( f"{prefix}  · args {represent}" )
-		if len( details ) >= 1:
-			results.append( f"{prefix}  Traceback" )
-			results.extend( details )
-		...
-	return results
+			represent = f"\x0a{spaces}".join( list( split for split in represent.splitlines() ) )
+			results.append( f"· message: {represent}" )
+	return list( "".join([ spaces, result ]) for result in results )
+
+def stderrxt( frame:FrameSummary ) -> Dict[Str,Any]:
+	anotated = None
+	hardcode = frame.line
+	positionStart = frame.colno
+	positionEnd = positionStart + len( hardcode ) - 1
+	if positionStart is not None and positionStart is not None:
+		anotated = ""
+	return {
+		"file": frame.filename,
+		"line": frame.lineno,
+		"code": {
+			"hardcode": hardcode,
+			"anotated": anotated
+		},
+		"position": {
+			"start": positionStart,
+			"end": positionEnd
+		}
+	}
+
+def stderrno( thrown:BaseException, indent=0 ) -> List[Str]:
+	return stderrit( stderrca( thrown ), indent=( indent, 4 ) )
 
 def stdin( context:Any=None, prompt:Str=None, default:Union[Int,List[Union[Int,Str]],Str]=None, filters:Union[Callable[[Union[Int,Str]],Bool],List[Union[Callable[[Union[Int,Str]],Bool],Pattern]],Pattern]=None, separator:Str="\x2e", number:Bool=False, password:Bool=False, ignore:Bool=True, repeated:Bool=False ) -> Union[Int,Str]:
 	
@@ -651,7 +745,7 @@ def stdin( context:Any=None, prompt:Str=None, default:Union[Int,List[Union[Int,S
 			if filtered is False:
 				return stdin( context, prompt, default, filters, separator, number, password, ignore, repeated=True )
 			return values if number is False else int( values )
-		elif isinstance( default, list ):
+		elif isinstance( default, list ) and default:
 			if number is True:
 				values = int( values )
 			if values not in default:
@@ -659,10 +753,10 @@ def stdin( context:Any=None, prompt:Str=None, default:Union[Int,List[Union[Int,S
 			return values
 		return values
 	except EOFError as e:
-		stderr( context, e, "Force close", close=True )
+		stderr( context, e, "Force close", close=1 )
 	except KeyboardInterrupt as e:
 		if ignore is False:
-			stderr( context, e, "Force close", close=True )
+			stderr( context, e, "Force close", close=1 )
 		print( "\x0d" )
 		return stdin( context, prompt, default, filters, separator, number, password, ignore, repeated=True )
 	except ValueError as e:
@@ -695,61 +789,6 @@ def stdout( context:Any, buffers:Union[Dict[Str,Any],List[Dict[Str,Any]],Str], c
 		puts( arranged, close=close )
 	...
 
-def Processing( context:Any, target:Callable[[],Any], loading:Str, success:Str=None, group:Str=None, name:Str=None, *args:Any, **kwargs:Any ) -> Union[Val,Exception]:
-	
-	"""
-	Processing
-	
-	:params Any context
-	:params Callable<<>,Any> target
-	:params Str loading
-	:params Str success
-	:params Str group
-	:params Str name
-	:params Any *args
-	:params Any** kwargs
-	
-	:return Val|Exception
-	"""
-	
-	stdout( context, None, clear=True )
-	process = Process( name=name, group=group, target=target, args=args, kwargs=kwargs )
-	try:
-		process.start()
-		while process.is_alive():
-			length = len( loading )
-			position = -1
-			for i in "\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-\|/-":
-				if position >= length:
-					position = -1
-				position += 1
-				messages = loading
-				if position >= 1:
-					messageChar = loading[position-1:position]
-					messageChar = messageChar.lower() \
-						if messageChar.isupper() \
-						else messageChar.upper()
-					messagePrefix = loading[0:position-1]
-					messageSuffix = loading[position:]
-					messages = "".join([
-						messagePrefix, 
-						messageChar, 
-						messageSuffix
-					])
-				puts( f"    {messages} {i}", end="\x20", start="\x0d" )
-				sleep( 0.1 )
-		results = process.results
-		if results[1] is None or not isinstance( results[1], BaseException ):
-			stdout( context, success if success is not None else loading, clear=True )
-			return results[0]
-		stderr( context, results[1], None, clear=True )
-		return results[1]
-	except ( EOFError, KeyboardInterrupt ) as e:
-		process.kill()
-		process.terminate()
-		stderr( context, e, "Program stoped", clear=True, close=1 )
-	return None
-
 def timestamp( minutes:Int=0, hours:Int=0, days=0, weeks:Int=0, months:Int=0, years:Int=0, tm:Bool=False ) -> Int:
 	
 	"""
@@ -778,6 +817,9 @@ def timestamp( minutes:Int=0, hours:Int=0, days=0, weeks:Int=0, months:Int=0, ye
 	if tm is True:
 		return int( current.timestamp() * 1000 )
 	return int( current.timestamp() )
+
+def titleCase( keyword:Str ) -> Str:
+	return "\x20".join( list( word.capitalize() for word in f"{keyword}".split( "_" ) ) )
 
 def typeof( value:Any ) -> Str:
 	
