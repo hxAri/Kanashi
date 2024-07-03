@@ -1,0 +1,421 @@
+#!/usr/bin/env bash
+
+#
+# @author Ari Setiawan
+# @create 23.05-2022
+# @github https://github.com/hxAri/Kanashi
+#
+# Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
+# Kanashī Licence under GNU General Public Licence v3
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+#
+# Kanashī is not affiliated with or endorsed, endorsed at all by
+# Instagram or any other party, if you use the main account to use this
+# tool we as Coders and Developers are not responsible for anything that
+# happens to that account, use it at your own risk, and this is Strictly
+# not for SPAM.
+#
+
+# Clear terminal screen.
+clear
+
+# Target basename.
+pathname=$(basename $0)
+
+# Change current working directory.
+cd $(dirname $0)
+
+# Iterate down a (possible) chain of symlinks.
+while [ -L "$pathname" ]
+do
+    pathname=$(readlink $pathname)
+    cd $(dirname $pathname)
+    pathname=$(basename $pathname)
+done
+ 
+# Get the Kanashi basepath.
+basepath=$(pwd -P)
+
+# By default the Kanashi saves the virtual environment activation
+# location in a file called .virtual in the Project directory.
+virtualization="${basepath}/.virtual"
+virtual=
+
+# For compatibility system.
+if [[ ! $(command -v puts) ]]; then
+	function puts() {
+		echo -e "\x1b[0m$@"
+	}
+fi
+
+# Handle setup python module requirements.
+function modinstall() {
+	local envfiname=$1
+	read -e -p "$(puts "$envfiname: install python module requirements [Y/n] ")" installmod
+	if [[ "${installmod^^}" == "Y" ]]; then
+		source "$envfiname"
+		if [[ $? -eq 0 ]]; then
+			if [[ ! -f "${basepath}/requirements.txt" ]]; then
+				puts "${basepath}/requirements.txt: no such file or directory"
+				exit 1
+			fi
+			pip install -r "${basepath}/requirements.txt"
+			if [[ $? -ne 0 ]]; then
+				puts "${basepath}/requirements.txt: failed install module requirements"
+				exit 1
+			fi
+			deactivate
+			puts "${basepath}/requirements.txt: all module requirements installed"
+			puts "please re-run this programs"
+			exit 0
+		else
+			puts "$envfiname: failed to activate python virtual environment"
+			exit 1
+		fi
+	else
+		puts "$envfiname: aborted"
+		exit 1
+	fi
+}
+
+# Handle create python virtual environment.
+function envcreate() {
+	local envfiname=$1
+	puts "$envfiname: creating virtual environment"
+	python3 -m venv "$envfiname"
+	if [[ $? -ne 0 ]]; then
+		puts "$envfiname: failed create virtual environment"
+		exit 1
+	fi
+	echo "$envfiname" > "$virtualization"
+	if [[ $? -ne 0 ]]; then
+		puts "$envfiname: failed create virtual environment"
+		exit 1
+	fi
+	modinstall "$envfiname"
+}
+
+if [[ ! -f $virtualization ]]; then
+	envfiname=
+	puts "input virtual environment activation: e.g /home/$(whoami)/virtual/bin/activate"
+	while [[ ! -f $virtualization ]]; do
+		read -e -p "$(puts pathname:) " envfiname
+		if [[ -f "$envfiname" ]]; then
+			echo "$envfiname" > "$virtualization"
+			if [[ $? -ne 0 ]]; then
+				puts "$envfiname: failed create virtual environment"
+				exit 1
+			fi
+			modinstall "$envfiname"
+		elif [[ -d "$envfiname" ]]; then
+			if [[ $(ls -A "$envfiname") ]]; then
+				read -e -p "$(puts "${envfiname}: This directory is not empty are you sure [Y/n] ")" envforcec
+				if [[ "${envforcec^^}" != "Y" ]]; then
+					envfiname=
+					continue
+				fi
+				envcreate "$envfiname"
+			fi
+		else
+			puts "$envfiname: no such file or directory"
+			read -e -p "$(puts "$envfiname: create the virtual environment here [Y/n] ")" envcreate
+			if [[ "${envcreate^^}" != "Y" ]]; then
+				envfiname=
+				continue
+			fi
+			envcreate "$envfiname"
+		fi
+	done
+fi
+
+# Read saved Kanashi virtual environment activation.
+virtual="$(cat $virtualization)"
+
+# Clean Python cache Byte-Code compiled.
+function clean() {
+	for cache in $(find "${basepath}/" | grep "__pycache__"); do
+		if [[ -d $cache ]]; then
+			rm -rf $cache
+			if [[ $? -ne 0 ]]; then
+				puts "${cache}: failed remove directory"
+			fi
+		fi
+	done
+}
+
+declare -A actions=(
+	[cleaner]="Cleaning The Kanashi Files"
+	[download]="Kanashi multithread media downloader"
+	[help]="Show this help"
+	[install]="Install Kanashi as Python3 Module"
+	[linting]="Linting Kanashi code before commit"
+	[package]="Pip"
+	[running]="Running The Kanashi as Interfactive Command Line"
+	[testing]="Kanashi testing code"
+	[upgrade]="Upgrade The Kanashi code from original repository"
+)
+action=${1,,}
+default="running"
+running=(
+)
+arguments=()
+if [[ "$action" == "" ]]; then
+	action=$default
+else
+	i=1
+	for argument in ${@}; do
+		if [[ $i != 1 ]]; then
+			arguments+=( $argument )
+		fi
+		i=$((i+1))
+	done
+fi
+
+# Activate the python virtual environment.
+source "$virtual"
+
+if [[ $? -ne 0 ]]; then
+	puts "$virtual: failed to activate python virtual environment"
+fi
+
+case ${action,,} in
+	c|cleaner)
+		contents=()
+		if [[ -f "${basepath}/.gitignore" ]]; then
+			while IFS= read -r content; do
+				contents+=( "$content" )
+			done < "${basepath}/.gitignore"
+		fi
+		for content in "${contents[@]}"; do
+			if [[ ! -z "$content" ]]; then
+				if [[ "${content:0:1}" == "#" ]]; then
+					continue
+				fi
+				prefix="$(echo -e "$content" | cut -d "." -f 1)"
+				length=${#prefix}
+				if [[ "${prefix:$((length-1)):${#length}}" == "*" ]]; then
+					if [[ "$prefix" == "*" ]]; then
+						continue
+					fi
+					target="${basepath}/$content"
+					prefix="$(echo -e "${target}" | cut -d "." -f 1)"
+					extension="$(echo -e "${target}" | cut -d "." -f 2)"
+					for file in $prefix; do
+						if [[ "$file" == "$prefix" ]]; then
+							continue
+						fi
+						# temp="${file%%extension*}"
+						# start="$(echo -e "${file%%extension*}" | echo -e ${#temp})"
+						# puts "${file}:${start}:${file:$((start-${#extension})):$((start))}"
+						if [[ -f "$file" ]]; then
+							filename="${file:$((${#basepath}+1)):$((${#file}))}"
+							removeable=
+							while [[ -z "$removeable" ]]; do
+								puts "remove: $filename [Y/n]" "\c"
+								read removeable
+								case "${removeable,,}" in
+									y) rm $file ;;
+									n) puts "skipped: ${filename}" ;;
+									*) removeable= ;;
+								esac
+							done
+						fi
+					done
+				fi
+			fi
+		done
+	;;
+	d|download) python3 ${basepath}/src/download.py ${arguments[@]} ;;
+	i|install) python3 ${basepath}/setup.py install ${arguments[@]} ;;
+	l|linting)
+		python3 -m pylint --argument-naming-style=camelCase \
+			   --attr-naming-style=camelCase \
+			   --class-attribute-naming-style=any \
+			   --class-const-naming-style=any \
+			   --class-naming-style=PascalCase \
+			   --const-naming-style=any \
+			   --extension-pkg-allow-list=pyzstd \
+			   --variable-naming-style=camelCase \
+			   --function-naming-style=camelCase \
+			   --max-attributes=30 \
+			   --max-public-methods=60 \
+			   --method-naming-style=camelCase \
+			   --good-names="e,Executor,i,id,u,k,ThreadExecutor,ThreadRunner,v" \
+			   --ignore-docstrings=y \
+			   --ignore-long-lines="[^\n]+" \
+			   --indent-string="\t" \
+			   --disable=arguments-differ \
+			   --disable=broad-exception-caught \
+			   --disable=consider-using-f-string \
+			   --disable=function-redefined \
+			   --disable=keyword-arg-before-vararg \
+			   --disable=missing-function-docstring \
+			   --disable=missing-module-docstring \
+			   --disable=multiple-statements \
+			   --disable=non-parent-init-called \
+			   --disable=protected-access \
+			   --disable=redefined-argument-from-local \
+			   --disable=redefined-builtin \
+			   --disable=redefined-outer-name \
+			   --disable=too-many-arguments \
+			   --disable=too-many-boolean-expressions \
+			   --disable=too-many-branches \
+			   --disable=too-many-lines \
+			   --disable=too-many-locals \
+			   --disable=too-many-nested-blocks \
+			   --disable=too-many-statements \
+			   --disable=super-init-not-called \
+			   --disable=too-few-public-methods \
+			   --disable=trailing-newlines \
+			   --disable=trailing-whitespace \
+			   --disable=unnecessary-dunder-call \
+			   --disable=unnecessary-ellipsis \
+			   --disable=unnecessary-lambda-assignment \
+			   --disable=unnecessary-pass \
+			   --disable=unexpected-special-method-signature \
+			   --disable=wrong-import-order \
+			   --disable=wrong-import-position \
+			   ${basepath}/setup.py \
+			   ${basepath}/src/kanashi/*.py \
+			   ${basepath}/src/kanashi/library/*.py \
+			   ${basepath}/src/kanashi/parsers/*.py \
+			   ${basepath}/src/kanashi/typing/*.py
+	;;
+	p|package) pip ${arguments[@]} ;;
+	t|testing) python3 ${basepath}/src/testing.py ${arguments[@]} ;;
+	u|upgrade)
+		puts "$basepath: this directory will be deleted permanently"
+		read -e -p "$(puts "are you sure want to upgrade [Y/n] ")" upgrade
+		if [[ "${upgrade^^}" != "Y" ]]; then
+			puts "aborted"
+			exit 1
+		fi
+		pathname="$(dirname $basepath)"
+		basename="$(basename $basepath)"
+		archive="Kanashi-main.tar.gz"
+		backup="Kanashi-backup.tar.gz"
+		target="https://github.com/hxAri/Kanashi/archive/refs/heads/main.tar.gz"
+		puts "$backup: backing source code"
+		cd "$pathname"
+		if [[ $? -ne 0 ]]; then
+			puts "$pathname: failed change current working directory"
+			exit 1
+		fi 
+		tar -cvf "${backup}" "$basepath"
+		if [[ $? -ne 0 ]]; then
+			puts "$backup: failed backup source code"
+			exit 1
+		fi
+		cd -
+		if [[ $? -ne 0 ]]; then
+			puts "$basename: failed change to previous working directory"
+			exit 1
+		fi 
+		puts "$archive: downloading source code from repository"
+		wget --tries=20 $target -O "${pathname}/${archive}"
+		if [[ $? -ne 0 ]]; then
+			puts "$archive: failed download source code"
+			exit 1
+		fi
+		puts "$archive: extracting the contents"
+		tar -xvf "${pathname}/${archive}" -C "$pathname"
+		if [[ $? -ne 0 ]]; then
+			puts "$archive: failed to extract the contents"
+			exit 1
+		fi
+		puts "$basename: removing old directory"
+		rm -rf "${pathname}/${basename}"
+		if [[ $? -ne 0 ]]; then
+			puts "$basename: failed to remove the directory"
+			exit 1
+		fi
+		puts "Kanashi-main: moving the directory"
+		mv "${pathname}/Kanashi-main" "${pathname}/${basename}"
+		if [[ $? -ne 0 ]]; then
+			puts "Kanashi-main: failed to move the directory"
+			exit 1
+		fi
+		puts "Kanashi: successfully updated"
+		echo "$virtual" > "$virtualization"
+		if [[ $? -ne 0 ]]; then
+			puts "$virtual: failed create virtual environment"
+			exit 1
+		fi
+		modinstall "$virtual"
+	;;
+	*)
+		if [[ "$action" != "running" ]]; then
+			execute=
+			for define in ${running[@]}; do
+				if [[ "$action" == "$define" ]]; then
+					python3 ${basepath}/src/kanashi.py "$action" ${arguments[@]}
+					execute=ok
+					break
+				fi
+			done
+			if [[ $execute != "ok" ]]; then
+				puts ""
+				puts "   Kanashi Terminal Console"
+				puts ""
+				puts "   example [command] [arguments] [--options]"
+				iter=1
+				for keyset in ${!actions[@]}; do
+					if [[ ${running[$( echo ${running[@]/$keyset//} | cut -d/ -f1 | wc -w | tr -d " " )]} != "$keyset" ]]; then
+						index=1
+						length=$((12-${#keyset}))
+						if [[ $iter == "1" ]]; then
+							prefix="   command  "
+						else
+							prefix="            "
+						fi
+						iter=$((iter+1))
+						prefix+="$keyset"
+						prefix+="            "
+						while [[ $index != $length ]]; do
+							index=$((index+1))
+							prefix+=" "
+						done
+						puts "$prefix" "${actions[$keyset]}"
+						if [[ $keyset == "running" ]]; then
+							for runner in ${!actions[@]}; do
+								if [[ ${running[$( echo ${running[@]/$runner//} | cut -d/ -f1 | wc -w | tr -d " " )]} == "$runner" ]]; then
+									if [[ "${actions[$runner]}" == "" ]]; then
+										continue
+									fi
+									index=1
+									length=$((10-${#runner}))
+									prefix="           "
+									prefix+=" · $runner"
+									prefix+="            "
+									while [[ $index != $length ]]; do
+										index=$((index+1))
+										prefix+=" "
+									done
+									puts "$prefix" "${actions[$runner]}"
+								fi
+							done
+						fi
+					fi
+				done
+			fi
+		else
+			python3 ${basepath}/src/kanashi.py ${arguments[@]}
+		fi
+	;;
+esac
+
+# Clean python cache files.
+clean
+
+# Deactivate python virtual environment.
+deactivate
+
+puts ""
+exit 0
