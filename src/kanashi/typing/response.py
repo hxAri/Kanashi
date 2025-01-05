@@ -1,12 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #
-# @author Ari Setiawan
-# @create 23.05-2022
+# @author hxAri (hxari)
+# @create 23-12-2024 17:30
 # @github https://github.com/hxAri/Kanashi
 #
-# Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
-# Kanashī Licence under GNU General Public Licence v3
+# Kanashi is an Open-Source project for doing various
+# things related to Facebook, e.g Login. Logout, Profile Info,
+# Follow, Unfollow, Media downloader, etc.
+#
+# Kanashi Copyright (c) 2024 - hxAri <hxari@proton.me>
+# Kanashi Licence under GNU General Public Licence v3
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,82 +20,105 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
-# Kanashī is not affiliated with or endorsed, endorsed at all by
-# Instagram or any other party, if you use the main account to use this
-# tool we as Coders and Developers are not responsible for anything that
-# happens to that account, use it at your own risk, and this is Strictly
-# not for SPAM.
-#
 
 from builtins import bool as Bool, bytes as Bytes, int as Int, str as Str
 from json import loads as JsonDecoder
 from re import IGNORECASE
 from re import match
+from requests.cookies import RequestsCookieJar
+from requests.structures import CaseInsensitiveDict
 from typing import Any, final, MutableMapping, MutableSequence, Union
 
-from kanashi.typing.readonly import Readonly
+
+__all__ = [
+	"Response"
+]
 
 
 @final
-class Response( Readonly ):
+class Response:
 	
 	""" HTTP Request Typing Implementation """
 	
-	def __init__( self, url:Str, raw:Str, type:Str, status:Int, payload:Any, content:Bytes, cookies:MutableMapping[Str,Any], headers:MutableMapping[Str,Any], charset:Str, encoding:Str ) -> None:
+	url:Str
+	""" HTTP Request URL """
+	
+	text:Str
+	""" HTTP Response content raw """
+	
+	type:Str
+	""" HTTP Response content type """
+	
+	status:Int
+	""" HTTP Response status code """
+	
+	payload:Any
+	""" HTTP Request payload """
+	
+	content:Bytes
+	""" HTTP Response content raw (Bytes) """
+	
+	cookies:RequestsCookieJar
+	""" HTTP Response cookies """
+	
+	headers:CaseInsensitiveDict
+	""" HTTP Response headers """
+	
+	charset:Str
+	""" HTTP Response content character-set """
+	
+	encoding:Str
+	""" HTTP Response content encoding """
+	
+	def __init__( self, url:Str, text:Str, type:Str, status:Int, payload:Any, content:Bytes, cookies:RequestsCookieJar, headers:CaseInsensitiveDict, charset:Str, encoding:Str ) -> None:
 		
 		"""
 		Construct method of class Response
 		
-		:params Str url
-		:params Str raw
-		:params Str type
-		:params Int status
-		:params Any payload
-		:params Bytes content
-		:params MutableMapping<Str,Any> cookies
-		:params MutableMapping<Str,Any> headers
-		:params Str charset
-		:params Str encoding
-		
-		return None
+		Parameters:
+			url (Str):
+				Request url
+			text (Str):
+				Request response text
+			type (Str):
+				Request response content type
+			status (Int):
+				Request response status code
+			payload (Any):
+				Request payload
+			content (Bytes):
+				Request response content byte
+			cookies (RequestsCookieJar):
+				Request response cookies
+			headers (CaseInsensitiveDict):
+				Request response headers
+			charset (Str):
+				Request response content character set
+			encoding (Str):
+				Request response content encoding
 		"""
 		
-		self.url:Str = url
-		""" HTTP Request URL """
-		
-		self.raw:Str = raw
-		""" HTTP Response content raw """
-		
-		self.type:Str = type
-		""" HTTP Response content type """
-		
-		self.status:Int = status
-		""" HTTP Response status code """
-		
-		self.payload:Any = payload
-		""" HTTP Request payload """
-		
-		self.content:Bytes = content
-		""" HTTP Response content raw (Bytes) """
-		
-		self.cookies:MutableMapping[Str,Any] = cookies
-		""" HTTP Response cookies """
-		
-		self.headers:MutableMapping[Str,Any] = headers
-		""" HTTP Response headers """
-		
-		self.charset:Str = charset
-		""" HTTP Response content character-set """
-		
-		self.encoding:Str = encoding
-		""" HTTP Response content encoding """
+		self.url = url
+		self.text = text
+		self.type = type
+		self.status = status
+		self.payload = payload
+		self.content = content
+		self.cookies = cookies
+		self.headers = headers
+		self.charset = charset
+		self.encoding = encoding
 	
 	def __repr__( self ) -> Str:
 		return f"<Response url=\"{self.url}\" type={self.type} status={self.status} charset={self.charset} encoding={self.encoding} />"
 	
 	@property
 	def isApplicationJson( self ) -> Bool:
-		return match( "^(?:application/json)$", self.type if self.type is not None else "", IGNORECASE )
+		return match( "^(?:application/json)$", self.type if self.type is not None else "", IGNORECASE ) is not None
+	
+	@property
+	def isJavaScript( self ) -> Bool:
+		return match( "^(?:text/javascript)$", self.type if self.type is not None else "", IGNORECASE ) is not None
 	
 	@property
 	def json( self ) -> Union[MutableMapping[Str,Any],MutableSequence[Any]]:
