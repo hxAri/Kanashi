@@ -6,7 +6,7 @@
 # @github https://github.com/hxAri/Kanashi
 #
 # Kanashi is an Open-Source project for doing various
-# things related to Facebook, e.g Login. Logout, Profile Info,
+# things related to Instagram, e.g Login. Logout, Profile Info,
 # Follow, Unfollow, Media downloader, etc.
 #
 # Kanashi Copyright (c) 2024 - hxAri <hxari@proton.me>
