@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 
 #
-# @author Ari Setiawan
-# @create 23.05-2022
+# @author hxAri (hxari)
+# @create 23-12-2024 17:30
 # @github https://github.com/hxAri/Kanashi
 #
-# Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
-# Kanashī Licence under GNU General Public Licence v3
+# Kanashi is an Open-Source project for doing various
+# things related to Facebook, e.g Login. Logout, Profile Info,
+# Follow, Unfollow, Media downloader, etc.
+#
+# Kanashi Copyright (c) 2024 - hxAri <hxari@proton.me>
+# Kanashi Licence under GNU General Public Licence v3
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,21 +20,19 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
-# Kanashī is not affiliated with or endorsed, endorsed at all by
-# Instagram or any other party, if you use the main account to use this
-# tool we as Coders and Developers are not responsible for anything that
-# happens to that account, use it at your own risk, and this is Strictly
-# not for SPAM.
-#
 
-# Clear terminal screen.
-clear
+# Subshell status code
+# Just for container last subshell exit code.
+SUBSHELLSTATUS=
+
+# Current filename.
+__name__="$0"
 
 # Target basename.
-pathname=$(basename $0)
+pathname=$(basename $__name__)
 
 # Change current working directory.
-cd $(dirname $0)
+cd $(dirname $__name__)
 
 # Iterate down a (possible) chain of symlinks.
 while [ -L "$pathname" ]
@@ -39,383 +41,966 @@ do
     cd $(dirname $pathname)
     pathname=$(basename $pathname)
 done
- 
-# Get the Kanashi basepath.
-basepath=$(pwd -P)
 
-# By default the Kanashi saves the virtual environment activation
-# location in a file called .virtual in the Project directory.
-virtualization="${basepath}/.virtual"
-virtual=
+# Clear the terminal screens.
+clear
 
-# For compatibility system.
+# Get current application basepath.
+basepath=$(pwd)
+
+# For compatibilty system.
 if [[ ! $(command -v puts) ]]; then
+	
+	# Puts is a pretty command line output (just for my os only)
 	function puts() {
 		echo -e "\x1b[0m$@"
 	}
 fi
 
-# Handle setup python module requirements.
-function modinstall() {
-	local envfiname=$1
-	read -e -p "$(puts "$envfiname: install python module requirements [Y/n] ")" installmod
-	if [[ "${installmod^^}" == "Y" ]]; then
-		source "$envfiname"
-		if [[ $? -eq 0 ]]; then
-			if [[ ! -f "${basepath}/requirements.txt" ]]; then
-				puts "${basepath}/requirements.txt: no such file or directory"
-				exit 1
-			fi
-			pip install -r "${basepath}/requirements.txt"
-			if [[ $? -ne 0 ]]; then
-				puts "${basepath}/requirements.txt: failed install module requirements"
-				exit 1
-			fi
-			deactivate
-			puts "${basepath}/requirements.txt: all module requirements installed"
-			puts "please re-run this programs"
-			exit 0
-		else
-			puts "$envfiname: failed to activate python virtual environment"
-			exit 1
-		fi
-	else
-		puts "$envfiname: aborted"
-		exit 1
-	fi
-}
-
-# Handle create python virtual environment.
-function envcreate() {
-	local envfiname=$1
-	puts "$envfiname: creating virtual environment"
-	python3 -m venv "$envfiname"
-	if [[ $? -ne 0 ]]; then
-		puts "$envfiname: failed create virtual environment"
-		exit 1
-	fi
-	echo "$envfiname" > "$virtualization"
-	if [[ $? -ne 0 ]]; then
-		puts "$envfiname: failed create virtual environment"
-		exit 1
-	fi
-	modinstall "$envfiname"
-}
-
-if [[ ! -f $virtualization ]]; then
-	envfiname=
-	puts "input virtual environment activation: e.g /home/$(whoami)/virtual/bin/activate"
-	while [[ ! -f $virtualization ]]; do
-		read -e -p "$(puts pathname:) " envfiname
-		if [[ -f "$envfiname" ]]; then
-			echo "$envfiname" > "$virtualization"
-			if [[ $? -ne 0 ]]; then
-				puts "$envfiname: failed create virtual environment"
-				exit 1
-			fi
-			modinstall "$envfiname"
-		elif [[ -d "$envfiname" ]]; then
-			if [[ $(ls -A "$envfiname") ]]; then
-				read -e -p "$(puts "${envfiname}: This directory is not empty are you sure [Y/n] ")" envforcec
-				if [[ "${envforcec^^}" != "Y" ]]; then
-					envfiname=
-					continue
-				fi
-				envcreate "$envfiname"
-			fi
-		else
-			puts "$envfiname: no such file or directory"
-			read -e -p "$(puts "$envfiname: create the virtual environment here [Y/n] ")" envcreate
-			if [[ "${envcreate^^}" != "Y" ]]; then
-				envfiname=
-				continue
-			fi
-			envcreate "$envfiname"
-		fi
-	done
+# Check if default virtual environment variable (does not set or blank).
+if [[ ! -n $VIRTUAL ]]; then
+	export VIRTUAL=/home/virtual/bin/activate
 fi
 
-# Read saved Kanashi virtual environment activation.
-virtual="$(cat $virtualization)"
-
-# Clean Python cache Byte-Code compiled.
-function clean() {
-	for cache in $(find "${basepath}/" | grep "__pycache__"); do
-		if [[ -d $cache ]]; then
-			rm -rf $cache
-			if [[ $? -ne 0 ]]; then
-				puts "${cache}: failed remove directory"
-			fi
+function main() {
+	
+	# Program action.
+	local action=""
+	if [[ -n "$1" ]]; then
+		action=$(echo "$1" | grep -oP "\[{2}\K([^\]]+)" || echo "")
+		if [[ "[[$action]]" != "$1" ]]; then
+			unset action
 		fi
-	done
-}
-
-declare -A actions=(
-	[cleaner]="Cleaning The Kanashi Files"
-	[download]="Kanashi multithread media downloader"
-	[help]="Show this help"
-	[install]="Install Kanashi as Python3 Module"
-	[linting]="Linting Kanashi code before commit"
-	[package]="Pip"
-	[running]="Running The Kanashi as Interfactive Command Line"
-	[testing]="Kanashi testing code"
-	[upgrade]="Upgrade The Kanashi code from original repository"
-)
-action=${1,,}
-default="running"
-running=(
-)
-arguments=()
-if [[ "$action" == "" ]]; then
-	action=$default
-else
-	i=1
+	fi
+	
+	# Program argument values.
+	local arguments=()
+	local i=1
 	for argument in ${@}; do
-		if [[ $i != 1 ]]; then
-			arguments+=( $argument )
+		if [[ $i -ne 1 ]] || [[ -z "$action" ]]; then
+			arguments+=( "$argument" )
 		fi
 		i=$((i+1))
 	done
-fi
-
-# Activate the python virtual environment.
-source "$virtual"
-
-if [[ $? -ne 0 ]]; then
-	puts "$virtual: failed to activate python virtual environment"
-fi
-
-case ${action,,} in
-	c|cleaner)
-		contents=()
-		if [[ -f "${basepath}/.gitignore" ]]; then
-			while IFS= read -r content; do
-				contents+=( "$content" )
-			done < "${basepath}/.gitignore"
-		fi
-		for content in "${contents[@]}"; do
-			if [[ ! -z "$content" ]]; then
-				if [[ "${content:0:1}" == "#" ]]; then
+	
+	# Default filee configurations.
+	local config=${basepath}/.config
+	
+	# Default application configurations.
+	declare -A configs=(
+		[branch]=
+		[checked]=false
+		[clean]=true
+		[compress]=tar
+		[environment]=development
+		[include]=${includes[@]}
+		[library]=
+		[packages]=
+		[program]=example
+		[repository]=
+		[root]=false
+		[servers]=
+		[version]=1.0.0
+		[virtual]=${VIRTUAL}
+		[virtualize]=true
+	)
+	
+	# Default includes files and directories on backup.
+	local includes=(
+		".git"
+		".gitignore"
+		".github"
+		"LICENSE"
+		"pyproject.toml"
+		"README.md"
+		"requirements.txt"
+		"resources"
+		"setup.py"
+		"src"
+	)
+	
+	# Replace all spaces into comma as separator.
+	# And please don't use spaces for file or directory name!
+	configs[include]="${configs[include]// /,}"
+	
+	# Handle activate virtual environment.
+	function activate() {
+		local command=
+		local create=
+		local filename=
+		local install=
+		local mname=
+		local mversion=
+		local moperator=
+		local requirement="${basepath}/requirements.txt"
+		local requirements=()
+		if [[ ${configs[virtualize]} == false ]]; then
+			return 0
+		elif [[ -z ${configs[virtual]} ]]; then
+			puts "  <<- i > activate: venv environment activation: e.g /path/to/venv/bin/activate"
+			while [[ ! -f $filename ]]; do
+				stdin "filename" "<<- r > virtual:"
+				if [[ "$filename" = "" ]]; then
 					continue
-				fi
-				prefix="$(echo -e "$content" | cut -d "." -f 1)"
-				length=${#prefix}
-				if [[ "${prefix:$((length-1)):${#length}}" == "*" ]]; then
-					if [[ "$prefix" == "*" ]]; then
-						continue
+				elif [[ ! -f "$filename" ]]; then
+					target=$(dirname "${filename}")
+					if [[ "$target" == "." ]]; then
+						target=$(pwd)
 					fi
-					target="${basepath}/$content"
-					prefix="$(echo -e "${target}" | cut -d "." -f 1)"
-					extension="$(echo -e "${target}" | cut -d "." -f 2)"
-					for file in $prefix; do
-						if [[ "$file" == "$prefix" ]]; then
-							continue
+					while [[ $create == "" ]]; do
+						stdin "create" "<<- r > activate: create the virtual environment here \"${target}\" with name \"${filename}\" [Y/n]"
+						if [[ $create == "" ]]; then
+							create=y
 						fi
-						# temp="${file%%extension*}"
-						# start="$(echo -e "${file%%extension*}" | echo -e ${#temp})"
-						# puts "${file}:${start}:${file:$((start-${#extension})):$((start))}"
-						if [[ -f "$file" ]]; then
-							filename="${file:$((${#basepath}+1)):$((${#file}))}"
-							removeable=
-							while [[ -z "$removeable" ]]; do
-								puts "remove: $filename [Y/n]" "\c"
-								read removeable
-								case "${removeable,,}" in
-									y) rm $file ;;
-									n) puts "skipped: ${filename}" ;;
-									*) removeable= ;;
-								esac
-							done
+						create="${create,,}"
+						if [[ "$create" == "y" ]]; then
+							puts "  <<- i > activate: creating virtual environment on \"${target}\""
+							python3 -m venv ${target}
+							if [[ $? -eq 0 ]]; then
+								configs[virtual]=$filename
+								puts "  <<- i > activate: success created virtual environment on \"${target}\""
+							fi
+							create=
+							break
+						elif [[ "$create" == "n" ]]; then
+							create=
+							break
+						else
+							create=
 						fi
 					done
-				fi
-			fi
-		done
-	;;
-	d|download) python3 ${basepath}/src/download.py ${arguments[@]} ;;
-	i|install) python3 ${basepath}/setup.py install ${arguments[@]} ;;
-	l|linting)
-		python3 -m pylint --argument-naming-style=camelCase \
-			   --attr-naming-style=camelCase \
-			   --class-attribute-naming-style=any \
-			   --class-const-naming-style=any \
-			   --class-naming-style=PascalCase \
-			   --const-naming-style=any \
-			   --extension-pkg-allow-list=pyzstd \
-			   --variable-naming-style=camelCase \
-			   --function-naming-style=camelCase \
-			   --max-attributes=30 \
-			   --max-public-methods=60 \
-			   --method-naming-style=camelCase \
-			   --good-names="e,Executor,i,id,u,k,ThreadExecutor,ThreadRunner,v" \
-			   --ignore-docstrings=y \
-			   --ignore-long-lines="[^\n]+" \
-			   --indent-string="\t" \
-			   --disable=arguments-differ \
-			   --disable=broad-exception-caught \
-			   --disable=consider-using-f-string \
-			   --disable=function-redefined \
-			   --disable=keyword-arg-before-vararg \
-			   --disable=missing-function-docstring \
-			   --disable=missing-module-docstring \
-			   --disable=multiple-statements \
-			   --disable=non-parent-init-called \
-			   --disable=protected-access \
-			   --disable=redefined-argument-from-local \
-			   --disable=redefined-builtin \
-			   --disable=redefined-outer-name \
-			   --disable=too-many-arguments \
-			   --disable=too-many-boolean-expressions \
-			   --disable=too-many-branches \
-			   --disable=too-many-lines \
-			   --disable=too-many-locals \
-			   --disable=too-many-nested-blocks \
-			   --disable=too-many-statements \
-			   --disable=super-init-not-called \
-			   --disable=too-few-public-methods \
-			   --disable=trailing-newlines \
-			   --disable=trailing-whitespace \
-			   --disable=unnecessary-dunder-call \
-			   --disable=unnecessary-ellipsis \
-			   --disable=unnecessary-lambda-assignment \
-			   --disable=unnecessary-pass \
-			   --disable=unexpected-special-method-signature \
-			   --disable=wrong-import-order \
-			   --disable=wrong-import-position \
-			   ${basepath}/setup.py \
-			   ${basepath}/src/kanashi/*.py \
-			   ${basepath}/src/kanashi/library/*.py \
-			   ${basepath}/src/kanashi/parsers/*.py \
-			   ${basepath}/src/kanashi/typing/*.py
-	;;
-	p|package) pip ${arguments[@]} ;;
-	t|testing) python3 ${basepath}/src/testing.py ${arguments[@]} ;;
-	u|upgrade)
-		puts "$basepath: this directory will be deleted permanently"
-		read -e -p "$(puts "are you sure want to upgrade [Y/n] ")" upgrade
-		if [[ "${upgrade^^}" != "Y" ]]; then
-			puts "aborted"
-			exit 1
-		fi
-		pathname="$(dirname $basepath)"
-		basename="$(basename $basepath)"
-		archive="Kanashi-main.tar.gz"
-		backup="Kanashi-backup.tar.gz"
-		target="https://github.com/hxAri/Kanashi/archive/refs/heads/main.tar.gz"
-		puts "$backup: backing source code"
-		cd "$pathname"
-		if [[ $? -ne 0 ]]; then
-			puts "$pathname: failed change current working directory"
-			exit 1
-		fi 
-		tar -cvf "${backup}" "$basepath"
-		if [[ $? -ne 0 ]]; then
-			puts "$backup: failed backup source code"
-			exit 1
-		fi
-		cd -
-		if [[ $? -ne 0 ]]; then
-			puts "$basename: failed change to previous working directory"
-			exit 1
-		fi 
-		puts "$archive: downloading source code from repository"
-		wget --tries=20 $target -O "${pathname}/${archive}"
-		if [[ $? -ne 0 ]]; then
-			puts "$archive: failed download source code"
-			exit 1
-		fi
-		puts "$archive: extracting the contents"
-		tar -xvf "${pathname}/${archive}" -C "$pathname"
-		if [[ $? -ne 0 ]]; then
-			puts "$archive: failed to extract the contents"
-			exit 1
-		fi
-		puts "$basename: removing old directory"
-		rm -rf "${pathname}/${basename}"
-		if [[ $? -ne 0 ]]; then
-			puts "$basename: failed to remove the directory"
-			exit 1
-		fi
-		puts "Kanashi-main: moving the directory"
-		mv "${pathname}/Kanashi-main" "${pathname}/${basename}"
-		if [[ $? -ne 0 ]]; then
-			puts "Kanashi-main: failed to move the directory"
-			exit 1
-		fi
-		puts "Kanashi: successfully updated"
-		echo "$virtual" > "$virtualization"
-		if [[ $? -ne 0 ]]; then
-			puts "$virtual: failed create virtual environment"
-			exit 1
-		fi
-		modinstall "$virtual"
-	;;
-	*)
-		if [[ "$action" != "running" ]]; then
-			execute=
-			for define in ${running[@]}; do
-				if [[ "$action" == "$define" ]]; then
-					python3 ${basepath}/src/kanashi.py "$action" ${arguments[@]}
-					execute=ok
+				else
+					configs[virtual]=$filename
 					break
 				fi
 			done
-			if [[ $execute != "ok" ]]; then
-				puts ""
-				puts "   Kanashi Terminal Console"
-				puts ""
-				puts "   example [command] [arguments] [--options]"
-				iter=1
-				for keyset in ${!actions[@]}; do
-					if [[ ${running[$( echo ${running[@]/$keyset//} | cut -d/ -f1 | wc -w | tr -d " " )]} != "$keyset" ]]; then
-						index=1
-						length=$((12-${#keyset}))
-						if [[ $iter == "1" ]]; then
-							prefix="   command  "
-						else
-							prefix="            "
+			stdin "install" "<<- r > activate: requirement: install all requirement modules [Y/n]"
+			install="${install,,}"
+			if [[ "$install" == "y" ]]; then
+				pip install -r "$requirement"
+				if [[ $? -eq 1 ]]; then
+					puts "  <<- e > activate: requirement: failed install requirement python modules"
+					return 1
+				fi
+				configs[checked]=true
+				install=
+				break
+			elif [[ "$install" == "n" ]]; then
+				puts "  <<- e > activate: requirement: aborted"
+				return 1
+			else
+				install=
+			fi
+			config --write
+		elif [[ ! -f ${configs[virtual]} ]]; then
+			puts "  <<- i > activate: ${configs[virtual]}: no such file or directory"
+			configs[virtual]=
+			activate
+			return $?
+		fi
+		source ${configs[virtual]}
+		if [[ $? -ne 0 ]]; then
+			puts "  <<- ! > activate: something wrong when activate virtual environment"
+			return 1
+		fi
+		if [[ ${configs[checked]} != true ]] && [[ -f $requirement ]]; then
+			readarray -t requirements < "$requirement"
+			for module in ${requirements[@]}; do
+				mname=$(echo "$module" | sed -E "s/(^[a-zA-Z0-9_-]+).*/\1/")
+				mversion=$(echo "$module" | sed -E "s/^[a-zA-Z0-9_-]+(>=|<=|==|>|<|=)([0-9\.]+)/\2/")
+				moperator=$(echo "$module" | sed -E "s/^[a-zA-Z0-9_-]+(>=|<=|==|>|<|=)([0-9\.]+)/\1/")
+				if [[ $(pip list | grep "$mname" | grep "$mversion") == "" ]]; then
+					puts "  <<- i > dependency: module: ${module}: python module is not installed"
+					stdin "install" "<<- r > dependency: module: ${module}: install this module [Y/n]"
+					install="${install,,}"
+					if [[ "$install" == "y" ]]; then
+						command="pip install ${module}"
+						puts "  <<- i > dependency: module: ${module}: ${command}"
+						puts "  <<- i > dependency: module: ${module}: pip: installing python module"
+						subshell "$command" "<<- i > dependency: module: ${module}: pip: {stdout}"
+						if [[ $SUBSHELLSTATUS -eq 1 ]]; then
+							puts "  <<- e > dependency: module: ${module}: pip: failed install python module"
+							return 1
 						fi
-						iter=$((iter+1))
-						prefix+="$keyset"
-						prefix+="            "
-						while [[ $index != $length ]]; do
-							index=$((index+1))
-							prefix+=" "
-						done
-						puts "$prefix" "${actions[$keyset]}"
-						if [[ $keyset == "running" ]]; then
-							for runner in ${!actions[@]}; do
-								if [[ ${running[$( echo ${running[@]/$runner//} | cut -d/ -f1 | wc -w | tr -d " " )]} == "$runner" ]]; then
-									if [[ "${actions[$runner]}" == "" ]]; then
-										continue
-									fi
-									index=1
-									length=$((10-${#runner}))
-									prefix="           "
-									prefix+=" · $runner"
-									prefix+="            "
-									while [[ $index != $length ]]; do
-										index=$((index+1))
-										prefix+=" "
-									done
-									puts "$prefix" "${actions[$runner]}"
-								fi
-							done
+						unset IFS
+						install=
+						break
+					elif [[ "$install" == "n" ]]; then
+						puts "  <<- e > dependency: module: aborted"
+						return 1
+					else
+						install=
+					fi
+				fi
+			done
+		fi
+	}
+	
+	# Return archive filename.
+	function archive() {
+		local compression=${configs[compress]}
+		if [[ -n $1 ]]; then
+			compression=$1
+		fi
+		local extension="tar.gz"
+		if [[ -n $2 ]]; then
+			extension=$2
+		fi
+		if [[ "$compression" =~ ^(tar|zip)$ ]]; then
+			if [[ "$compression" == "zip" ]]; then
+				extension="zip"
+			fi
+			echo "${configs[program],,}-${configs[version]}.${extension}"
+		fi
+	}
+	
+	# Handle create program archive.
+	# execute: backing [arguments]
+	function backing() {
+		local archive=$(archive $@)
+		local compression=${configs[compress]}
+		if [[ -n $1 ]]; then
+			compression=$1
+		fi
+		if [[ -z $archive ]]; then
+			puts "  <<- e > backing: ${compression}: unsupported compression"
+			return 1
+		fi
+		local filenames=()
+		local arguments=()
+		if [[ "$compression" == "tar" ]]; then
+			arguments+=( "-cvf" )
+		fi
+		IFS="," read -r -a filenames <<< "${configs[include]}"
+		unset IFS
+		for index in ${!filenames[@]}; do
+			local filename=${filenames[$index]}
+			if [[ ! -d $filename ]] && [[ ! -f $filename ]]; then
+				unset filenames[$index]
+			fi
+		done
+		local index=1
+		local length=${#filenames[@]}
+		local spaces=""
+		local command="$compression ${arguments[@]}"
+		for (( i=0; i<${#command}; i++ )); do
+			spaces+=" "
+		done
+		local command="$compression ${arguments[@]} $archive ${filenames[@]}"
+		puts "  <<- i > backing: creating archive with \"${compression}\" compression"
+		puts "  <<- i > backing: $compression ${arguments[@]} ${basepath}/$archive \\"
+		for filename in ${filenames[@]}; do
+			if [[ $index -lt $length ]]; then
+				puts "  <<- i > backing: ${spaces} ${basepath}/${filename} \\"
+			else
+				puts "  <<- i > backing: ${spaces} ${basepath}/${filename}"
+			fi
+			index=$((index+1))
+		done
+		subshell "$command" "<<- i > backing: ${compression}: {stdout}"
+		if [[ $SUBSHELLSTATUS -eq 0 ]]; then
+			puts "  <<- i > backing: ${compression}: archive: filename: ${archive}"
+			puts "  <<- i > backing: ${compression}: archive: fullname: ${basepath}/${archive}"
+			return 0
+		fi
+		puts "  <<- i > backing: ${compression}: something wrong when creating archive file"
+		return 1
+	}
+	
+	# Handle git auto commit for added or modifiend files.
+	function commits() {
+		if [[ ! -d ${basepath}/.git ]]; then
+			puts "  <<- e > commits: .git: no such directory"
+			return 1
+		fi
+		local branch=${configs[branch]}
+		if [[ -z $branch ]]; then
+			puts "  <<- i > commits: branch: name not defined in config"
+			stdin "branch" "<<- r > commits: branch:"
+		fi
+		while [[ ! $(git ls-remote origin "$branch") ]]; do
+			puts "  <<- e > commits: branch: ${branch}: no such origin branch"
+			branch=
+			stdin "branch" "<<- r > commits: branch:"
+		done
+		if [[ "$branch" != "$(git branch --show-current)" ]]; then
+			subshell "git checkout $branch" "<<- i > commits: git: checkout: {stdout}"
+		fi
+		local filenames=()
+		local options=()
+		if [[ $(git config --get commit.gpgSign) ]]; then
+			options+=( "-S" )
+		fi
+		options+=( "-m" )
+		local statuses=()
+		puts "  <<- e > commits: scanning files"
+		readarray -t statuses < <(git status --short)
+		for stdout in "${statuses[@]}"; do
+			local append=
+			local filename="${stdout:3}"
+			local messages=
+			local status="${stdout:0:2}"
+			status=${status/ /}
+			stdin "append" "<<- r > commits: ${filename}: ${status}: add this file [Y/n]" "N"
+			if [[ "${append^^}" == "Y" ]]; then
+				if [[ "${status/ /}" == "M" ]]; then
+					git diff "$filename"
+				fi
+				puts "  <<- i > commits: git: add \"$filename\""
+				git add "$filename"
+				stdin "messages" "<<- r > commits: ${filename}: messages:"
+				puts "  <<- i > commits: git: commit ${options[@]} \"${messages//\"/\\\"}\""
+				git commit ${options[@]} "$messages"
+				if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+					puts "  <<- i > commits: git: something wrong when create commit"
+					return 1
+				fi
+				filenames+=( "$filename" )
+			fi
+		done
+		if [[ ${#filenames[@]} -ne 0 ]]; then
+			puts "  <<- i > commits: git: push: origin \"$branch\""
+			git push origin "$branch"
+			if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+				puts "  <<- e > commits: git: push: error when push into remote repository"
+				return 1
+			fi
+		fi
+	}
+	
+	# Handle read and write application configuration e.g read and write configs.
+	# execute: config --read|write
+	function config() {
+		local action=$1
+		local keyset=
+		local keysets=()
+		for keyset in ${!configs[@]}; do
+			keysets+=( $keyset )
+		done
+		local contents=()
+		local values=
+		if [[ "$action" == "--read" ]]; then
+			while IFS="" read -r line; do
+				if [[ -z "$line" ]] || [[ ${line:0:1} == "#" ]]; then
+					continue
+				fi
+				keyset=$(echo -e "$line" | cut -d "=" -f 1)
+				values=$(echo -e "$line" | cut -d "=" -f 2)
+				if [[ -n "$keyset" ]] && [[ ${keysets[@]} =~ $keyset ]]; then
+					if [[ $keyset == virtual ]]; then
+						if [[ -z "$values" ]]; then
+							puts "  <<- ! > config: virtual environment activation required"
+							return 1
+						elif [[ ! -f "$values" ]]; then
+							puts "  <<- ! > config: $values: no such virtual environment"
+							return 1
 						fi
 					fi
-				done
-			fi
+					configs[$keyset]=$values
+				else
+					puts "  <<- ! > config: $keyset: unknown configuration variable"
+					return 1
+				fi
+			done < $config
+			unset IFS
+		elif [[ "$action" == "--write" ]]; then
+			echo -e "\c" > "$config"
+			for keyset in ${!configs[@]}; do
+				echo -e "${keyset}=${configs[$keyset]}" >> "$config"
+				if [[ $? -eq 0 ]]; then
+					puts "  <<- ! > config: error: when write configuration"
+				fi
+			done
+		elif [[ -z $1 ]]; then
+			puts "  <<- ! > config: require option --read|write"
+			return 1
 		else
-			python3 ${basepath}/src/kanashi.py ${arguments[@]}
+			puts "  <<- ! > config: $action: unknown option"
+			return 1
 		fi
-	;;
-esac
+	}
+	
+	# Handle check and validate dependency requirements.
+	function dependency() {
+		
+		# Handle linux check and install packet in linux distro.
+		# execute: manager --available [package]
+		#          manager --check [package]
+		#          manager --install [package]
+		function manager() {
+			local action=$1
+			local distro=
+			local manager=
+			local package=$2
+			if [[ -f /etc/os-release ]]; then
+				distro=$(grep -E "^ID=" /etc/os-release | cut -d "=" -f2 | tr -d "\"")
+			elif [[ -f /etc/redhat-release ]]; then
+				distro="rhel"
+			elif [[ -f /etc/lsb-release ]]; then
+				distro=$(grep DISTRIB_ID /etc/lsb-release | cut -d "=" -f2 | tr "[:upper:]" "[:lower:]" )
+			elif [[ -f /etc/debian_version ]]; then
+				distro="debian"
+			elif [[ -f /etc/alpine-release ]]; then
+				distro="alpine"
+			elif [[ -f /etc/SuSE-release ]]; then
+				distro="suse"
+			else
+				if command -v hostnamectl &> /dev/null; then
+					distro=$(hostnamectl | grep "Operating System" | cut -d: -f2 | awk "{print tolower(\$1)}")
+				elif command -v uname &> /dev/null; then
+					distro=$(uname -s | awk "{print tolower(\$1)}")
+				else
+					puts "  <<- e > manager: unknown linux distribution"
+					exit 1
+				fi
+			fi
+			case "$distro" in
+				ubuntu|debian) manager="apt" ;;
+				fedora|centos|rhel|rocky|alma) manager="dnf" ;;
+				opensuse|suse) manager="zypper" ;;
+				arch|manjaro) manager="pacman" ;;
+				alpine) manager="apk" ;;
+				void) manager="xbps" ;;
+				nixos) manager="nix-env" ;;
+				gentoo) manager="emerge" ;;
+				slackware) manager="slackpkg" ;;
+				*)
+					if [[ $(command -v apt &> /dev/null) ]]; then
+						manager="apt"
+					elif [[ $(command -v dnf &> /dev/null) ]]; then
+						manager="dnf"
+					elif [[ $(command -v pacman &> /dev/null) ]]; then
+						manager="pacman"
+					elif [[ $(command -v apk &> /dev/null) ]]; then
+						manager="apk"
+					elif [[ $(command -v zypper &> /dev/null) ]]; then
+						manager="zypper"
+					elif [[ $(command -v xbps &> /dev/null) ]]; then
+						manager="xbps"
+					elif [[ $(command -v nix-env &> /dev/null) ]]; then
+						manager="nix-env"
+					elif [[ $(command -v emerge &> /dev/null) ]]; then
+						manager="emerge"
+					elif [[ $(command -v slackpkg &> /dev/null) ]]; then
+						manager="slackpkg"
+					else
+						puts "  <<- e > manager: unknown linux default manager packet"
+						exit 1
+					fi
+				;;
+			esac
+			if [[ "$action" == "--available" ]]; then
+				case "$manager" in
+					apt) apt-cache search "^$package$" | grep -qw "$package" ;;
+					dnf|yum) yum list available "$package" &> /dev/null ;;
+					pacman) pacman -Ss "^$package$" &> /dev/null ;;
+					apk) apk search "^$package$" &> /dev/null ;;
+					zypper) zypper se "$package" &> /dev/null ;;
+					xbps) xbps-query -Rs "^$package\$" &> /dev/null ;;
+					nix-env) nix-env -qaP "^$package$" &> /dev/null ;;
+					emerge) emerge --search "$package" &> /dev/null ;;
+					slackpkg) slackpkg search "$package" &> /dev/null ;;
+					flatpak) flatpak search "$package" &> /dev/null ;;
+					snap) snap find "$package" &> /dev/null ;; 
+				esac
+			elif [[ "$action" == "--check" ]]; then
+				case "$manager" in
+					apt) dpkg -l | grep -qw "$package" ;;
+					dnf|yum) rpm -q "$package" &> /dev/null ;;
+					pacman) pacman -Qi "$package" &> /dev/null ;;
+					apk) apk info "$package" &> /dev/null ;;
+					zypper) zypper se --installed-only "$package" &> /dev/null ;;
+					xbps) xbps-query -Rs "^$package\$" &> /dev/null ;;
+					nix-env) nix-env -q "$package" &> /dev/null ;;
+					emerge) equery list "$package" &> /dev/null ;;
+					slackpkg) slackpkg search "$package" | grep -q "installed" ;;
+					flatpak) flatpak list | grep -qw "$package" ;;
+					snap) snap list | grep -qw "$package" ;;
+				esac
+			elif [[ "$action" == "--install" ]]; then
+				case "$manager" in
+					apt) sudo apt update && sudo apt install -y "$package" ;;
+					dnf|yum) sudo "$manager" install -y "$package" ;;
+					pacman) sudo pacman -S --noconfirm "$package" ;;
+					apk) sudo apk add "$package" ;;
+					zypper) sudo zypper install -y "$package" ;;
+					xbps) sudo xbps-install -y "$package" ;;
+					nix-env) nix-env -i "$package" ;;
+					emerge) sudo emerge "$package" ;;
+					slackpkg) sudo slackpkg install "$package" ;;
+					flatpak) sudo flatpak install -y "$package" ;;
+					snap) sudo snap install "$package" ;;
+				esac
+			elif [[ -z $1 ]]; then
+				puts "  <<- ! > manager: require option --check|install"
+				exit 1
+			else
+				puts "  <<- ! > manager: $action: unknown option"
+				exit 1
+			fi
+			return $?
+		}
+		
+		local install=
+		local packages=()
+		if [[ -n ${configs[packages]} ]]; then
+			IFS="," read -r -a packages <<< "${configs[packages]}"
+			for package in ${packages[@]}; do
+				manager --check "$package"
+				if [[ $? -eq 0 ]]; then
+					continue
+				fi
+				puts "  <<- i > dependency: package: ${package}: package is not installed"
+				stdin "install" "<<- r > dependency: package: ${package}: install this package [Y/n]"
+				if [[ "${install,,}" == "y" ]]; then
+					manager --available "$package"
+					if [[ $? -eq 1 ]]; then
+						puts "  <<- e > dependency: package: ${package}: is not available on current manager packet"
+						return 1
+					fi
+					manager --install "$package"
+					if [[ $? -eq 1 ]]; then
+						puts "  <<- e > dependency: package: ${package}: failed install package"
+						return 1
+					fi
+					install=
+					break
+				elif [[ "${install,,}" == "n" ]]; then
+					puts "  <<- e > dependency: package: aborted"
+					return 1
+				else
+					install=
+				fi
+			done
+			unset IFS
+		fi
+		
+		local libraries=()
+		if [[ -n ${configs[library]} ]]; then
+			IFS="," read -r -a libraries <<< "${configs[library]}"
+			for library in ${libraries[@]}; do
+				ldconfig -p | grep -q "$library"
+				if [[ $? -eq 1 ]]; then
+					puts "  <<- e > dependency: library: ${library}: library is not available"
+					return 1
+				fi
+			done
+			unset IFS
+		fi
+		
+		activate
+		if [[ $? -eq 1 ]]; then
+			return 1
+		fi
+	}
+	
+	# Deploy the program into servers.
+	function deploys() {
+		local archive=$(archive)
+		local destinate=
+		local hostname=
+		local port=
+		local servers=()
+		local username=
+		if [[ -z ${configs[servers]} ]]; then
+			puts "  <<- e > deploys: no servers available"
+			return 1
+		fi
+		backing
+		if [[ $? -ne 0 ]]; then
+			puts "  <<- e > deploys: something wrong when create archive"
+			return 1
+		fi
+		# user@192.168.20.123[22]:/path/to/path
+		IFS="," read -r -a servers <<< "${configs[servers]}"
+		for server in ${servers[@]}; do
+			port=$(echo "$server" | grep -oP "\[\K[^\]]+" || echo "")
+			if [[ -z "$port" ]]; then
+				port=22
+			fi
+			username=$(echo "$server" | grep -oP "^[^@]+" || echo "")
+			hostname=$(echo "$server" | grep -oP "@\K[^[]+" || echo "")
+			destinate=$(echo "$server" | grep -oP ":(.+)$" | cut -c2- || echo "")
+			if [[ -z "$username" ]]; then
+				puts "  <<- e > deploys: username: server username required"
+				return 1
+			elif [[ -z "$hostname" ]]; then
+				puts "  <<- e > deploys: username: server hostname required"
+				return 1
+			elif [[ -z "$destinate" ]]; then
+				puts "  <<- e > deploys: username: server pathname required"
+				return 1
+			else
+				puts "  <<- i >> deploys: scp -v -P ${port} ${archive} ${username}@${hostname}:${destinate}"
+				scp -v -P ${port} ${archive} ${username}@${hostname}:${destinate}
+				if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+					puts "  <<- i >> deploys: failed upload archive to ${username}@${hostname}:${destinate}"
+					return 1
+				fi
+				puts "  <<- i >> deploys: successfully upload archive to ${username}@${hostname}:${destinate}"
+			fi
+			puts "  <<- i >> deploys: successfully upload archive to ${#servers[@]} servers"
+		done
+		unset IFS
+	}
+	
+	# Handling iterrupt keyboard controll.
+	function interrupt() {
+		puts ""
+		puts "  <<- k > interrupt: interrupt signal detected"
+		stdin "close" "<<- k > interrupt: exit this program [Y/n]" "Y"
+		if [[ "${close^^}" == "Y" ]]; then
+			puts "  <<- k > interrupt: aborted"
+			exit 1
+		fi
+	}
+	
+	# Set handle interrupt keyboard signal.
+	trap interrupt SIGINT
+	
+	# Handle linting python code with pylint.
+	function linting() {
+		local filenames=()
+		local install=
+		local options=(
+			"--argument-naming-style=camelCase"
+			"--attr-naming-style=camelCase"
+			"--class-attribute-naming-style=any"
+			"--class-const-naming-style=any"
+			"--class-naming-style=PascalCase"
+			"--const-naming-style=any"
+			"--extension-pkg-allow-list=pyzstd"
+			"--variable-naming-style=camelCase"
+			"--function-naming-style=camelCase"
+			"--max-attributes=30"
+			"--max-public-methods=60"
+			"--method-naming-style=camelCase"
+			"--good-names=\"e,Executor,i,id,ProcessExecutor,u,k,ThreadExecutor,ThreadRunner,v\""
+			"--ignore-docstrings=y"
+			"--ignore-long-lines=^([^\\n]+)$"
+			"--indent-string=\"\t\""
+			"--disable=arguments-differ"
+			"--disable=broad-exception-caught"
+			"--disable=consider-using-f-string"
+			"--disable=function-redefined"
+			"--disable=keyword-arg-before-vararg"
+			"--disable=invalid-name"
+			"--disable=missing-function-docstring"
+			"--disable=missing-module-docstring"
+			"--disable=multiple-statements"
+			"--disable=non-parent-init-called"
+			"--disable=protected-access"
+			"--disable=redefined-argument-from-local"
+			"--disable=redefined-builtin"
+			"--disable=redefined-outer-name"
+			"--disable=too-many-arguments"
+			"--disable=too-many-boolean-expressions"
+			"--disable=too-many-branches"
+			"--disable=too-many-lines"
+			"--disable=too-many-locals"
+			"--disable=too-many-nested-blocks"
+			"--disable=too-many-statements"
+			"--disable=super-init-not-called"
+			"--disable=too-few-public-methods"
+			"--disable=trailing-newlines"
+			"--disable=trailing-whitespace"
+			"--disable=unnecessary-dunder-call"
+			"--disable=unnecessary-ellipsis"
+			"--disable=unnecessary-lambda-assignment"
+			"--disable=unnecessary-pass"
+			"--disable=unexpected-special-method-signature"
+			"--disable=use-dict-literal"
+			"--disable=wrong-import-order"
+			"--disable=wrong-import-position"
+		)
+		if [[ -d ${basepath}/src ]]; then
+			readarray -t filenames <<< "$(find ${basepath}/src -type f -name "*.py")"
+			if [[ $(pip list | grep pylint) == "" ]]; then
+				configs[checked]=false
+				puts "  <<- e > linting: pylint is not installed"
+				if [[ ${configs[virtualize]} == true ]]; then
+					stdin "install" "<<- r > linting: install pylint from pip [Y/n]" "n"
+					install=${install,,}
+					if [[ "$install" == "y" ]]; then
+						puts "  <<- e > linting: pip install pylint"
+						puts "  <<- e > linting: pip: installing pylint"
+						subshell "pip install pylint" "<<- i > linting: pip: {stdout}"
+						if [[ $SUBSHELLSTATUS -eq 1 ]]; then
+							puts "  <<- e > linting: pip: something wrong when install pylint"
+							return 1
+						fi
+					elif [[ "$install" == "n" ]]; then
+						puts "  <<- e > linting: aborted"
+						return 1
+					fi
+				else
+					return 1
+				fi
+			fi
+			puts "  <<- i > linting: python3 -m pylint \\"
+			index=0
+			for option in ${options[@]}; do puts "  <<- i >      ${option} \\"; done
+			for filename in ${filenames[@]}; do
+				index=$((index+1))
+				if [[ $index -ne ${#filenames[@]} ]]; then
+					puts "  <<- i >        ${filename/$basepath\//} \\"
+				else
+					puts "  <<- i >        ${filename/$basepath\//}"
+				fi
+			done
+			while IFS= read -r stdout; do
+				puts "  <<- e > linting: pylint: ${stdout}"
+			done < <(python3 -m pylint ${options[@]} ${filenames[@]/$basepath\//})
+			if [[ $SUBSHELLSTATUS -eq 1 ]]; then
+				puts "  <<- e > linting: pylint: something wrong when linting code"
+			fi
+			return $returns
+		fi
+	}
+	
+	# Handle install python program as python module in local machine.
+	function pyinstall() {
+		local command="pip install ."
+		if [[ ${configs[environment]} == "development" ]]; then
+			command="pip install -e ."
+		fi
+		puts "  <<- i > pyinstall: ${command}"
+		puts "  <<- i > pyinstall: pip: installing ${configs[program]} as python module"
+		if [[ $(pip list | grep -q "${configs[program]}") ]]; then
+			puts "found"
+		fi
+		subshell "$command" "<<- i > pyinstall: pip: {stdout}"
+		if [[ $SUBSHELLSTATUS -eq 0 ]]; then
+			puts "  <<- i > pyinstall: pip: successfully install ${configs[program]} as python module"
+		else
+			puts "  <<- i > pyinstall: pip: ${SUBSHELLSTATUS}: failed install ${configs[program]} as python module"
+		fi
+		unset IFS
+		return $status
+	}
+	
+	# Handle readline with colorized prompt.
+	# execute: [variable]=; stdin [variable] [prompt] [default]
+	function stdin() {
+		local default="$3"
+		local input=
+		local prompt="$(puts "$2")"
+		local variable="$1"
+		if [[ -z $1 ]]; then
+			puts "  <<- e > stdin: error: variable name required"
+			return 1
+		elif [[ -z $2 ]]; then
+			puts "  <<- e > stdin: error: input prompt required"
+			return 1
+		fi
+		while [[ "$input" == "" ]]; do
+			echo -n "  $prompt "
+			read "input"
+			if [[ -z "$input" ]] && [[ -n "$default" ]]; then
+				input="$default"
+			fi
+		done
+		if [[ ${configs[environment]} == "production" ]]; then
+			eval "$variable=\"${input//\"/\\\"}\"" >> /dev/null 2>&1
+		else
+			eval "$variable=\"${input//\"/\\\"}\""
+		fi
+	}
+	
+	# Handle subshell execution.
+	# I don't have any idea for check last status code from subshell 
+	# because PIPESTATUS always give 1 status code when command work or no error.
+	# execute: subshell "command" "formatter"
+	function subshell() {
+		local command="$1"
+		local formatter="$2"
+		while IFS= read -r stdout; do
+			if [[ $(echo -e "$stdout" | cut -d "=" -f "1" ) != "SUBSHELLSTATUS" ]]; then
+				puts "  $(echo "${formatter/\{stdout\}//$stdout}")"
+				continue
+			fi
+			eval $stdout
+		done < <($command; echo -e "SUBSHELLSTATUS=${PIPESTATUS[0]}")
+	}
+	
+	# Handle upgrade application into new version
+	# from remote repository e.g github, gitlab.
+	# execute: upgrade -y
+	function upgrade() {
+		if [[ -z ${configs[repository]} ]]; then
+			puts "  <<- i > upgrade: no remote repository available"
+			return 1
+		fi
+		local upgrade=$1
+		if [[ -z "$upgrade" ]]; then
+			puts "  <<- i > upgrade: ${basepath}: this directory will be deleted permanently"
+			stdin "upgrade" "<<- r > upgrade: are you sure want to upgrade [Y/n]" "n"
+		else
+			upgrade=$(echo -e "$1" | cut -d "-" -f "2")
+		fi
+		if [[ "${upgrade^^}" != "Y" ]]; then
+			puts "  <<- e > upgrade: aborted"
+			return 1
+		fi
+		local archive=$(cd ..; pwd)
+		archive+="/"
+		archive+=$(echo -e $(archive) | cut -d "-" -f "1")
+		local branch=$(git remote show origin | grep "HEAD branch" | awk "{print \$NF}")
+		if [[ -z "$branch" ]]; then
+			puts "  <<- e > upgrade: git: something wrong with your git repository"
+			return 1
+		fi
+		local compression=${configs[compress]}
+		if [[ -z $archive ]]; then
+			puts "  <<- e > upgrade: ${compression}: unsupported compression"
+			return 1
+		fi
+		local repository="${configs[repository]}"
+		if [[ "$compression" == "tar" ]]; then
+			archive+=".tar.gz"
+			repository+="/archive/refs/heads/${branch}.tar.gz"
+		else
+			archive+=".zip"
+			repository+="/archive/refs/heads/${branch}.zip"
+		fi
+		local extracted=$(echo -e "$repository" | cut -d "/" -f "5" )
+		extracted+="-${branch}"
+		puts "  <<- e > upgrade: wget: $repository: downloading archive"
+		wget --tries=20 "$repository" --show-progress --progress=bar:force:noscroll -O "$archive"
+		if [[ $? -ne 0 ]]; then
+			puts "  <<- e > upgrade: wget: something wrong when downloading archive"
+			puts "  <<- e > upgrade: wget: please makesure check your remote repository url"
+			return 1
+		fi
+		local command="tar -xvf $archive"
+		if [[ "$compression" == "zip" ]]; then
+			command="unzip $archive"
+		fi
+		cd ..
+		subshell "$command" "<<- e > upgrade: ${compression}: {stdout}"
+		if [[ $SUBSHELLSTATUS -eq 0 ]]; then
+			if [[ ! -d "$extracted" ]]; then
+				puts "  <<- e > upgrade: ${extracted}: no such extracted directory"
+				puts "  <<- e > upgrade: please report this insiden into developer"
+				return 1
+			fi
+			puts "  <<- e > upgrade: ${basepath}: removing directory"
+			rm -rf ${basepath}
+			if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+				puts "  <<- e > upgrade: ${basepath}: failed removing directory"
+				return 1
+			fi
+			puts "  <<- e > upgrade: ${extracted}: moving directory"
+			mv ${extracted} ${basepath}
+			if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
+				puts "  <<- e > upgrade: ${extracted}: failed moving directory"
+				return 1
+			fi
+			puts "  <<- e > upgrade: change working directory"
+			cd -
+			puts "  <<- e > upgrade: successfully upgrade program"
+			puts "  <<- e > upgrade: please re-run this program with option --initial"
+		else
+			puts "  <<- e > upgrade: ${compression}: ${archive##/}: failed decompress archive"
+			return 1
+		fi
+	}
+	
+	# Check if configuration file is exists.
+	if [[ -f $config ]]; then
+		config --read
+		if [[ $? -eq 1 ]]; then
+			return 1
+		fi
+	fi
+	
+	# Check and validate dependency requirement.
+	dependency
+	if [[ $? -eq 1 ]]; then
+		return 1
+	fi
+	
+	# Check whether if root previleges require for run the program.
+	if [[ ${configs[root]} == true ]]; then
+		if [[ $UID -ne 0 ]]; then
+			puts "  <<- ! > ${configs[program]}: root previleges required"
+			return 1
+		fi
+	fi
+	
+	if [[ -f "${basepath}/banner.hx" ]]; then
+		echo -e "$(cat ${basepath}/banner.hx | xxd -r -p | sed "s/{version}/${configs[version]}/" )\n"
+	else
+		puts "  <<- ! > The program is not authorized for use"
+		puts "  <<- ! > You don't respect developers, sorry"
+		return 1
+	fi
+	if [[ -n "$action" ]]; then
+		case "$action" in
+			backing) backing ${arguments[@]} ;;
+			commits) commits ;;
+			install) pyinstall ;;
+			linting) linting ;;
+			package) pip ${arguments[@]} ;;
+			deploys) deploys ;;
+			upgrade) upgrade ${arguments[@]} ;;
+			*)
+				puts "  "
+				puts "  Usage: bash \"$(basename ${__name__})\" [OPTIONS] [COMMAND] [ARGS]..."
+				puts "         bash \"$(basename ${__name__})\" [[COMMAND]] [OPTIONS] [ARGS]..."
+				puts "  "
+				puts "    ${configs[program]^} v${configs[version]}"
+				puts "  "
+				puts "  Commands:"
+				puts "  "
+				puts "    - [[backing]]       Performing a backup of the program code"
+				puts "                        · Arguments:"
+				puts "                          - [compression] e.g tar|zip"
+				puts "                          - [extension] e.g tar.gz|zip"
+				puts "    - [[commits]]       Make a commit to all files except in .gitignore"
+				puts "    - [[help]]          Show this message and exit"
+				puts "    - [[install]]       Install the program code as a python module"
+				puts "    - [[linting]]       Run pylint to perform code analysis"
+				puts "    - [[package]]       Alias for pip when you run on venv"
+				puts "    - [[deploys]]       Deploy code into multiple entire remote servers"
+				puts "    - [[upgrade]]       Upgrade program into latest version from remote repository"
+				puts "                        · Options:"
+				puts "                          - [-y] Force auto update without confirmation" 
+				puts "  "
+				puts "  Example: bash \"$(basename ${__name__})\" --help"
+				puts "           bash \"$(basename ${__name__})\" [[backing]] tar tar.gz"
+				puts "  "
+				if [[ "$action" != "help" ]]; then
+					return 1
+				fi
+			;;
+		esac
+	else
+		python3 src/${configs[program]}.py ${arguments[@]}
+	fi
+	
+	if [[ $(command -v deactivate) ]]; then
+		deactivate
+		if [[ $? -eq 1 ]]; then
+			puts "  <<- i > ${configs[program]}: something wrong when deactivate venv"
+			return 1
+		fi
+	fi
+	
+	if [[ ${configs[clean]} == true ]]; then
+		for cache in $(find "${basepath}/" | grep "__pycache__"); do
+			if [[ -d $cache ]]; then
+				rm -rf $cache
+				if [[ $? -ne 0 ]]; then
+					puts "  <<- i >> ${configs[program]}: ${cache}: failed remove cache"
+					return 1
+				fi
+			fi
+		done
+	fi
+	
+	return 0
+}
 
-# Clean python cache files.
-clean
-
-# Deactivate python virtual environment.
-deactivate
-
-puts ""
-exit 0
+main "$@"
+exit "$?"
