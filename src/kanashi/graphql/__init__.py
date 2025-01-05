@@ -21,11 +21,12 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 
-from kanashi.typing.account import Account
-from kanashi.typing.response import Response
+from kanashi.graphql.actions import Action
+from kanashi.graphql.schema import Schema
 
 
 __all__ = [
-	"Account",
-	"Response"
+	"Action",
+	"Schema"
 ]
+

@@ -1,12 +1,16 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #
-# @author Ari Setiawan
-# @create 23.05-2022
+# @author hxAri (hxari)
+# @create 23-12-2024 17:30
 # @github https://github.com/hxAri/Kanashi
 #
-# Kanashī Copyright (c) 2022 - Ari Setiawan <hxari@proton.me>
-# Kanashī Licence under GNU General Public Licence v3
+# Kanashi is an Open-Source project for doing various
+# things related to Facebook, e.g Login. Logout, Profile Info,
+# Follow, Unfollow, Media downloader, etc.
+#
+# Kanashi Copyright (c) 2024 - hxAri <hxari@proton.me>
+# Kanashi Licence under GNU General Public Licence v3
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,12 +20,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
-# Kanashī is not affiliated with or endorsed, endorsed at all by
-# Instagram or any other party, if you use the main account to use this
-# tool we as Coders and Developers are not responsible for anything that
-# happens to that account, use it at your own risk, and this is Strictly
-# not for SPAM.
-#
 
-from kanashi import library
-from kanashi import typing
+__all__ = [
+	"__name__"
+]
+
+__name__ = "Kanashi"
+""" Program Name """

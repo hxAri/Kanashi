@@ -21,11 +21,36 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 
-from kanashi.typing.account import Account
-from kanashi.typing.response import Response
+from builtins import bool as Bool, str as Str
+from typing import Any, Self, MutableMapping
+
+from kanashi.graphql.parser import Parser
+from kanashi.graphql.schema import Schema
 
 
 __all__ = [
-	"Account",
-	"Response"
+	"Action"
 ]
+
+
+class Action( Parser ):
+	
+	""" Kanashi Graphql Action """
+	
+	authentication:Bool
+	""" Indicate if action require authorization """
+	
+	pagination:Self
+	""" Indicate if action support pagination query """
+	
+	query:Bool
+	""" Indicate if action is graphql query not graphql api """
+	
+	schema:Schema
+	""" Indicate the action schema """
+	
+	variables:MutableMapping[Str,Any]
+	""" Indicate the action variables for payload """
+	
+	...
+

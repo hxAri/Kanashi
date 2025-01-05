@@ -21,11 +21,45 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 
-from kanashi.typing.account import Account
-from kanashi.typing.response import Response
+from builtins import int as Int, str as Str
+from typing import final
 
 
 __all__ = [
-	"Account",
-	"Response"
+	"Schema"
 ]
+
+
+@final
+class Schema:
+	
+	""" Kanashi Graphql Schema """
+	
+	__api__:Str
+	__doc__:Int
+	
+	def __init__( self, api:Str, doc:Int ):
+		
+		"""
+		Construct method of class Schema
+		
+		Parameters:
+			api (Str):
+				Kanashi API request friendly name
+			doc (Int):
+				Kanashi query doc
+		"""
+		
+		self.__api__ = api
+		self.__doc__ = doc
+	
+	def __str__( self ) -> Str: return f"{self.api}:{self.doc}:"
+	
+	@property
+	def api( self ) -> Str: return self.__api__
+	
+	@property
+	def doc( self ) -> Int: return self.__doc__
+	
+	...
+

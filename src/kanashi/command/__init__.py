@@ -21,11 +21,9 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 
-from kanashi.typing.account import Account
-from kanashi.typing.response import Response
+from kanashi.command.account import Account
 
 
 __all__ = [
-	"Account",
-	"Response"
+	"Account"
 ]

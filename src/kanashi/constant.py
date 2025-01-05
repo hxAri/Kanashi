@@ -21,11 +21,32 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 #
 
-from kanashi.typing.account import Account
-from kanashi.typing.response import Response
+from builtins import str as Str
+from os import getenv
+from sys import path as paths
+from typing import MutableSequence
 
 
-__all__ = [
-	"Account",
-	"Response"
-]
+__all__ = (
+	"BasePath",
+	"BaseVenv",
+	"HomePath",
+	"SelfPath"
+)
+
+
+BaseParts:MutableSequence[Str] = paths[0].split( "\x2f" )
+BasePath:Str = "\x2f".join( BaseParts[:BaseParts.index( "src" )] )
+""" The Base Path of Application """
+
+BaseParts:MutableSequence[Str] = paths[4].split( "\x2f" )
+BaseVenv:Str = "\x2f".join( BaseParts[:BaseParts.index( "lib" )] )
+""" The Base Path of Virtual Environment """
+
+HomePath:Str = getenv( "HOME" )
+""" The Home Path of User Previlege """
+
+SelfPath:Str = "\x34\x62\x36\x31\x36\x65\x36\x31\x37\x33\x36\x38\x36\x39"
+""" The Self Path Application """
+
+del BaseParts
