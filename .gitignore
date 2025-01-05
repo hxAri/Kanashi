@@ -165,4 +165,10 @@ cython_debug/
 #  The program archive
 **.tar**
 **.zip**
-**-encryptor.py
+
+# Kanashi
+#  Disable another files.
+resources/accounts/[a-zA-F0-9]*
+resources/samples/*.html
+src/tests/*-encryptor.py
+
