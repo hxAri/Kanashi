@@ -35,9 +35,16 @@ from typing import (
 
 
 __all__ = [
-	"Parser"
+	"Contents",
+	"Cursor",
+	"Params",
+	"Parser",
+	"Results"
 ]
 
+
+Contents = Var( "Contents", MutableMapping, MutableSequence )
+""" Content's Type """
 
 Cursor = Var( "Cursor", bytes, str )
 """ Cursor Type """
@@ -45,7 +52,7 @@ Cursor = Var( "Cursor", bytes, str )
 Params = Var( "Params", dict, MutableMapping )
 """ Params Type """
 
-Result = Var( "Result", dict, list, MutableMapping, MutableSequence )
+Results = Var( "Results", dict, list, MutableMapping, MutableSequence )
 """ Result Type """
 
 
@@ -60,19 +67,19 @@ class Parser( Abstract ):
 		raise NotImplementedError( f"Class {type( self ).__qualname__} is not implemented" )
 	
 	@abstract
-	def parser( self, response:Union[MutableMapping[Str,Any],MutableSequence[MutableMapping[Str,Any]]], thread:Union[Int,Str]=0 ) -> Union[Result,Tuple[Cursor,Params,Result]]:
+	def parser( self, response:Contents, thread:Union[Int,Str]=0 ) -> Union[Results,Tuple[Cursor,Params,Results]]:
 		
 		"""
 		The graphql response parser
 		
 		Parameters:
-			response (MutableMapping[Str,Any]|MutableSequence[MutableMapping[Str,Any]]):
+			response (Contents):
 				Normalized request response content
 			thread (Int|Str):
 				Current thread position number
 		
 		Returns:
-			results (Result|Tuple[Cursor,Params,Result]):
+			results (Results|Tuple[Cursor,Params,Results]):
 				Return result graphql parsed
 		"""
 	
