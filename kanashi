@@ -929,7 +929,9 @@ function main() {
 	fi
 	
 	if [[ -f "${basepath}/banner.hx" ]]; then
-		echo -e "$(cat ${basepath}/banner.hx | xxd -r -p | sed "s/{version}/${configs[version]}/" )\n"
+		if [[ $(command -v xxd) ]]; then
+			echo -e "$(cat ${basepath}/banner.hx | xxd -r -p | sed "s/{version}/${configs[version]}/" )\n"
+		fi
 	else
 		puts "  <<- ! > The program is not authorized for use"
 		puts "  <<- ! > You don't respect developers, sorry"
