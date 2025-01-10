@@ -169,6 +169,7 @@ cython_debug/
 # Kanashi
 #  Disable another files.
 resources/accounts/[a-zA-F0-9]*
-resources/samples/*.html
+resources/samples/**/*.html
+resources/samples/**/*.json
 src/tests/*-encryptor.py
 
