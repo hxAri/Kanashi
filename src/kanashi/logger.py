@@ -28,8 +28,9 @@ from inspect import getframeinfo, stack
 from os import getpid, getuid, makedirs as mkdir
 from os.path import isdir
 from pwd import getpwuid
-from random import randint
 from pytz import timezone
+from pytz.tzinfo import BaseTzInfo
+from random import randint
 from typing import (
 	Any, 
 	final, 
@@ -38,10 +39,11 @@ from typing import (
 	TypeVar as Var, 
 	Union
 )
+from tzlocal import get_localzone_name as TzLocalzoneName
 
-from kanashi import __name__ as program
+from kanashi import __program__ as program
 from kanashi.common import colorize
-from kanashi.constant import BasePath
+from kanashi.constant import BasePath, BaseVenv
 
 
 __all__ = [
@@ -64,6 +66,12 @@ _FDatetime:Str = "%Y-%m-%dT%H:%M:%S"
 
 _Formatter:Str = "{datetime}{utcoffset} {level} {username} P{pid}:T{thread} --- [{program}] {context} : {linenum} : {message}"
 """ Logging formatter """
+
+_Strftime = Var( "_Strftime", bytes, str )
+""" DateTime String Formatted Type """
+
+_Utcoffsets = Var( "_Utcoffsets", bytes, str )
+""" DateTime String of Utcoffset Type """
 
 
 def disableStoreLog() -> None:
@@ -147,9 +155,20 @@ class Logger( Generic[_Context] ):
 	__formatter:Str
 	""" Logging message format """
 	
+	__timezone:BaseTzInfo
+	""" Current Timezone """
+	
 	def __init__( self, context:_Context, formatter:Str=_Formatter ) -> None:
 		
-		""" Construct method of class Logger """
+		"""
+		Construct method of class Logger
+		
+		Parameters:
+			context (_Context):
+				Application context logger initial
+			formatter (Str):
+				Logger output format
+		"""
 		
 		currtime = datetime.now()
 		self.__basepath = f"{BasePath}/logging"
@@ -158,16 +177,21 @@ class Logger( Generic[_Context] ):
 		self.__context = context
 		self.__filename = currtime.strftime( f"{self.basepath}/{program.lower()}-%Y-%m-%d.log" )
 		self.__formatter = formatter
+		self.__timezone = timezone( TzLocalzoneName() )
 	
 	@final
 	@property
-	def basepath( self ) -> Str: return self.__basepath
+	def basepath( self ) -> Str:
+		
+		""" Basepath logging stored """
+		
+		return self.__basepath
 	
 	@final
 	@property
 	def context( self ) -> Str:
 		
-		""" Return logger context """
+		""" Logger context """
 		
 		context = self.__context
 		if not isinstance( context, Str ):
@@ -189,11 +213,19 @@ class Logger( Generic[_Context] ):
 	
 	@final
 	@property
-	def filename( self ) -> Str: return self.__filename
+	def filename( self ) -> Str:
+		
+		""" Logger filename """
+		
+		return self.__filename
 	
 	@final
 	@property
-	def formatter( self ) -> Str: return self.__formatter
+	def formatter( self ) -> Str:
+		
+		""" Logger fomatter """
+		
+		return self.__formatter
 	
 	def info( self, message:Str, *args:Any, **kwargs:Any ) -> None:
 		self.write( Level.INFO, message, *args, **kwargs )
@@ -203,10 +235,25 @@ class Logger( Generic[_Context] ):
 	
 	@final
 	@property
-	def username( self ) -> Str: return getpwuid( getuid() )[0]
+	def timezone( self ) -> BaseTzInfo:
+		
+		""" Current timezone """
+		
+		return self.__timezone
 	
-	def utcoffset( self ) -> Tuple[Str,Str]:
-		localtime = datetime.now( timezone( "Asia/Jakarta" ) )
+	@final
+	@property
+	def username( self ) -> Str:
+		
+		""" Current os account username """
+		
+		return getpwuid( getuid() )[0]
+	
+	def utcoffset( self ) -> Tuple[_Strftime,_Utcoffsets]:
+		
+		""" Return formatted datetime and utcoffset """
+		
+		localtime = datetime.now( self.timezone )
 		utfoffset = localtime.utcoffset()
 		seconds = utfoffset.total_seconds()
 		hours, remainder = divmod( seconds, 3600 )
@@ -219,23 +266,39 @@ class Logger( Generic[_Context] ):
 	def warning( self, message:Str, *args:Any, **kwargs:Any ) -> None:
 		self.write( Level.WARNING, message, *args, **kwargs )
 	
-	def write( self, level:Union[Int,Level,Str], message:Str, *args:Any, **kwargs:Any ) -> None:
+	def write( self, level:Union[Int,Level,Str], message:Str, *args:Any, thread:Union[Int,Str]=0, **kwargs:Any ) -> None:
+		
+		"""
+		Logger write
+		
+		Parameters:
+			level (Int|Level|Str):
+				Logger logging level
+			message (Str):
+				Logger message
+			args (*Any):
+				Logger argument message
+			thread (Int|Str):
+				Current thread position number
+			kwargs (**Any):
+				Logger key argument message
+		"""
+		
 		stacks = stack()
 		progpid = str( getpid() )
 		inframe = getframeinfo( stacks[2][0] )
 		linenum = str( inframe.lineno )
 		context = f"{self.context}.{inframe.function}"
-		context = context.replace( "__main__", program.lower() )
+		context = context \
+			.replace( "__main__", program.lower() ) \
+			.replace( "<module>", "invoke" )
 		strftime, offsets = self.utcoffset()
 		levelname = level
 		if isinstance( level, Int ):
 			level = Level( value=0 )
 		if isinstance( level, Level ):
 			levelname = level.name
-		thread = "0"
-		if "thread" in kwargs and kwargs['thread'] is not None:
-			thread = str( kwargs['thread'] )
-			del kwargs['thread']
+		thread = str( thread )
 		username = self.username
 		formatted = self.formatter.format(
 			datetime=strftime,
@@ -250,12 +313,15 @@ class Logger( Generic[_Context] ):
 			message=message.format( *args, **kwargs )
 		)
 		if _EnableStore is True:
-			with open( self.filename, "a" ) as fopen:
+			with open( self.filename, "a", encoding="UTF-8" ) as fopen:
 				fopen.write( formatted.replace( "\x0a", "\\n" ) )
 				fopen.write( "\x0a" )
 				fopen.close()
 		if not isinstance( level, Str ) and level.value >= _Threshlod.value:
-			print( colorize( formatted ) )
+			print( f"\x0d{colorize( formatted )}" \
+				.replace( BasePath, "{basepath}" ) \
+				.replace( BaseVenv, "{virtual}" )
+		 	)
 		...
 	
 	...
