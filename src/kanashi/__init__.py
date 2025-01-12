@@ -22,8 +22,8 @@
 #
 
 __all__ = [
-	"__name__"
+	"__program__"
 ]
 
-__name__ = "Kanashi"
+__program__ = "Kanashi"
 """ Program Name """
