@@ -76,7 +76,6 @@ def encryptor( TPEncFormat:Str, TPEncKeyId:Int, TPEncPublicKey:Str, TPEncVersion
 @Initial
 def anonymous( context:Context ) -> None:
 	puts( f"Anoymous id={context.obj['manager'].anonymous}" )
-	puts( "Program terminated", close=0, end="\x0a" * 2 )
 
 @Account.command( help="Instagram account refresh" )
 @Initial
@@ -89,7 +88,7 @@ def lists( context:Context ) -> None:
 		ll = len( str( manager.length ) )
 		n = "".join([ "0" * ( ll - nl ) if ll >= 2 else "0", n ])
 		puts( formatter.format( n, account.authenticated, manager.encoder( account.auth.username if not account.anonymous else manager.anonymous ), account.auth.username if not account.anonymous else "anonymous" ) )
-	puts( "Program terminated", close=0, end="\x0a" * 2 )
+	...
 
 @Account.command( help="Instagram account refresh" )
 @Initial
@@ -98,9 +97,7 @@ def refresh( context:Context ) -> None:
 	client.authenticate()
 	manager:Manager = context.obj['manager']
 	manager.append( client.account )
-	puts( client.account )
 	puts( "Account successfully updated" )
-	puts( "Program terminated", close=0, end="\x0a" * 2 )
 
 @Account.command( help="Instagram account signin" )
 @Initial
@@ -108,17 +105,15 @@ def refresh( context:Context ) -> None:
 @Option( "--password", help="Instagram account password", prompt=True, required=True, type=Str )
 @Option( "--username", help="Instagram account username", required=True, type=Str )
 def signin( context:Context, headers:MutableMapping[Str,Str], password:Str, username:Str ) -> None:
-	client = ClientBuilder( 
+	client = ClientBuilder( dict(
 		headers=headers,
 		password=password,
 		username=username
-	)
+	))
 	client.authenticate( encryptor=encryptor )
 	manager:Manager = context.obj['manager']
 	manager.append( client.account )
-	puts( client.account )
 	puts( "Account successfully authenticated" )
-	puts( "Program terminated", close=0, end="\x0a" * 2 )
 
 @Account.command( help="Instagram account signup" )
 @Initial
@@ -139,7 +134,6 @@ def signup( context:Context, headers:MutableMapping[Str,Str], usermail:Str, user
 	signup.perform()
 	manager.append( signup.client.account )
 	puts( "Successfully send verification code" )
-	puts( "Program terminated", close=0, end="\x0a" * 2 )
 
 @Account.command( "signup-verify", help="Instagram account signup verify" )
 @Initial
@@ -166,7 +160,6 @@ def signupv( code:Int, context:Context, birthday:datetime, firstname:Str, userma
 	signup.verify( code )
 	manager.append( signup.client.account )
 	puts( "Account successfully created and authenticated" )
-	puts( "Program terminated", close=0, end="\x0a" * 2 )
 
 @Account.command( help="Instagram account switch" )
 @Initial
@@ -175,5 +168,4 @@ def switch( context:Context, username:Str ) -> None:
 	manager:Manager = context.obj['manager']
 	manager.switch( username )
 	puts( "Successfully updated default account" )
-	puts( "Program terminated", close=0, end="\x0a" * 2 )
 
