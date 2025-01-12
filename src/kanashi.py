@@ -22,16 +22,21 @@
 #
 
 from builtins import str as Str
-from click import argument as Argument, group, pass_context as Instance
+from click import (
+	argument as Argument, 
+	group, Group, 
+	option as Option, 
+	pass_context as Instance
+)
 from click.core import Context
 from json import dumps as JsonEncoder
 from subprocess import run as SubprocessRun
 from sys import argv
 from traceback import format_exception
-from typing import final, MutableSequence
+from typing import final, MutableSequence, Self
 
 from kanashi.client import Client, create as ClientBuilder
-from kanashi.command import Account
+from kanashi.command import *
 from kanashi.common import puts, typeof
 from kanashi.constant import BasePath, BaseVenv
 from kanashi.logger import *
@@ -52,13 +57,22 @@ class Command:
 	
 	""" Kanashi Command Containers """
 	
+	logger = Logger( __name__ )
+	
+	@Cli.command( help="Instagram profile info" )
+	@Option( "--username", help="Instagram account username" )
+	@Instance
+	def profile( context:Context, username:Str ) -> None:
+		client:Client = context.obj['client']
+		profile = client.profile( username, navigate=True )
+		profile = profile['user']
+		puts( JsonEncoder( profile ) )
+	
 	@Cli.command( help="Testing the program" )
 	@Argument( "testing", required=False, type=Str )
 	@Instance
 	def testing( context:Context, testing:Str, **kwargs ) -> None:
-		
 		client:Client = context.obj['client']
-		logger = Logger( Command )
 		if testing is not None:
 			puts( f"Executing program src/tests/{testing}.py" )
 			execution = SubprocessRun( f"{BaseVenv}/bin/python {BasePath}/src/tests/{testing}.py", shell=True, capture_output=True )
@@ -76,22 +90,22 @@ class Command:
 			puts( JsonEncoder( result, indent=4 ) )
 		except BaseException as e:
 			puts( "\x3a\x20".join([ typeof( e ), "\x0a".join( format_exception( e ) ) ]) )
-		puts( "Program terminated", close=0 )
+		...
 	
 	...
 
 @final
-class Main:
+class Kanashi:
 	
-	""" Main Kanashi Program """
+	""" Kanashi Main Program """
 	
 	client:Client
 	""" Client Instance """
 	
-	commands:MutableSequence[type]
+	commands:MutableSequence[Group]
 	""" Registered commands """
 	
-	logger:Logger
+	logger:Logger[Self]
 	""" Logger Instance """
 	
 	manager:Manager
@@ -117,7 +131,9 @@ class Main:
 			enableStoreLog()
 		
 		self.commands = [
-			Account
+			Account,
+			Media,
+			Story
 		]
 		self.logger = Logger( self )
 	
@@ -137,16 +153,27 @@ class Main:
 		)
 		
 		for command in self.commands:
-			self.logger.info( "Registering command: {}", typeof( command ) )
+			self.logger.info( "Registering command: {}[{}]", typeof( command ), command.name )
 			Cli.add_command( command )
 		
 		self.logger.info( "Instantiate command line interface: {}", typeof( Cli ) )
-		Cli( obj={ "client": self.client, "manager": self.manager })
+		status = 0
+		try:
+			Cli( obj={ "client": self.client, "manager": self.manager })
+		except Exception as e:
+			status = e.code if hasattr( e, "code" ) else 1
+			puts( "\x3a\x20".join([ typeof( e ), "\x0a".join( format_exception( e ) ) ]) )
+		except SystemExit as e:
+			status = e.code
+		finally:
+			self.logger.info( "Program terminated with status: {}", status )
+			puts( close=status )
+		...
 	
 	...
 
 
 if __name__ == "__main__":
-	main = Main()
-	main.main()
+	kanashi = Kanashi()
+	kanashi.main()
 
