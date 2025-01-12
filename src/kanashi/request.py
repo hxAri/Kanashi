@@ -58,7 +58,11 @@ __all__ = [
 ]
 
 
-def request( method:Str, url:Str, auth:Tuple[Str,Str]=None, data:MutableMapping[Str,Any]=None, cookies:MutableMapping[Str,Str]=None, headers:MutableMapping[Str,Str]=None, params:MutableMapping[Str,Str]=None, payload:MutableMapping[Str,Any]=None, proxies:MutableMapping[Str,Str]=None, stream:Bool=False, verify:Bool=None, timeout:Int=None, tries:Int=10, thread:Union[Int,Str]=0 ) -> Optional[Response]:
+_logger = Logger( __name__ )
+""" Logger Instance """
+
+
+def request( method:Str, url:Str, auth:Optional[Tuple[Str,Str]]=None, data:Optional[MutableMapping[Str,Any]]=None, files:Optional[MutableMapping[Str,Any]]=None, cookies:Optional[MutableMapping[Str,Str]]=None, headers:Optional[MutableMapping[Str,Str]]=None, params:Optional[MutableMapping[Str,Str]]=None, payload:Optional[MutableMapping[Str,Any]]=None, proxies:Optional[MutableMapping[Str,Str]]=None, stream:Bool=False, verify:Optional[Bool]=None, timeout:Optional[Int]=None, tries:Int=10, thread:Union[Int,Str]=0 ) -> Optional[Response]:
 	
 	"""
 	Send HTTP Request
@@ -68,25 +72,27 @@ def request( method:Str, url:Str, auth:Tuple[Str,Str]=None, data:MutableMapping[
 			Http request method
 		url (Str):
 			Http request url target
-		auth (Tuple[Str,Str]):
+		auth (Optional[Tuple[Str,Str]]):
 			Http request authentication
-		data (MutableMapping[Str,Any]):
+		data (Optional[MutableMapping[Str,Any]]):
+			Http request application/x-www-form-urlencoded
+		files (Optional[MutableMapping[Str,Any]]):
 			Http request multipart form data
-		cookies (MutableMapping[Str,Str]):
+		cookies (Optional[MutableMapping[Str,Str]):
 			Http request cookies
-		headers (MutableMapping[Str,Str]):
+		headers (Optional[MutableMapping[Str,Str]):
 			Http request headers
-		params (MutableMapping[Str,Str]):
+		params (Optional[MutableMapping[Str,Str]):
 			Http request parameters
-		payload (MutableMapping[Str,Any]):
-			Http request json payload data
-		proxies (MutableMapping[Str,Any]):
+		payload (Optional[MutableMapping[Str,Any]]):
+			Http request application/json
+		proxies (Optional[MutableMapping[Str,Any]]):
 			Http request proxies
 		stream (Bool):
 			Allow request stream
-		verify (Bool):
+		verify (Optional[Bool]):
 			Verify http request
-		timeout (Int):
+		timeout (Optional[Int]):
 			Http request timeout
 		tries (Int):
 			Http request timeout tries
@@ -98,7 +104,6 @@ def request( method:Str, url:Str, auth:Tuple[Str,Str]=None, data:MutableMapping[
 			Request response
 	"""
 	
-	logger = Logger( request )
 	counter = 0
 	session = Session()
 	throwned = []
@@ -123,12 +128,13 @@ def request( method:Str, url:Str, auth:Tuple[Str,Str]=None, data:MutableMapping[
 	urlparsed = urlparse( url )
 	urlsimple = f"{urlparsed.scheme}://{urlparsed.netloc}{urlparsed.path}"
 	while counter <= 10:
-		logger.warning( "Request {} url=\"{}\"", method, urlsimple, thread=thread )
+		_logger.warning( "Request {} url=\"{}\"", method, urlsimple, thread=thread )
 		try:
 			response = session.request( 
 				url=url, 
 				auth=auth,
 				data=data, 
+				files=files,
 				json=payload, 
 				stream=stream,
 				method=method, 
@@ -138,7 +144,7 @@ def request( method:Str, url:Str, auth:Tuple[Str,Str]=None, data:MutableMapping[
 				proxies=proxies,
 				params=params 
 			)
-			logger.warning( "Response {} url=\"{}\" code={}", method, urlsimple, response.status_code, thread=thread )
+			_logger.warning( "Response {} url=\"{}\" code={}", method, urlsimple, response.status_code, thread=thread )
 			encoding = response.headers['Content-Encoding'] \
 				if "Content-Encoding" in response.headers \
 				else None
@@ -149,8 +155,8 @@ def request( method:Str, url:Str, auth:Tuple[Str,Str]=None, data:MutableMapping[
 				characterSet = parts[1].strip( "\x20" ).split( "\x3d" ).pop() if len( parts ) >= 2 else None
 				contentType = parts[0].strip( "\x20" )
 			try:
-				logger.warning( "Trying to decompress content={} url=\"{}\"", encoding, urlsimple, thread=thread )
 				if encoding is not None:
+					_logger.warning( "Trying to decompress content={} url=\"{}\"", encoding, urlsimple, thread=thread )
 					content = response._content
 					match encoding:
 						case "br":
@@ -162,7 +168,7 @@ def request( method:Str, url:Str, auth:Tuple[Str,Str]=None, data:MutableMapping[
 					response._content = content
 				...
 			except( BadGzipFile, BrotliError, ZstdError ) as e:
-				logger.critical( "{}: {}", typeof( e ), "\x0a".join( format_exception( e ) ), thread=thread )
+				_logger.critical( "{}: {}", typeof( e ), "\x0a".join( format_exception( e ) ), thread=thread )
 			return Response(
 				url=response.url,
 				text=response.text,
@@ -178,7 +184,7 @@ def request( method:Str, url:Str, auth:Tuple[Str,Str]=None, data:MutableMapping[
 		except BaseException as e:
 			instance = type( e )
 			throwable.append( e )
-			logger.error( "{}: {}", typeof( e ), "\x0a".join( format_exception( e ) ), thread=thread )
+			_logger.error( "{}: {}", typeof( e ), "\x0a".join( format_exception( e ) ), thread=thread )
 			if instance in throwable:
 				if isinstance( e, continueable ):
 					counter += 1
@@ -188,3 +194,4 @@ def request( method:Str, url:Str, auth:Tuple[Str,Str]=None, data:MutableMapping[
 				raise ExceptionGroup( f"An error occurred while sending a {method} request to url=\"{urlsimple}\"", throwned ) from e
 			raise e
 	...
+

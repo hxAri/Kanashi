@@ -22,8 +22,12 @@
 #
 
 from kanashi.command.account import Account
+from kanashi.command.media import Media
+from kanashi.command.story import Story
 
 
 __all__ = [
-	"Account"
+	"Account",
+	"Media",
+	"Story"
 ]

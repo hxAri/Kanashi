@@ -71,7 +71,24 @@ class Account:
 	headers:MutableMapping[Str,Str]
 	""" Account Headers """
 	
-	def __init__( self, configs:MutableMapping[Str,Any], cookies:Union[MutableMapping[Str,Str],Str], headers:MutableMapping[Str,Str], password:Optional[Str]=None, username:Optional[Str]=None ):
+	def __init__( self, configs:MutableMapping[Str,Any], cookies:Union[MutableMapping[Str,Str],Str], headers:MutableMapping[Str,Str], password:Optional[Str]=None, username:Optional[Str]=None ) -> None:
+		
+		"""
+		Construct method of class Account
+		
+		Parameters:
+			configs (MutableMapping[Str,Any]):
+				Account configurations
+			cookies (Union[MutableMapping[Str,Str],Str]):
+				Account cookies
+			headers (MutableMapping[Str,Str]):
+				Account headers
+			password (Optional[Str]):
+				Account password
+			username (Optional[Str]):
+				Account username
+		"""
+		
 		if cookies is None or not cookies:
 			if "Cookie" in headers:
 				cookies = headers['Cookie']
@@ -107,6 +124,7 @@ class Account:
 		return self.auth.username is None and \
 			   self.auth.password is None
 	
+	@final
 	@property
 	def authenticated( self ) -> Bool:
 		cookies = [ "csrftoken", "ig_did", "mid" ]
