@@ -41,7 +41,7 @@ __all__ = [
 @group
 class Story: """ Instagram story """
 
-@Story.command( help="" )
+@Story.command( help="Instagram highlighted story tray" )
 @Option( "--username", help="", required=True, type=Str )
 @Initial
 def highlight( context:Context, username:Str ) -> None:
