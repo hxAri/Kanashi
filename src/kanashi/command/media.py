@@ -25,11 +25,21 @@ from builtins import bool as Bool, int as Int, str as Str
 from click import Context, group, option as Option, pass_context as Initial
 from click.types import Path
 from hashlib import md5
-from json import dumps as JsonEncoder, loads as JsonDecoder
+from json import dumps as JsonEncoder
 from os import makedirs as mkdir
 from os.path import isdir, isfile
-from re import compile as Pattern, IGNORECASE, MULTILINE
-from typing import Any, final, MutableMapping, MutableSequence, Tuple, TypeVar as Var, Union
+from re import IGNORECASE, MULTILINE
+from re import compile as Pattern
+from traceback import format_exception
+from typing import (
+	Any, 
+	final, 
+	MutableMapping, 
+	MutableSequence, 
+	Tuple, 
+	TypeVar as Var, 
+	Union
+)
 from urllib.parse import urlparse as urlparser
 from xml.sax import saxutils
 
@@ -63,7 +73,6 @@ _PathnameDefault:Str = f"{HomePath}/kanashi"
 
 _Source = Var( "_Source", bytes, str )
 """ Media Source Type """
-
 
 
 def download( timeline:Union[MutableMapping[Str,Any],MutableSequence[Any]], pathname:Str, thread:Union[Int,Str]=None ) -> None:
@@ -100,7 +109,10 @@ def download( timeline:Union[MutableMapping[Str,Any],MutableSequence[Any]], path
 		
 		sources = []
 		typename = "unknown"
+		separator = "\x5f"
 		timelineId = timeline['id']
+		if separator in timelineId:
+			timelineId = timelineId.split( separator )[0]
 		if "type" in timeline and timeline['type']:
 			typename = timeline['type']
 		elif "__typename" in timeline and timeline['__typename']:
@@ -132,8 +144,25 @@ def download( timeline:Union[MutableMapping[Str,Any],MutableSequence[Any]], path
 			case "GraphImage":
 				sources.append( tuple([ timeline['image'], f"{pathname}/GraphImage/{timelineId}" ]) )
 			case "GraphVideo":
-				sources.append( tuple([timeline['video'], f"{pathname}/GraphVideo/{timelineId}" ]) )
-				sources.append( tuple([ timeline['thumbnail'], f"{pathname}/GraphVideo/{timelineId}" ]) )
+				if "owner" in timeline:
+					if not pathname.endswith( timeline['owner']['username'] ):
+						pathname+= f"/{timeline['owner']['username']}"
+				if "video" in timeline and timeline['video']:
+					sources.append( tuple([ timeline['video'], f"{pathname}/GraphVideo/{timelineId}" ]) )
+					sources.append( tuple([ timeline['thumbnail'], f"{pathname}/GraphVideo/{timelineId}" ]) )
+				elif "video_url" in timeline and timeline['video_url']:
+					sources.append( tuple([ timeline['video_url'], f"{pathname}/GraphVideo/{timelineId}" ]) )
+					thumbnail = None
+					if "display_resources" in timeline and timeline['display_resources']:
+						thumbnail = max( timeline['display_resources'], key=lambda resource: ( resource['config_width'], resource['config_height'] ) )
+					elif "display_url" in timeline and timeline['display_url']:
+						thumbnail = { "src": timeline['display_url'] }
+					elif "thumbnail_resources" in timeline and timeline['thumbnail_resources']:
+						thumbnail = max( timeline['thumbnail_resources'], key=lambda resource: ( resource['config_width'], resource['config_height'] ) )
+					elif "thumbnail_src" in timeline and timeline['thumbnail_src']:
+						thumbnail = { "src": timeline['thumbnail_src'] }
+					if thumbnail is not None and thumbnail:
+						sources.append( tuple([ thumbnail['src'], f"{pathname}/GraphVideo/{timelineId}" ]) )
 			case "kanashi.client.Client.profile":
 				if not pathname.endswith( timeline['username'] ):
 					pathname+= f"/{timeline['username']}"
@@ -148,7 +177,7 @@ def download( timeline:Union[MutableMapping[Str,Any],MutableSequence[Any]], path
 				match timeline['media_type']:
 					case 1:
 						image = max( timeline['image_versions2']['candidates'], key=lambda resource: ( resource['width'], resource['height'] ) )
-						sources.append( tuple([ timeline['url'], f"{pathname}/{typename}/{timelineId}" ]) )
+						sources.append( tuple([ timeline['url'], f"{pathname}/GraphImage/{timelineId}" ]) )
 					case 2:
 						video = None
 						if "video_dash_manifest" in timeline and timeline['video_dash_manifest']:
@@ -156,9 +185,9 @@ def download( timeline:Union[MutableMapping[Str,Any],MutableSequence[Any]], path
 							video = max( videoDashManifests, key=lambda resource: ( resource['width'], resource['height'] if "height" in resource else 0 ) )
 						elif "video_versions" in timeline and timeline['video_versions']:
 							video = min( timeline['video_versions'], key=lambda resource: ( resource['type'] ) )
-						sources.append( tuple([ video['url'], f"{pathname}/{typename}/{timelineId}" ]) )
+						sources.append( tuple([ video['url'], f"{pathname}/GraphVideo/{timelineId}" ]) )
 						thumbnail = max( timeline['image_versions2']['candidates'], key=lambda resource: ( resource['width'], resource['height'] ) )
-						sources.append( tuple([ thumbnail['url'], f"{pathname}/{typename}/{timelineId}" ]) )
+						sources.append( tuple([ thumbnail['url'], f"{pathname}/GraphVideo/{timelineId}" ]) )
 					case _:
 						_logger.warning( "Unknown media {} typename: {}", typename, timeline['media_type'], thread=thread )
 			case "XDTGraphSidecar":
@@ -289,47 +318,79 @@ def download( timeline:Union[MutableMapping[Str,Any],MutableSequence[Any]], path
 			...
 		return results
 	
-	sources = []
-	if isinstance( timeline, MutableMapping ):
-		sources = parser( timeline, pathname, thread=thread )
-	elif isinstance( timeline, MutableSequence ):
-		for media in timeline:
-			sources.extend( parser( media, f"{pathname}", thread=thread ) )
-	for extend, target in enumerate( sources, 1 ):
-		if thread is not None:
-			if isinstance( thread, Int ) and thread >= 1:
-				extend = f"T<{thread},E<{extend}>>"
-			if isinstance( thread, Str ) and thread:
-				extend = f"D<{thread},E<{extend}>>"
-		source, pathname = target
-		if not isdir( pathname ):
-			_logger.info( "Create directory pathname: {}", pathname, thread=extend )
-			mkdir( pathname )
-		urlparsed = urlparser( source )
-		pfilename = urlparsed.path.split( "\x2f" )[-1].split( "\x2e" )
-		filenamen = md5( pfilename[0].encode() ).hexdigest()
-		filenamed = f"{pathname}/{filenamen}.{pfilename[-1]}"
-		if isfile( filenamed ):
-			_logger.info( "File exists media: {}.{}", filenamen, pfilename[-1], thread=extend )
-			continue
-		_logger.info( "Downloading media: {}.{}", filenamen, pfilename[-1], thread=extend )
-		response = request( "GET", source, stream=True )
-		if not response.status in [ 200, 201 ]:
-			_logger.warning( "Failed download media: {}.{}", filenamen, pfilename[-1], thread=extend )
-			continue
-		_logger.info( "Opening file media: {}.{}", filenamen, pfilename[-1], thread=extend )
-		with open( filenamed, "wb" ) as fopen:
-			_logger.info( "Writing content media: {}.{}", filenamen, pfilename[-1], thread=extend )
-			fopen.write( response.content )
-			fopen.close()
-		_logger.info( "Successfully download media: {}.{}", filenamen, pfilename[-1], thread=extend )
-	_logger.info( "Successfully download: {} media", len( sources ), thread=thread )
+	try:
+		sources = []
+		if isinstance( timeline, MutableMapping ):
+			sources = parser( timeline, pathname, thread=thread )
+		elif isinstance( timeline, MutableSequence ):
+			for media in timeline:
+				sources.extend( parser( media, f"{pathname}", thread=thread ) )
+		for extend, target in enumerate( sources, 1 ):
+			if thread is not None:
+				if isinstance( thread, Int ) and thread >= 1:
+					extend = f"T<{thread},E<{extend}>>"
+				if isinstance( thread, Str ) and thread:
+					extend = f"D<{thread},E<{extend}>>"
+			source, pathname = target
+			if not isdir( pathname ):
+				_logger.info( "Create directory pathname: {}", pathname, thread=extend )
+				mkdir( pathname )
+			urlparsed = urlparser( source )
+			pfilename = urlparsed.path.split( "\x2f" )[-1].split( "\x2e" )
+			filenamen = md5( pfilename[0].encode() ).hexdigest()
+			filenamed = f"{pathname}/{filenamen}.{pfilename[-1]}"
+			if isfile( filenamed ):
+				_logger.info( "File exists media: {}.{}", filenamen, pfilename[-1], thread=extend )
+				continue
+			_logger.info( "Downloading media: {}.{}", filenamen, pfilename[-1], thread=extend )
+			response = request( "GET", source, stream=True )
+			if not response.status in [ 200, 201 ]:
+				_logger.warning( "Failed download media: {}.{}", filenamen, pfilename[-1], thread=extend )
+				continue
+			_logger.info( "Opening file media: {}.{}", filenamen, pfilename[-1], thread=extend )
+			with open( filenamed, "wb" ) as fopen:
+				_logger.info( "Writing content media: {}.{}", filenamen, pfilename[-1], thread=extend )
+				fopen.write( response.content )
+				fopen.close()
+			_logger.info( "Successfully download media: {}.{}", filenamen, pfilename[-1], thread=extend )
+		_logger.info( "Successfully download: {} media", len( sources ), thread=thread )
+	except BaseException as e:
+		_logger.error( "{}: {}", typeof( e ), "\x0a".join( format_exception( e ) ), thread=thread )
+	...
 
 
 @final
 @group
 class Media: """ Instagram media """
 
+
+@Media.command( help="Instagram profile posts media" )
+@Option( "--delays", help="Sleep time for each number of workers working", default=0, type=Int )
+@Option( "--limit", help="Instagram profile posts item limit", required=False, type=Int )
+@Option( "--pathname", help="Output the directory name to store the media", default=_PathnameDefault, type=Path( exists=False, dir_okay=True, writable=True ) )
+@Option( "--sleepy", help="Time sleep per worker", default=0, type=Int )
+@Option( "--threads", help="The number of worker threads", default=10, type=Int )
+@Option( "--timeout", help="Timeout of thread pool executor", default=4, type=Int )
+@Option( "--user", help="Instagram profile user id", required=True, type=Str )
+@Initial
+def posts( context:Context, delays:Int, limit:Int, pathname:Str, sleepy:Int, threads:Int, timeout:Int, user:Str ) -> None:
+	client:Client = context.obj['client']
+	if not user.isdigit():
+		puts( f"Invalid profile user id {user}", close=1 )
+	iterator = client.posts( user, terminator=lambda item, position: limit != None and position >= limit )
+	executor = ThreadExecutor(
+		name="Instagram Profile Posts",
+		callback=download,
+		pathname=pathname,
+		dataset=iterator,
+		workers=threads,
+		timeout=timeout,
+		delays=delays,
+		sleepy=sleepy
+	)
+	for executed in executor:
+		del executed
+	puts( f"Successfully download profile posts" )
 
 @Media.command( help="Instagram profile picture media" )
 @Option( "--user", help="Instagram profile id or username", required=True, type=Str )
@@ -356,12 +417,16 @@ def profile( context:Context, pathname:Str, user:Str ) -> None:
 	download( profile, pathname=pathname )
 	puts( f"Successfully download profile picture {profile['username']}" )
 
-@Media.command( help="Instagram profile picture media" )
-@Option( "--user", help="Instagram profile user id", required=True, type=Str )
+@Media.command( help="Instagram profile reels media" )
+@Option( "--delays", help="Sleep time for each number of workers working", default=0, type=Int )
 @Option( "--limit", help="Instagram profile reels item limit", required=False, type=Int )
 @Option( "--pathname", help="Output the directory name to store the media", default=_PathnameDefault, type=Path( exists=False, dir_okay=True, writable=True ) )
+@Option( "--sleepy", help="Time sleep per worker", default=0, type=Int )
+@Option( "--threads", help="The number of worker threads", default=10, type=Int )
+@Option( "--timeout", help="Timeout of thread pool executor", default=4, type=Int )
+@Option( "--user", help="Instagram profile user id", required=True, type=Str )
 @Initial
-def reels( context:Context, limit:Int, user:Str, pathname:Str ) -> None:
+def reels( context:Context, delays:Int, limit:Int, pathname:Str, sleepy:Int, threads:Int, timeout:Int, user:Str ) -> None:
 	client:Client = context.obj['client']
 	if not user.isdigit():
 		puts( f"Invalid profile user id {user}", close=1 )
@@ -371,10 +436,10 @@ def reels( context:Context, limit:Int, user:Str, pathname:Str ) -> None:
 		callback=download,
 		pathname=pathname,
 		dataset=iterator,
-		workers=20,
-		timeout=4,
-		delays=0,
-		sleepy=0
+		workers=threads,
+		timeout=timeout,
+		delays=delays,
+		sleepy=sleepy
 	)
 	for executed in executor:
 		del executed
